@@ -1,0 +1,511 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useToast } from './context/ToastContext';
+import { ConfirmDialog } from './components/ui';
+import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog } from './hooks';
+import { isBillDueSoon, isOverdue } from './utils/dateHelpers';
+import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
+
+// Component imports
+import { RoomForm, RoomsList } from './components/rooms';
+import { BillForm, BillsTable, BillFilters } from './components/bills';
+import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
+import { SummaryCards, RevenueCards, AlertsList } from './components/dashboard';
+import { SettingsForm } from './components/settings';
+import { Pagination } from './components/ui';
+
+const ApartmentBillTracker = () => {
+  const toast = useToast();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(true);
+
+  // Bill filters state
+  const [billFilters, setBillFilters] = useState({
+    search: '',
+    status: 'all',
+    roomId: '',
+    dateFrom: '',
+    dateTo: '',
+  });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Custom hooks for data management
+  const { settings, updateSetting, saveSettings: saveSettingsAction } = useSettings();
+
+  const {
+    rooms,
+    roomForm,
+    isEditing: isEditingRoom,
+    errors: roomErrors,
+    saveRoom: saveRoomAction,
+    editRoom,
+    deleteRoom: deleteRoomAction,
+    resetForm: resetRoomForm,
+    updateFormField: updateRoomField,
+    toggleRoomStatus,
+    getRoomById,
+    getOccupiedRooms,
+  } = useRooms();
+
+  const {
+    bills,
+    billForm,
+    isEditing: isEditingBill,
+    errors: billErrors,
+    saveBill: saveBillAction,
+    editBill,
+    deleteBill: deleteBillAction,
+    deleteBillsByRoomId,
+    togglePaid,
+    resetForm: resetBillForm,
+    updateFormField: updateBillField,
+    printBill,
+    getOverdueBills,
+    getUnpaidBills,
+    isBillOverdue,
+    getTotalCollected,
+    getTotalPending,
+    getTotalBilled,
+    getBillTotal,
+  } = useBills(rooms, settings);
+
+  const {
+    cleaningSchedules,
+    cleaningForm,
+    isEditing: isEditingCleaning,
+    errors: cleaningErrors,
+    selectedHistory,
+    saveSchedule: saveScheduleAction,
+    editSchedule,
+    deleteSchedule: deleteScheduleAction,
+    deleteSchedulesByRoomId,
+    markAsCleaned,
+    resetForm: resetCleaningForm,
+    updateFormField: updateCleaningField,
+    openHistory,
+    closeHistory,
+    getOverdueSchedules,
+    getSchedulesNeedingAttention,
+    isScheduleOverdue,
+    isScheduleDueSoon,
+  } = useAirconCleaning(rooms);
+
+  const confirmDialog = useConfirmDialog();
+
+  // Filter and paginate bills
+  const filteredBills = useMemo(() => {
+    return bills.filter((bill) => {
+      const room = getRoomById(bill.roomId);
+
+      // Search filter
+      if (billFilters.search) {
+        const searchLower = billFilters.search.toLowerCase();
+        if (!room?.name?.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (billFilters.status !== 'all') {
+        if (billFilters.status === 'paid' && !bill.paid) return false;
+        if (billFilters.status === 'pending' && (bill.paid || isOverdue(bill.dueDate))) return false;
+        if (billFilters.status === 'overdue' && (bill.paid || !isOverdue(bill.dueDate))) return false;
+      }
+
+      // Room filter
+      if (billFilters.roomId && bill.roomId !== billFilters.roomId) {
+        return false;
+      }
+
+      // Date range filter
+      if (billFilters.dateFrom && bill.dueDate < billFilters.dateFrom) {
+        return false;
+      }
+      if (billFilters.dateTo && bill.dueDate > billFilters.dateTo) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [bills, billFilters, getRoomById]);
+
+  // Paginated bills
+  const paginatedBills = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredBills.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredBills, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredBills.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [billFilters]);
+
+  // Simulate initial data load
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Filter handlers
+  const handleFilterChange = (key, value) => {
+    setBillFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setBillFilters({
+      search: '',
+      status: 'all',
+      roomId: '',
+      dateFrom: '',
+      dateTo: '',
+    });
+  };
+
+  // Room handlers with toast notifications
+  const handleSaveRoom = async () => {
+    const result = await saveRoomAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  const handleToggleRoomStatus = async (room) => {
+    const result = await toggleRoomStatus(room);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleDeleteRoom = (id) => {
+    const room = getRoomById(id);
+    confirmDialog.showConfirm(
+      'Delete Room',
+      `Are you sure you want to delete "${room?.name}"? All associated bills and cleaning schedules will also be deleted.`,
+      async () => {
+        await deleteBillsByRoomId(id);
+        await deleteSchedulesByRoomId(id);
+        const result = await deleteRoomAction(id);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
+  // Bill handlers with toast notifications
+  const handleSaveBill = async () => {
+    const result = await saveBillAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  const handleDeleteBill = (id) => {
+    const bill = bills.find((b) => b.id === id);
+    const room = getRoomById(bill?.roomId);
+    confirmDialog.showConfirm(
+      'Delete Bill',
+      `Are you sure you want to delete the bill for "${room?.name || 'Unknown'}"?`,
+      async () => {
+        const result = await deleteBillAction(id);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleToggleBillPaid = async (billId) => {
+    const result = await togglePaid(billId);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  // Aircon cleaning handlers with toast notifications
+  const handleSaveCleaningSchedule = async () => {
+    const result = await saveScheduleAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  const handleDeleteCleaningSchedule = (id) => {
+    const schedule = cleaningSchedules.find((c) => c.id === id);
+    const room = getRoomById(schedule?.roomId);
+    confirmDialog.showConfirm(
+      'Delete Schedule',
+      `Are you sure you want to delete the cleaning schedule for "${room?.name || 'Unknown'}"? All history will be lost.`,
+      async () => {
+        const result = await deleteScheduleAction(id);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleMarkAirconCleaned = (roomId) => {
+    const room = getRoomById(roomId);
+    confirmDialog.showConfirm(
+      'Mark as Cleaned',
+      `Mark aircon for "${room?.name || 'Unknown'}" as cleaned today?`,
+      async () => {
+        const result = await markAsCleaned(roomId);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      }
+    );
+  };
+
+  // Settings handlers
+  const handleSaveSettings = async () => {
+    const result = await saveSettingsAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  // Export handlers
+  const handleExportCSV = () => {
+    const success = exportBillsToCSV(bills, rooms);
+    if (success) {
+      toast.success('Bills exported to CSV successfully!');
+    } else {
+      toast.error('Failed to export bills. No data available.');
+    }
+  };
+
+  const handleExportJSON = () => {
+    const allData = {
+      rooms,
+      bills,
+      cleaningSchedules,
+      settings,
+    };
+    const success = exportAllDataToJSON(allData);
+    if (success) {
+      toast.success('All data exported to JSON successfully!');
+    } else {
+      toast.error('Failed to export data.');
+    }
+  };
+
+  // Helper to check if bill is due soon
+  const checkBillDueSoon = (bill) => {
+    return !bill.paid && isBillDueSoon(bill.dueDate);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-lg text-gray-600 dark:text-gray-300">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-6">
+          Apartment Bill Tracker
+        </h1>
+
+        {/* Tabs */}
+        <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
+          {['dashboard', 'bills', 'rooms', 'aircon', 'settings'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 md:px-6 py-2 md:py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
+                activeTab === tab
+                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+              aria-selected={activeTab === tab}
+              role="tab"
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <SummaryCards
+              totalRooms={rooms.length}
+              occupiedRooms={getOccupiedRooms().length}
+              pendingBills={getUnpaidBills().length}
+              overdueBills={getOverdueBills().length}
+              airconDue={getSchedulesNeedingAttention().length}
+            />
+            <RevenueCards
+              collected={getTotalCollected()}
+              pending={getTotalPending()}
+              total={getTotalBilled()}
+            />
+            <AlertsList
+              overdueBills={getOverdueBills()}
+              overdueCleanings={getOverdueSchedules()}
+              getRoomById={getRoomById}
+            />
+          </div>
+        )}
+
+        {/* Bills Tab */}
+        {activeTab === 'bills' && (
+          <div className="space-y-6">
+            <BillForm
+              form={billForm}
+              errors={billErrors}
+              isEditing={isEditingBill}
+              rooms={getOccupiedRooms()}
+              onSave={handleSaveBill}
+              onCancel={resetBillForm}
+              onUpdateField={updateBillField}
+            />
+            <BillFilters
+              filters={billFilters}
+              rooms={rooms}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+            />
+            <BillsTable
+              bills={paginatedBills}
+              getRoomById={getRoomById}
+              getBillTotal={getBillTotal}
+              isBillOverdue={isBillOverdue}
+              isBillDueSoon={checkBillDueSoon}
+              onTogglePaid={handleToggleBillPaid}
+              onPrint={printBill}
+              onEdit={editBill}
+              onDelete={handleDeleteBill}
+            />
+            {filteredBills.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredBills.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(value) => {
+                  setItemsPerPage(value);
+                  setCurrentPage(1);
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Rooms Tab */}
+        {activeTab === 'rooms' && (
+          <div className="space-y-6">
+            <RoomForm
+              form={roomForm}
+              errors={roomErrors}
+              isEditing={isEditingRoom}
+              onSave={handleSaveRoom}
+              onCancel={resetRoomForm}
+              onUpdateField={updateRoomField}
+            />
+            <RoomsList rooms={rooms} onEdit={editRoom} onDelete={handleDeleteRoom} onToggleStatus={handleToggleRoomStatus} />
+          </div>
+        )}
+
+        {/* Aircon Tab */}
+        {activeTab === 'aircon' && (
+          <div className="space-y-6">
+            <CleaningForm
+              form={cleaningForm}
+              errors={cleaningErrors}
+              isEditing={isEditingCleaning}
+              rooms={rooms}
+              onSave={handleSaveCleaningSchedule}
+              onCancel={resetCleaningForm}
+              onUpdateField={updateCleaningField}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cleaningSchedules.map((schedule) => (
+                <CleaningCard
+                  key={schedule.id}
+                  schedule={schedule}
+                  roomName={getRoomById(schedule.roomId)?.name || 'Unknown Room'}
+                  isOverdue={isScheduleOverdue(schedule)}
+                  isDueSoon={isScheduleDueSoon(schedule)}
+                  onViewHistory={() => openHistory(schedule)}
+                  onEdit={() => editSchedule(schedule)}
+                  onDelete={() => handleDeleteCleaningSchedule(schedule.id)}
+                  onMarkCleaned={() => handleMarkAirconCleaned(schedule.roomId)}
+                />
+              ))}
+              {cleaningSchedules.length === 0 && (
+                <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
+                  No cleaning schedules added yet. Add your first schedule above.
+                </div>
+              )}
+            </div>
+            <CleaningHistoryModal
+              isOpen={!!selectedHistory}
+              onClose={closeHistory}
+              roomName={getRoomById(selectedHistory?.roomId)?.name || 'Unknown'}
+              history={selectedHistory?.history}
+            />
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <SettingsForm
+            settings={settings}
+            onUpdateSetting={updateSetting}
+            onSave={handleSaveSettings}
+            onExportCSV={handleExportCSV}
+            onExportJSON={handleExportJSON}
+          />
+        )}
+      </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={confirmDialog.closeConfirm}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        confirmText={confirmDialog.variant === 'danger' ? 'Delete' : 'Confirm'}
+      />
+    </div>
+  );
+};
+
+export default ApartmentBillTracker;

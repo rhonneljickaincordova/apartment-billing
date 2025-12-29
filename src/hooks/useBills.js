@@ -1,0 +1,399 @@
+import { useState, useCallback } from 'react';
+import { validateBill } from '../utils/validation';
+import { getToday, isOverdue, isBillDueSoon } from '../utils/dateHelpers';
+import { billsService } from '../services/firestore';
+import { useFirestoreCollection } from './useFirestore';
+
+/**
+ * Custom hook for managing bills
+ * Handles CRUD operations with validation and Firestore persistence
+ */
+export function useBills(rooms, settings) {
+  const {
+    data: bills,
+    loading,
+    error: storageError,
+    add,
+    update,
+    remove
+  } = useFirestoreCollection(billsService, []);
+
+  const [billForm, setBillForm] = useState({
+    id: null,
+    roomId: '',
+    dueDate: getToday(),
+    lastMonthReading: 0,
+    currentReading: 0,
+    paid: false,
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  /**
+   * Calculate bill amounts based on readings and settings
+   * @param {object} formData - Bill form data
+   * @param {object} room - Room data
+   * @returns {object} - Calculated bill data
+   */
+  const calculateBillAmounts = useCallback(
+    (formData, room) => {
+      return {
+        electricityBill: (formData.currentReading - formData.lastMonthReading) * settings.electricityRate,
+        waterBill: (room?.persons || 0) * settings.waterRate,
+        wifiBill: settings.wifiRate,
+        rentBill: room?.rent || 0,
+      };
+    },
+    [settings]
+  );
+
+  /**
+   * Get total amount for a bill
+   * @param {object} bill - Bill object
+   * @returns {number}
+   */
+  const getBillTotal = useCallback((bill) => {
+    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0);
+  }, []);
+
+  /**
+   * Save bill (create or update)
+   * @returns {{ success: boolean, message: string }}
+   */
+  const saveBill = useCallback(async () => {
+    const validation = validateBill(billForm);
+    setErrors(validation.errors);
+
+    if (!validation.isValid) {
+      return { success: false, message: 'Please fix the errors before saving.' };
+    }
+
+    const room = rooms.find((r) => r.id === billForm.roomId);
+    if (!room) {
+      return { success: false, message: 'Room not found' };
+    }
+
+    try {
+      const billData = {
+        roomId: billForm.roomId,
+        dueDate: billForm.dueDate,
+        lastMonthReading: billForm.lastMonthReading,
+        currentReading: billForm.currentReading,
+        paid: billForm.paid,
+        ...calculateBillAmounts(billForm, room),
+      };
+
+      let message;
+
+      if (isEditing) {
+        await update(billForm.id, billData);
+        message = 'Bill updated successfully!';
+      } else {
+        await add(billData);
+        message = 'Bill created successfully!';
+      }
+
+      resetForm();
+      return { success: true, message };
+    } catch (error) {
+      console.error('Error saving bill:', error);
+      return { success: false, message: 'Failed to save bill. Please try again.' };
+    }
+  }, [billForm, rooms, isEditing, calculateBillAmounts, add, update]);
+
+  /**
+   * Start editing a bill
+   * @param {object} bill - Bill to edit
+   */
+  const editBill = useCallback((bill) => {
+    setBillForm(bill);
+    setIsEditing(true);
+    setErrors({});
+  }, []);
+
+  /**
+   * Delete a bill by ID
+   * @param {string} id - Bill ID to delete
+   * @returns {{ success: boolean, message: string }}
+   */
+  const deleteBill = useCallback(
+    async (id) => {
+      try {
+        await remove(id);
+        return { success: true, message: 'Bill deleted successfully!' };
+      } catch (error) {
+        console.error('Error deleting bill:', error);
+        return { success: false, message: 'Failed to delete bill.' };
+      }
+    },
+    [remove]
+  );
+
+  /**
+   * Delete all bills for a specific room
+   * @param {string} roomId - Room ID
+   */
+  const deleteBillsByRoomId = useCallback(
+    async (roomId) => {
+      const billsToDelete = bills.filter((b) => b.roomId === roomId);
+      for (const bill of billsToDelete) {
+        await remove(bill.id);
+      }
+    },
+    [bills, remove]
+  );
+
+  /**
+   * Toggle bill paid status
+   * @param {string} billId - Bill ID
+   * @returns {{ success: boolean, message: string }}
+   */
+  const togglePaid = useCallback(
+    async (billId) => {
+      try {
+        const bill = bills.find((b) => b.id === billId);
+        if (!bill) {
+          return { success: false, message: 'Bill not found.' };
+        }
+
+        const updateData = bill.paid
+          ? { paid: false, paidDate: null }
+          : { paid: true, paidDate: getToday() };
+
+        await update(billId, updateData);
+
+        return {
+          success: true,
+          message: bill.paid ? 'Bill marked as unpaid' : 'Bill marked as paid!',
+        };
+      } catch (error) {
+        console.error('Error updating bill status:', error);
+        return { success: false, message: 'Failed to update bill status.' };
+      }
+    },
+    [bills, update]
+  );
+
+  /**
+   * Reset form to initial state
+   */
+  const resetForm = useCallback(() => {
+    setBillForm({
+      id: null,
+      roomId: '',
+      dueDate: getToday(),
+      lastMonthReading: 0,
+      currentReading: 0,
+      paid: false,
+    });
+    setIsEditing(false);
+    setErrors({});
+  }, []);
+
+  /**
+   * Update a single form field
+   * @param {string} field - Field name
+   * @param {any} value - New value
+   */
+  const updateFormField = useCallback((field, value) => {
+    setBillForm((prev) => ({ ...prev, [field]: value }));
+    // Clear error for the field being updated
+    setErrors((prev) => {
+      if (prev[field]) {
+        const { [field]: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+  }, []);
+
+  /**
+   * Get a bill by ID
+   * @param {string} id - Bill ID
+   * @returns {object|undefined}
+   */
+  const getBillById = useCallback(
+    (id) => {
+      return bills.find((b) => b.id === id);
+    },
+    [bills]
+  );
+
+  /**
+   * Get bills for a specific room
+   * @param {string} roomId - Room ID
+   * @returns {array}
+   */
+  const getBillsByRoomId = useCallback(
+    (roomId) => {
+      return bills.filter((b) => b.roomId === roomId);
+    },
+    [bills]
+  );
+
+  /**
+   * Get paid bills
+   * @returns {array}
+   */
+  const getPaidBills = useCallback(() => {
+    return bills.filter((b) => b.paid);
+  }, [bills]);
+
+  /**
+   * Get unpaid bills
+   * @returns {array}
+   */
+  const getUnpaidBills = useCallback(() => {
+    return bills.filter((b) => !b.paid);
+  }, [bills]);
+
+  /**
+   * Get overdue bills
+   * @returns {array}
+   */
+  const getOverdueBills = useCallback(() => {
+    return bills.filter((b) => !b.paid && isOverdue(b.dueDate));
+  }, [bills]);
+
+  /**
+   * Get bills due soon
+   * @returns {array}
+   */
+  const getBillsDueSoon = useCallback(() => {
+    return bills.filter((b) => !b.paid && isBillDueSoon(b.dueDate));
+  }, [bills]);
+
+  /**
+   * Check if a bill is overdue
+   * @param {object} bill - Bill object
+   * @returns {boolean}
+   */
+  const isBillOverdue = useCallback((bill) => {
+    return !bill.paid && isOverdue(bill.dueDate);
+  }, []);
+
+  /**
+   * Calculate total collected revenue
+   * @returns {number}
+   */
+  const getTotalCollected = useCallback(() => {
+    return getPaidBills().reduce((sum, b) => sum + getBillTotal(b), 0);
+  }, [getPaidBills, getBillTotal]);
+
+  /**
+   * Calculate total pending revenue
+   * @returns {number}
+   */
+  const getTotalPending = useCallback(() => {
+    return getUnpaidBills().reduce((sum, b) => sum + getBillTotal(b), 0);
+  }, [getUnpaidBills, getBillTotal]);
+
+  /**
+   * Calculate total billed amount
+   * @returns {number}
+   */
+  const getTotalBilled = useCallback(() => {
+    return bills.reduce((sum, b) => sum + getBillTotal(b), 0);
+  }, [bills, getBillTotal]);
+
+  /**
+   * Print a bill
+   * @param {object} bill - Bill to print
+   */
+  const printBill = useCallback(
+    (bill) => {
+      const room = rooms.find((r) => r.id === bill.roomId);
+      const total = getBillTotal(bill);
+      const isPaid = bill.paid || false;
+      const paidDate = bill.paidDate || null;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Bill - ${room?.name || 'Room'} - ${bill.dueDate}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; position: relative; }
+              .header h1 { margin: 0; font-size: 28px; color: #333; }
+              .header p { margin: 5px 0; color: #666; }
+              .payment-status { position: absolute; top: 0; right: 0; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+              .payment-status.paid { background-color: #10b981; color: white; }
+              .payment-status.unpaid { background-color: #ef4444; color: white; }
+              .paid-date { text-align: center; margin: 10px 0; padding: 10px; background-color: #d1fae5; border-radius: 5px; font-size: 14px; color: #065f46; font-weight: bold; }
+              .bill-info { margin-bottom: 30px; }
+              .bill-info div { display: flex; justify-content: space-between; margin: 10px 0; font-size: 16px; }
+              .bill-info .label { font-weight: bold; color: #555; }
+              .line-items { margin: 30px 0; }
+              .line-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #ddd; font-size: 16px; }
+              .line-item.total { border-top: 3px solid #333; border-bottom: 3px double #333; font-size: 20px; font-weight: bold; margin-top: 15px; padding-top: 15px; }
+              .footer { margin-top: 50px; text-align: center; color: #888; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
+              @media print { body { padding: 20px; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>MONTHLY BILL</h1>
+              <p>Apartment Billing Statement</p>
+              <div class="payment-status ${isPaid ? 'paid' : 'unpaid'}">${isPaid ? '✓ PAID' : 'NOT PAID'}</div>
+            </div>
+            ${isPaid && paidDate ? `<div class="paid-date">Payment Received: ${paidDate}</div>` : ''}
+            <div class="bill-info">
+              <div><span class="label">Room:</span><span>${room?.name || 'Unknown'}</span></div>
+              <div><span class="label">Due Date:</span><span>${bill.dueDate}</span></div>
+              <div><span class="label">Number of Persons:</span><span>${room?.persons || 1}</span></div>
+            </div>
+            <div class="line-items">
+              <div class="line-item"><span>Rent</span><span>₱${(bill.rentBill || 0).toFixed(2)}</span></div>
+              <div class="line-item"><span>WiFi</span><span>₱${bill.wifiBill.toFixed(2)}</span></div>
+              <div class="line-item"><span>Water</span><span>₱${bill.waterBill.toFixed(2)}</span></div>
+              <div class="line-item"><span>Electricity (${bill.lastMonthReading} → ${bill.currentReading})</span><span>₱${bill.electricityBill.toFixed(2)}</span></div>
+              <div class="line-item total"><span>TOTAL</span><span>₱${total.toFixed(2)}</span></div>
+            </div>
+            <div class="footer">
+              <p>Generated on ${new Date().toLocaleDateString()}</p>
+              <p>Thank you for your payment</p>
+            </div>
+            <script>window.onload = function() { window.print(); };</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    },
+    [rooms, getBillTotal]
+  );
+
+  return {
+    // State
+    bills,
+    billForm,
+    isEditing,
+    errors,
+    storageError,
+    loading,
+
+    // Actions
+    saveBill,
+    editBill,
+    deleteBill,
+    deleteBillsByRoomId,
+    togglePaid,
+    resetForm,
+    updateFormField,
+    printBill,
+
+    // Helpers
+    getBillById,
+    getBillsByRoomId,
+    getPaidBills,
+    getUnpaidBills,
+    getOverdueBills,
+    getBillsDueSoon,
+    isBillOverdue,
+    getBillTotal,
+    getTotalCollected,
+    getTotalPending,
+    getTotalBilled,
+  };
+}
