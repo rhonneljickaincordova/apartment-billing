@@ -1,17 +1,27 @@
-import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image } from 'lucide-react';
+import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Printer } from 'lucide-react';
 import SignaturePad from './SignaturePad';
+import { printLeaseAgreement } from './LeaseAgreement';
 
 /**
  * Tenant Details Modal Component
  * Shows full tenant information with signature pad
  */
-function TenantDetailsModal({ tenant, rooms, isOpen, onClose, onSaveSignature, onClearSignature }) {
+function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSignature, onClearSignature }) {
   if (!isOpen || !tenant) return null;
 
+  const getRoom = (roomId) => {
+    if (!roomId) return null;
+    return rooms.find((r) => r.id === roomId) || null;
+  };
+
   const getRoomName = (roomId) => {
-    if (!roomId) return 'Not assigned';
-    const room = rooms.find((r) => r.id === roomId);
-    return room ? room.name : 'Unknown';
+    const room = getRoom(roomId);
+    return room ? room.name : 'Not assigned';
+  };
+
+  const handlePrintContract = () => {
+    const room = getRoom(tenant.roomId);
+    printLeaseAgreement(tenant, room, settings);
   };
 
   const formatDate = (dateString) => {
@@ -75,6 +85,30 @@ function TenantDetailsModal({ tenant, rooms, isOpen, onClose, onSaveSignature, o
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Move-in Date</p>
                   <p className="font-medium text-gray-900 dark:text-white">{formatDate(tenant.moveInDate)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lease Information */}
+          <div>
+            <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Lease Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Lease Start Date</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{formatDate(tenant.leaseStartDate)}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Lease End Date</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{formatDate(tenant.leaseEndDate)}</p>
                 </div>
               </div>
             </div>
@@ -195,10 +229,17 @@ function TenantDetailsModal({ tenant, rooms, isOpen, onClose, onSaveSignature, o
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-4">
+        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-4 flex gap-3">
+          <button
+            onClick={handlePrintContract}
+            className="flex-1 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <Printer className="w-4 h-4" />
+            Print Contract
+          </button>
           <button
             onClick={onClose}
-            className="w-full bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+            className="flex-1 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
           >
             Close
           </button>

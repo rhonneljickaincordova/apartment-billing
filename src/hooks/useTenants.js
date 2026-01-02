@@ -26,8 +26,12 @@ export function useTenants() {
     emergencyContactNumber: '',
     relationship: '',
     contractSignature: null,
+    contractSignedDate: null,
     roomId: '',
     moveInDate: '',
+    leaseStartDate: '',
+    leaseEndDate: '',
+    rentDueDay: '5th',
     isActive: true,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -54,8 +58,12 @@ export function useTenants() {
         emergencyContactNumber: tenantForm.emergencyContactNumber.trim(),
         relationship: tenantForm.relationship.trim(),
         contractSignature: tenantForm.contractSignature,
+        contractSignedDate: tenantForm.contractSignedDate,
         roomId: tenantForm.roomId,
         moveInDate: tenantForm.moveInDate,
+        leaseStartDate: tenantForm.leaseStartDate,
+        leaseEndDate: tenantForm.leaseEndDate,
+        rentDueDay: tenantForm.rentDueDay || '5th',
         isActive: tenantForm.isActive,
       };
 
@@ -118,8 +126,12 @@ export function useTenants() {
       emergencyContactNumber: '',
       relationship: '',
       contractSignature: null,
+      contractSignedDate: null,
       roomId: '',
       moveInDate: '',
+      leaseStartDate: '',
+      leaseEndDate: '',
+      rentDueDay: '5th',
       isActive: true,
     });
     setIsEditing(false);
@@ -172,7 +184,8 @@ export function useTenants() {
   const setContractSignature = useCallback((signatureData) => {
     setTenantForm((prev) => ({
       ...prev,
-      contractSignature: signatureData
+      contractSignature: signatureData,
+      contractSignedDate: new Date().toISOString().split('T')[0]
     }));
   }, []);
 

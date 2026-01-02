@@ -1,4 +1,4 @@
-import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2 } from 'lucide-react';
+import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText } from 'lucide-react';
 import { useRef } from 'react';
 
 /**
@@ -176,6 +176,59 @@ function TenantForm({
             {errors.relationship && (
               <p className="text-red-500 text-xs mt-1">{errors.relationship}</p>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Lease Information */}
+      <div className="mb-6">
+        <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+          <FileText className="w-4 h-4 inline mr-1" aria-hidden="true" />
+          Lease Information
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Lease Start Date
+            </label>
+            <input
+              type="date"
+              value={form.leaseStartDate || ''}
+              onChange={(e) => onUpdateField('leaseStartDate', e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Lease End Date
+            </label>
+            <input
+              type="date"
+              value={form.leaseEndDate || ''}
+              onChange={(e) => onUpdateField('leaseEndDate', e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Rent Due Day
+            </label>
+            <select
+              value={form.rentDueDay || '5th'}
+              onChange={(e) => onUpdateField('rentDueDay', e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="1st">1st of the month</option>
+              <option value="5th">5th of the month</option>
+              <option value="10th">10th of the month</option>
+              <option value="15th">15th of the month</option>
+              <option value="20th">20th of the month</option>
+              <option value="25th">25th of the month</option>
+              <option value="Last day">Last day of the month</option>
+            </select>
           </div>
         </div>
       </div>

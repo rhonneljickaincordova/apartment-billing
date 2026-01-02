@@ -388,8 +388,12 @@ const ApartmentBillTracker = () => {
     if (selectedTenant) {
       try {
         const { tenantsService } = await import('./services/firestore');
-        await tenantsService.update(selectedTenant.id, { contractSignature: signatureData });
-        setSelectedTenant({ ...selectedTenant, contractSignature: signatureData });
+        const contractSignedDate = new Date().toISOString().split('T')[0];
+        await tenantsService.update(selectedTenant.id, {
+          contractSignature: signatureData,
+          contractSignedDate
+        });
+        setSelectedTenant({ ...selectedTenant, contractSignature: signatureData, contractSignedDate });
         toast.success('Signature saved successfully!');
       } catch (error) {
         console.error('Error saving signature:', error);
@@ -402,8 +406,11 @@ const ApartmentBillTracker = () => {
     if (selectedTenant) {
       try {
         const { tenantsService } = await import('./services/firestore');
-        await tenantsService.update(selectedTenant.id, { contractSignature: null });
-        setSelectedTenant({ ...selectedTenant, contractSignature: null });
+        await tenantsService.update(selectedTenant.id, {
+          contractSignature: null,
+          contractSignedDate: null
+        });
+        setSelectedTenant({ ...selectedTenant, contractSignature: null, contractSignedDate: null });
         toast.success('Signature cleared!');
       } catch (error) {
         console.error('Error clearing signature:', error);
@@ -559,6 +566,7 @@ const ApartmentBillTracker = () => {
             <TenantDetailsModal
               tenant={selectedTenant}
               rooms={rooms}
+              settings={settings}
               isOpen={!!selectedTenant}
               onClose={handleCloseTenantDetails}
               onSaveSignature={handleSaveTenantSignature}
