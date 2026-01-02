@@ -277,10 +277,59 @@ npm run build
 
 The build output will be in the `dist/` folder, ready for deployment to any static hosting service.
 
-### Recommended Hosting
+### Deploy to Vercel (Recommended)
+
+This project is deployed on [Vercel](https://vercel.com), which provides excellent support for React/Vite applications.
+
+**Live URL**: `https://apartment-billing-five.vercel.app`
+
+#### Initial Deployment
+
+1. Install Vercel CLI (already included as dev dependency):
+```bash
+npm install
+```
+
+2. Deploy to preview:
+```bash
+npx vercel
+```
+
+3. Deploy to production:
+```bash
+npx vercel --prod
+```
+
+#### Automatic Deployments
+
+Once connected to your GitHub repository, Vercel automatically deploys:
+- **Production** - On push to `main` branch
+- **Preview** - On pull requests
+
+#### Environment Variables
+
+Set these in your Vercel project dashboard under **Settings → Environment Variables**:
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+### Add to iPhone/iPad Home Screen
+
+For the best mobile experience, add the app to your device's home screen:
+
+1. Open Safari and navigate to your deployment URL
+2. Tap the **Share** button (square with upward arrow)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Name it "Apartment Billing" and tap **Add**
+
+The app will appear on your home screen and open in full-screen mode without browser UI.
+
+### Alternative Hosting Options
 
 - **Firebase Hosting** - Seamless integration with Firestore
-- **Vercel** - Great for React/Vite apps
 - **Netlify** - Easy deployment with CI/CD
 
 ## License
