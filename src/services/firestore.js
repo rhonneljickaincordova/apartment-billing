@@ -18,7 +18,8 @@ export const COLLECTIONS = {
   ROOMS: 'rooms',
   BILLS: 'bills',
   AIRCON_CLEANING: 'airconCleaning',
-  SETTINGS: 'settings'
+  SETTINGS: 'settings',
+  TENANTS: 'tenants'
 };
 
 /**
@@ -137,6 +138,7 @@ class FirestoreService {
 export const roomsService = new FirestoreService(COLLECTIONS.ROOMS);
 export const billsService = new FirestoreService(COLLECTIONS.BILLS);
 export const airconCleaningService = new FirestoreService(COLLECTIONS.AIRCON_CLEANING);
+export const tenantsService = new FirestoreService(COLLECTIONS.TENANTS);
 
 // Settings service (single document)
 export const settingsService = {
@@ -195,5 +197,6 @@ export default {
   rooms: roomsService,
   bills: billsService,
   airconCleaning: airconCleaningService,
-  settings: settingsService
+  settings: settingsService,
+  tenants: tenantsService
 };

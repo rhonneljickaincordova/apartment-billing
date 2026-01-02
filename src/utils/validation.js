@@ -151,3 +151,48 @@ export function validateCleaningSchedule(schedule, existingSchedules = [], isEdi
     errors,
   };
 }
+
+/**
+ * Validate tenant form
+ * @param {object} tenant - Tenant form data
+ * @returns {object} - { isValid: boolean, errors: { field: message } }
+ */
+export function validateTenant(tenant) {
+  const errors = {};
+
+  // Full name validation
+  if (!tenant.fullName || tenant.fullName.trim() === '') {
+    errors.fullName = 'Full name is required';
+  } else if (tenant.fullName.trim().length < 2) {
+    errors.fullName = 'Full name must be at least 2 characters';
+  }
+
+  // Phone number validation
+  if (!tenant.phoneNumber || tenant.phoneNumber.trim() === '') {
+    errors.phoneNumber = 'Phone number is required';
+  } else if (!/^[\d\s\-+()]{7,}$/.test(tenant.phoneNumber.trim())) {
+    errors.phoneNumber = 'Please enter a valid phone number';
+  }
+
+  // Emergency contact name validation
+  if (!tenant.emergencyContactName || tenant.emergencyContactName.trim() === '') {
+    errors.emergencyContactName = 'Emergency contact name is required';
+  }
+
+  // Emergency contact number validation
+  if (!tenant.emergencyContactNumber || tenant.emergencyContactNumber.trim() === '') {
+    errors.emergencyContactNumber = 'Emergency contact number is required';
+  } else if (!/^[\d\s\-+()]{7,}$/.test(tenant.emergencyContactNumber.trim())) {
+    errors.emergencyContactNumber = 'Please enter a valid phone number';
+  }
+
+  // Relationship validation
+  if (!tenant.relationship || tenant.relationship.trim() === '') {
+    errors.relationship = 'Relationship is required';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}

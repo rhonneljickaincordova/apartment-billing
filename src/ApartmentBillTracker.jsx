@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from './context/ToastContext';
 import { ConfirmDialog } from './components/ui';
-import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog } from './hooks';
+import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants } from './hooks';
 import { isBillDueSoon, isOverdue } from './utils/dateHelpers';
 import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
@@ -11,6 +11,7 @@ import { BillForm, BillsTable, BillFilters } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
 import { SummaryCards, RevenueCards, AlertsList } from './components/dashboard';
 import { SettingsForm } from './components/settings';
+import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
 import { Pagination } from './components/ui';
 
 const ApartmentBillTracker = () => {
@@ -91,6 +92,25 @@ const ApartmentBillTracker = () => {
     isScheduleOverdue,
     isScheduleDueSoon,
   } = useAirconCleaning(rooms);
+
+  const {
+    tenants,
+    tenantForm,
+    isEditing: isEditingTenant,
+    errors: tenantErrors,
+    saveTenant: saveTenantAction,
+    editTenant,
+    deleteTenant: deleteTenantAction,
+    resetForm: resetTenantForm,
+    updateFormField: updateTenantField,
+    toggleTenantStatus,
+    addValidIdImage,
+    removeValidIdImage,
+    setContractSignature,
+    clearContractSignature,
+  } = useTenants();
+
+  const [selectedTenant, setSelectedTenant] = useState(null);
 
   const confirmDialog = useConfirmDialog();
 
@@ -310,12 +330,85 @@ const ApartmentBillTracker = () => {
       bills,
       cleaningSchedules,
       settings,
+      tenants,
     };
     const success = exportAllDataToJSON(allData);
     if (success) {
       toast.success('All data exported to JSON successfully!');
     } else {
       toast.error('Failed to export data.');
+    }
+  };
+
+  // Tenant handlers with toast notifications
+  const handleSaveTenant = async () => {
+    const result = await saveTenantAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  const handleDeleteTenant = (id) => {
+    const tenant = tenants.find((t) => t.id === id);
+    confirmDialog.showConfirm(
+      'Delete Tenant',
+      `Are you sure you want to delete "${tenant?.fullName}"? This action cannot be undone.`,
+      async () => {
+        const result = await deleteTenantAction(id);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleToggleTenantStatus = async (tenant) => {
+    const result = await toggleTenantStatus(tenant);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleViewTenantDetails = (tenant) => {
+    setSelectedTenant(tenant);
+  };
+
+  const handleCloseTenantDetails = () => {
+    setSelectedTenant(null);
+  };
+
+  const handleSaveTenantSignature = async (signatureData) => {
+    if (selectedTenant) {
+      try {
+        const { tenantsService } = await import('./services/firestore');
+        await tenantsService.update(selectedTenant.id, { contractSignature: signatureData });
+        setSelectedTenant({ ...selectedTenant, contractSignature: signatureData });
+        toast.success('Signature saved successfully!');
+      } catch (error) {
+        console.error('Error saving signature:', error);
+        toast.error('Failed to save signature.');
+      }
+    }
+  };
+
+  const handleClearTenantSignature = async () => {
+    if (selectedTenant) {
+      try {
+        const { tenantsService } = await import('./services/firestore');
+        await tenantsService.update(selectedTenant.id, { contractSignature: null });
+        setSelectedTenant({ ...selectedTenant, contractSignature: null });
+        toast.success('Signature cleared!');
+      } catch (error) {
+        console.error('Error clearing signature:', error);
+        toast.error('Failed to clear signature.');
+      }
     }
   };
 
@@ -341,7 +434,7 @@ const ApartmentBillTracker = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
-          {['dashboard', 'bills', 'rooms', 'aircon', 'settings'].map((tab) => (
+          {['dashboard', 'bills', 'rooms', 'tenants', 'aircon', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -438,6 +531,39 @@ const ApartmentBillTracker = () => {
               onUpdateField={updateRoomField}
             />
             <RoomsList rooms={rooms} onEdit={editRoom} onDelete={handleDeleteRoom} onToggleStatus={handleToggleRoomStatus} />
+          </div>
+        )}
+
+        {/* Tenants Tab */}
+        {activeTab === 'tenants' && (
+          <div className="space-y-6">
+            <TenantForm
+              form={tenantForm}
+              errors={tenantErrors}
+              isEditing={isEditingTenant}
+              rooms={rooms}
+              onSave={handleSaveTenant}
+              onCancel={resetTenantForm}
+              onUpdateField={updateTenantField}
+              onAddImage={addValidIdImage}
+              onRemoveImage={removeValidIdImage}
+            />
+            <TenantsList
+              tenants={tenants}
+              rooms={rooms}
+              onEdit={editTenant}
+              onDelete={handleDeleteTenant}
+              onViewDetails={handleViewTenantDetails}
+              onToggleStatus={handleToggleTenantStatus}
+            />
+            <TenantDetailsModal
+              tenant={selectedTenant}
+              rooms={rooms}
+              isOpen={!!selectedTenant}
+              onClose={handleCloseTenantDetails}
+              onSaveSignature={handleSaveTenantSignature}
+              onClearSignature={handleClearTenantSignature}
+            />
           </div>
         )}
 
