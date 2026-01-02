@@ -24,6 +24,7 @@ export function useBills(rooms, settings) {
     dueDate: getToday(),
     lastMonthReading: 0,
     currentReading: 0,
+    includeAirconCleaning: false,
     paid: false,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -42,6 +43,7 @@ export function useBills(rooms, settings) {
         waterBill: (room?.persons || 0) * settings.waterRate,
         wifiBill: settings.wifiRate,
         rentBill: room?.rent || 0,
+        airconCleaningBill: formData.includeAirconCleaning ? (settings.airconCleaningRate || 0) : 0,
       };
     },
     [settings]
@@ -53,7 +55,7 @@ export function useBills(rooms, settings) {
    * @returns {number}
    */
   const getBillTotal = useCallback((bill) => {
-    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0);
+    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0);
   }, []);
 
   /**
@@ -79,6 +81,7 @@ export function useBills(rooms, settings) {
         dueDate: billForm.dueDate,
         lastMonthReading: billForm.lastMonthReading,
         currentReading: billForm.currentReading,
+        includeAirconCleaning: billForm.includeAirconCleaning || false,
         paid: billForm.paid,
         ...calculateBillAmounts(billForm, room),
       };
@@ -184,6 +187,7 @@ export function useBills(rooms, settings) {
       dueDate: getToday(),
       lastMonthReading: 0,
       currentReading: 0,
+      includeAirconCleaning: false,
       paid: false,
     });
     setIsEditing(false);
@@ -307,6 +311,19 @@ export function useBills(rooms, settings) {
       const isPaid = bill.paid || false;
       const paidDate = bill.paidDate || null;
 
+      // Format date to "January 2, 2026" format
+      const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      };
+
+      const formattedDueDate = formatDate(bill.dueDate);
+      const formattedPaidDate = paidDate ? formatDate(paidDate) : null;
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -335,20 +352,20 @@ export function useBills(rooms, settings) {
           <body>
             <div class="header">
               <h1>MONTHLY BILL</h1>
-              <p>Apartment Billing Statement</p>
               <div class="payment-status ${isPaid ? 'paid' : 'unpaid'}">${isPaid ? '✓ PAID' : 'NOT PAID'}</div>
             </div>
-            ${isPaid && paidDate ? `<div class="paid-date">Payment Received: ${paidDate}</div>` : ''}
+            ${isPaid && formattedPaidDate ? `<div class="paid-date">Payment Received: ${formattedPaidDate}</div>` : ''}
             <div class="bill-info">
               <div><span class="label">Room:</span><span>${room?.name || 'Unknown'}</span></div>
-              <div><span class="label">Due Date:</span><span>${bill.dueDate}</span></div>
+              <div><span class="label">Due Date:</span><span>${formattedDueDate}</span></div>
               <div><span class="label">Number of Persons:</span><span>${room?.persons || 1}</span></div>
             </div>
             <div class="line-items">
               <div class="line-item"><span>Rent</span><span>₱${(bill.rentBill || 0).toFixed(2)}</span></div>
-              <div class="line-item"><span>WiFi</span><span>₱${bill.wifiBill.toFixed(2)}</span></div>
-              <div class="line-item"><span>Water</span><span>₱${bill.waterBill.toFixed(2)}</span></div>
-              <div class="line-item"><span>Electricity (${bill.lastMonthReading} → ${bill.currentReading})</span><span>₱${bill.electricityBill.toFixed(2)}</span></div>
+              <div class="line-item"><span>WiFi</span><span>₱${(bill.wifiBill || 0).toFixed(2)}</span></div>
+              <div class="line-item"><span>Water</span><span>₱${(bill.waterBill || 0).toFixed(2)}</span></div>
+              <div class="line-item"><span>Electricity (${bill.lastMonthReading} → ${bill.currentReading})</span><span>₱${(bill.electricityBill || 0).toFixed(2)}</span></div>
+              ${bill.airconCleaningBill > 0 ? `<div class="line-item"><span>Aircon Cleaning</span><span>₱${(bill.airconCleaningBill || 0).toFixed(2)}</span></div>` : ''}
               <div class="line-item total"><span>TOTAL</span><span>₱${total.toFixed(2)}</span></div>
             </div>
             <div class="footer">

@@ -1,4 +1,4 @@
-import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare } from 'lucide-react';
+import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind } from 'lucide-react';
 
 /**
  * Bill Form Component
@@ -11,7 +11,7 @@ function BillForm({ form, errors, isEditing, rooms, onSave, onCancel, onUpdateFi
         <DollarSign className="w-5 h-5" />
         {isEditing ? 'Edit Bill' : 'Create New Bill'}
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <Home className="w-4 h-4 inline mr-1" aria-hidden="true" />
@@ -87,6 +87,24 @@ function BillForm({ form, errors, isEditing, rooms, onSave, onCancel, onUpdateFi
           {errors.currentReading && (
             <p className="text-red-500 text-xs mt-1">{errors.currentReading}</p>
           )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <Wind className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            Aircon Cleaning
+          </label>
+          <div className="flex items-center h-[42px] px-4 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+            <input
+              type="checkbox"
+              id="includeAircon"
+              checked={form.includeAirconCleaning || false}
+              onChange={(e) => onUpdateField('includeAirconCleaning', e.target.checked)}
+              className="w-4 h-4 mr-2"
+            />
+            <label htmlFor="includeAircon" className="text-gray-700 dark:text-gray-300">
+              Include
+            </label>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

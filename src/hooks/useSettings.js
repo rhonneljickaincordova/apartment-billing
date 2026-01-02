@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS = {
   waterRate: 100,
   electricityRate: 15,
   wifiRate: 500,
+  airconCleaningRate: 400,
 };
 
 /**

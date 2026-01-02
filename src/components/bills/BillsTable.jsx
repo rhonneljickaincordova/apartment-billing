@@ -6,6 +6,7 @@ import {
   Zap,
   Droplet,
   Wifi,
+  Wind,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -79,6 +80,9 @@ function BillsTable({
                 WiFi
               </th>
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                Aircon
+              </th>
+              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Total
               </th>
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
@@ -137,6 +141,16 @@ function BillsTable({
                       {(bill.wifiBill || 0).toFixed(2)}
                     </div>
                   </td>
+                  <td className="px-3 md:px-6 py-4 text-gray-700 dark:text-gray-300">
+                    {bill.airconCleaningBill > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <Wind className="w-4 h-4 text-cyan-500" aria-hidden="true" />₱
+                        {(bill.airconCleaningBill || 0).toFixed(2)}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
                   <td className="px-3 md:px-6 py-4 font-bold text-gray-900 dark:text-white">
                     ₱{total.toFixed(2)}
                   </td>
@@ -179,7 +193,7 @@ function BillsTable({
             })}
             {bills.length === 0 && (
               <tr>
-                <td colSpan="9" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan="10" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                   No bills found.
                 </td>
               </tr>
