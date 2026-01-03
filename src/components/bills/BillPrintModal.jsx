@@ -133,9 +133,9 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
           <div ref={printRef} className="bg-white p-6 rounded-lg">
             {/* Bill Header */}
             <div className="text-center mb-6 pb-4 border-b-2 border-gray-300">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">MONTHLY BILL</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">MONTHLY BILL</h1>
               <span
-                className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold ${
+                className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold ${
                   isPaid
                     ? 'bg-green-500 text-white'
                     : 'bg-red-500 text-white'
@@ -183,7 +183,10 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                 <span>₱{(bill.waterBill || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
-                <span>Electricity ({bill.lastMonthReading} → {bill.currentReading})</span>
+                <div>
+                  <span>Electricity</span>
+                  <div className="text-xs text-gray-500">({bill.lastMonthReading} → {bill.currentReading}) kWh</div>
+                </div>
                 <span>₱{(bill.electricityBill || 0).toFixed(2)}</span>
               </div>
               {bill.airconCleaningBill > 0 && (
