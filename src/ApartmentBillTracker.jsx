@@ -7,7 +7,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
-import { BillForm, BillsTable, BillFilters } from './components/bills';
+import { BillForm, BillsTable, BillFilters, BillPrintModal } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
 import { SummaryCards, RevenueCards, AlertsList } from './components/dashboard';
 import { SettingsForm } from './components/settings';
@@ -62,7 +62,6 @@ const ApartmentBillTracker = () => {
     togglePaid,
     resetForm: resetBillForm,
     updateFormField: updateBillField,
-    printBill,
     getOverdueBills,
     getUnpaidBills,
     isBillOverdue,
@@ -111,6 +110,7 @@ const ApartmentBillTracker = () => {
   } = useTenants();
 
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [printBillData, setPrintBillData] = useState(null);
 
   const confirmDialog = useConfirmDialog();
 
@@ -258,6 +258,15 @@ const ApartmentBillTracker = () => {
     } else {
       toast.error(result.message);
     }
+  };
+
+  // Bill print modal handlers
+  const handleOpenPrintModal = (bill) => {
+    setPrintBillData(bill);
+  };
+
+  const handleClosePrintModal = () => {
+    setPrintBillData(null);
   };
 
   // Aircon cleaning handlers with toast notifications
@@ -506,7 +515,7 @@ const ApartmentBillTracker = () => {
               isBillOverdue={isBillOverdue}
               isBillDueSoon={checkBillDueSoon}
               onTogglePaid={handleToggleBillPaid}
-              onPrint={printBill}
+              onPrint={handleOpenPrintModal}
               onEdit={editBill}
               onDelete={handleDeleteBill}
             />
@@ -637,6 +646,15 @@ const ApartmentBillTracker = () => {
         message={confirmDialog.message}
         variant={confirmDialog.variant}
         confirmText={confirmDialog.variant === 'danger' ? 'Delete' : 'Confirm'}
+      />
+
+      {/* Bill Print Modal */}
+      <BillPrintModal
+        isOpen={!!printBillData}
+        onClose={handleClosePrintModal}
+        bill={printBillData}
+        room={printBillData ? getRoomById(printBillData.roomId) : null}
+        getBillTotal={getBillTotal}
       />
     </div>
   );
