@@ -567,6 +567,7 @@ const ApartmentBillTracker = () => {
             <TenantsList
               tenants={tenants}
               rooms={rooms}
+              settings={settings}
               onEdit={editTenant}
               onDelete={handleDeleteTenant}
               onViewDetails={handleViewTenantDetails}

@@ -1,10 +1,18 @@
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2 } from 'lucide-react';
+import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, onEdit, onDelete, onViewDetails, onToggleStatus }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus }) {
+  const [leaseModalTenant, setLeaseModalTenant] = useState(null);
+
+  const getRoom = (roomId) => {
+    if (!roomId) return null;
+    return rooms.find((r) => r.id === roomId) || null;
+  };
   const getRoomName = (roomId) => {
     if (!roomId) return 'Not assigned';
     const room = rooms.find((r) => r.id === roomId);
@@ -95,6 +103,13 @@ function TenantsList({ tenants, rooms, onEdit, onDelete, onViewDetails, onToggle
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex justify-end gap-2">
                     <button
+                      onClick={() => setLeaseModalTenant(tenant)}
+                      className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 p-1"
+                      title="Send Contract"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => onViewDetails(tenant)}
                       className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 p-1"
                       title="View Details"
@@ -173,7 +188,14 @@ function TenantsList({ tenants, rooms, onEdit, onDelete, onViewDetails, onToggle
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Emergency: {tenant.emergencyContactName} ({tenant.relationship}) - {tenant.emergencyContactNumber}
             </div>
-            <div className="flex justify-end gap-3 pt-2 border-t dark:border-gray-700">
+            <div className="flex flex-wrap justify-end gap-3 pt-2 border-t dark:border-gray-700">
+              <button
+                onClick={() => setLeaseModalTenant(tenant)}
+                className="text-green-600 hover:text-green-800 dark:text-green-400 flex items-center gap-1 text-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                Send
+              </button>
               <button
                 onClick={() => onViewDetails(tenant)}
                 className="text-purple-600 hover:text-purple-800 dark:text-purple-400 flex items-center gap-1 text-sm"
@@ -219,6 +241,15 @@ function TenantsList({ tenants, rooms, onEdit, onDelete, onViewDetails, onToggle
           </div>
         ))}
       </div>
+
+      {/* Lease Agreement Modal */}
+      <LeaseAgreementModal
+        isOpen={!!leaseModalTenant}
+        onClose={() => setLeaseModalTenant(null)}
+        tenant={leaseModalTenant}
+        room={leaseModalTenant ? getRoom(leaseModalTenant.roomId) : null}
+        settings={settings}
+      />
     </div>
   );
 }

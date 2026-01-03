@@ -1,12 +1,15 @@
-import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Printer } from 'lucide-react';
+import { useState } from 'react';
+import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2 } from 'lucide-react';
 import SignaturePad from './SignaturePad';
-import { printLeaseAgreement } from './LeaseAgreement';
+import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenant Details Modal Component
  * Shows full tenant information with signature pad
  */
 function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSignature, onClearSignature }) {
+  const [showLeaseModal, setShowLeaseModal] = useState(false);
+
   if (!isOpen || !tenant) return null;
 
   const getRoom = (roomId) => {
@@ -19,9 +22,12 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
     return room ? room.name : 'Not assigned';
   };
 
-  const handlePrintContract = () => {
-    const room = getRoom(tenant.roomId);
-    printLeaseAgreement(tenant, room, settings);
+  const handleOpenLeaseModal = () => {
+    setShowLeaseModal(true);
+  };
+
+  const handleCloseLeaseModal = () => {
+    setShowLeaseModal(false);
   };
 
   const formatDate = (dateString) => {
@@ -231,11 +237,11 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
         {/* Footer */}
         <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-4 flex gap-3">
           <button
-            onClick={handlePrintContract}
+            onClick={handleOpenLeaseModal}
             className="flex-1 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
           >
-            <Printer className="w-4 h-4" />
-            Print Contract
+            <Share2 className="w-4 h-4" />
+            Send Contract
           </button>
           <button
             onClick={onClose}
@@ -245,6 +251,15 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
           </button>
         </div>
       </div>
+
+      {/* Lease Agreement Modal */}
+      <LeaseAgreementModal
+        isOpen={showLeaseModal}
+        onClose={handleCloseLeaseModal}
+        tenant={tenant}
+        room={getRoom(tenant.roomId)}
+        settings={settings}
+      />
     </div>
   );
 }
