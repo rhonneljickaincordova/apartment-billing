@@ -1,4 +1,4 @@
-import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText } from 'lucide-react';
+import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi } from 'lucide-react';
 import { useRef } from 'react';
 
 /**
@@ -10,6 +10,7 @@ function TenantForm({
   errors,
   isEditing,
   rooms,
+  settings,
   onSave,
   onCancel,
   onUpdateField,
@@ -17,6 +18,15 @@ function TenantForm({
   onRemoveImage
 }) {
   const fileInputRef = useRef(null);
+
+  // Helper to update custom rates
+  const updateCustomRate = (rateKey, value) => {
+    const newValue = value === '' ? null : parseFloat(value);
+    onUpdateField('customRates', {
+      ...form.customRates,
+      [rateKey]: isNaN(newValue) ? null : newValue,
+    });
+  };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -229,6 +239,91 @@ function TenantForm({
               <option value="25th">25th of the month</option>
               <option value="Last day">Last day of the month</option>
             </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Custom Utility Rates */}
+      <div className="mb-6">
+        <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+          <Zap className="w-4 h-4 inline mr-1" aria-hidden="true" />
+          Custom Utility Rates (Optional)
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Leave blank to use global rates from Settings. Custom rates completely replace global settings for this tenant.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Zap className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Electricity Rate (per kWh)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={`Global: ₱${settings?.electricityRate || 15}`}
+              value={form.customRates?.electricityRate ?? ''}
+              onChange={(e) => updateCustomRate('electricityRate', e.target.value)}
+              className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                errors.customElectricityRate ? 'border-red-500' : ''
+              }`}
+              aria-invalid={!!errors.customElectricityRate}
+            />
+            {form.customRates?.electricityRate !== null && form.customRates?.electricityRate !== undefined && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Using custom rate</p>
+            )}
+            {errors.customElectricityRate && (
+              <p className="text-red-500 text-xs mt-1">{errors.customElectricityRate}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Droplets className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Water Rate (per person)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={`Global: ₱${settings?.waterRate || 100}`}
+              value={form.customRates?.waterRate ?? ''}
+              onChange={(e) => updateCustomRate('waterRate', e.target.value)}
+              className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                errors.customWaterRate ? 'border-red-500' : ''
+              }`}
+              aria-invalid={!!errors.customWaterRate}
+            />
+            {form.customRates?.waterRate !== null && form.customRates?.waterRate !== undefined && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Using custom rate</p>
+            )}
+            {errors.customWaterRate && (
+              <p className="text-red-500 text-xs mt-1">{errors.customWaterRate}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Wifi className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              WiFi Rate (flat rate)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={`Global: ₱${settings?.wifiRate || 500}`}
+              value={form.customRates?.wifiRate ?? ''}
+              onChange={(e) => updateCustomRate('wifiRate', e.target.value)}
+              className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                errors.customWifiRate ? 'border-red-500' : ''
+              }`}
+              aria-invalid={!!errors.customWifiRate}
+            />
+            {form.customRates?.wifiRate !== null && form.customRates?.wifiRate !== undefined && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Using custom rate</p>
+            )}
+            {errors.customWifiRate && (
+              <p className="text-red-500 text-xs mt-1">{errors.customWifiRate}</p>
+            )}
           </div>
         </div>
       </div>

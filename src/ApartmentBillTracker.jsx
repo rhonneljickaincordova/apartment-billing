@@ -51,6 +51,23 @@ const ApartmentBillTracker = () => {
   } = useRooms();
 
   const {
+    tenants,
+    tenantForm,
+    isEditing: isEditingTenant,
+    errors: tenantErrors,
+    saveTenant: saveTenantAction,
+    editTenant,
+    deleteTenant: deleteTenantAction,
+    resetForm: resetTenantForm,
+    updateFormField: updateTenantField,
+    toggleTenantStatus,
+    addValidIdImage,
+    removeValidIdImage,
+    setContractSignature,
+    clearContractSignature,
+  } = useTenants();
+
+  const {
     bills,
     billForm,
     isEditing: isEditingBill,
@@ -69,7 +86,7 @@ const ApartmentBillTracker = () => {
     getTotalPending,
     getTotalBilled,
     getBillTotal,
-  } = useBills(rooms, settings);
+  } = useBills(rooms, settings, tenants);
 
   const {
     cleaningSchedules,
@@ -91,23 +108,6 @@ const ApartmentBillTracker = () => {
     isScheduleOverdue,
     isScheduleDueSoon,
   } = useAirconCleaning(rooms);
-
-  const {
-    tenants,
-    tenantForm,
-    isEditing: isEditingTenant,
-    errors: tenantErrors,
-    saveTenant: saveTenantAction,
-    editTenant,
-    deleteTenant: deleteTenantAction,
-    resetForm: resetTenantForm,
-    updateFormField: updateTenantField,
-    toggleTenantStatus,
-    addValidIdImage,
-    removeValidIdImage,
-    setContractSignature,
-    clearContractSignature,
-  } = useTenants();
 
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
@@ -558,6 +558,7 @@ const ApartmentBillTracker = () => {
               errors={tenantErrors}
               isEditing={isEditingTenant}
               rooms={rooms}
+              settings={settings}
               onSave={handleSaveTenant}
               onCancel={resetTenantForm}
               onUpdateField={updateTenantField}

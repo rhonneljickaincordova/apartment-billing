@@ -33,6 +33,11 @@ export function useTenants() {
     leaseEndDate: '',
     rentDueDay: '5th',
     isActive: true,
+    customRates: {
+      electricityRate: null,
+      waterRate: null,
+      wifiRate: null,
+    },
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -65,6 +70,11 @@ export function useTenants() {
         leaseEndDate: tenantForm.leaseEndDate,
         rentDueDay: tenantForm.rentDueDay || '5th',
         isActive: tenantForm.isActive,
+        customRates: tenantForm.customRates || {
+          electricityRate: null,
+          waterRate: null,
+          wifiRate: null,
+        },
       };
 
       let message;
@@ -133,6 +143,11 @@ export function useTenants() {
       leaseEndDate: '',
       rentDueDay: '5th',
       isActive: true,
+      customRates: {
+        electricityRate: null,
+        waterRate: null,
+        wifiRate: null,
+      },
     });
     setIsEditing(false);
     setErrors({});

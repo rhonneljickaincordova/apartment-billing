@@ -191,6 +191,32 @@ export function validateTenant(tenant) {
     errors.relationship = 'Relationship is required';
   }
 
+  // Custom rates validation (optional fields - only validate if provided)
+  if (tenant.customRates) {
+    const rates = tenant.customRates;
+
+    // Electricity rate validation
+    if (rates.electricityRate !== null && rates.electricityRate !== undefined) {
+      if (isNaN(Number(rates.electricityRate)) || Number(rates.electricityRate) < 0) {
+        errors.customElectricityRate = 'Must be a non-negative number';
+      }
+    }
+
+    // Water rate validation
+    if (rates.waterRate !== null && rates.waterRate !== undefined) {
+      if (isNaN(Number(rates.waterRate)) || Number(rates.waterRate) < 0) {
+        errors.customWaterRate = 'Must be a non-negative number';
+      }
+    }
+
+    // WiFi rate validation
+    if (rates.wifiRate !== null && rates.wifiRate !== undefined) {
+      if (isNaN(Number(rates.wifiRate)) || Number(rates.wifiRate) < 0) {
+        errors.customWifiRate = 'Must be a non-negative number';
+      }
+    }
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,

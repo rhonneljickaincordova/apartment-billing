@@ -3,12 +3,13 @@ import { validateBill } from '../utils/validation';
 import { getToday, isOverdue, isBillDueSoon } from '../utils/dateHelpers';
 import { billsService } from '../services/firestore';
 import { useFirestoreCollection } from './useFirestore';
+import { getEffectiveRates } from '../utils/rateHelpers';
 
 /**
  * Custom hook for managing bills
  * Handles CRUD operations with validation and Firestore persistence
  */
-export function useBills(rooms, settings) {
+export function useBills(rooms, settings, tenants = []) {
   const {
     data: bills,
     loading,
@@ -33,21 +34,31 @@ export function useBills(rooms, settings) {
 
   /**
    * Calculate bill amounts based on readings and settings
+   * Uses tenant custom rates if available, otherwise falls back to global settings
    * @param {object} formData - Bill form data
    * @param {object} room - Room data
    * @returns {object} - Calculated bill data
    */
   const calculateBillAmounts = useCallback(
     (formData, room) => {
+      // Get effective rates (considers tenant custom rates)
+      const effectiveRates = getEffectiveRates(formData.roomId, tenants, settings);
+
       return {
-        electricityBill: (formData.currentReading - formData.lastMonthReading) * settings.electricityRate,
-        waterBill: (room?.persons || 0) * settings.waterRate,
-        wifiBill: formData.includeWifi !== false ? settings.wifiRate : 0,
+        electricityBill: (formData.currentReading - formData.lastMonthReading) * effectiveRates.electricityRate,
+        waterBill: (room?.persons || 0) * effectiveRates.waterRate,
+        wifiBill: formData.includeWifi !== false ? effectiveRates.wifiRate : 0,
         rentBill: room?.rent || 0,
         airconCleaningBill: formData.includeAirconCleaning ? (settings.airconCleaningRate || 0) : 0,
+        // Store rates used for historical reference
+        ratesUsed: {
+          electricityRate: effectiveRates.electricityRate,
+          waterRate: effectiveRates.waterRate,
+          wifiRate: effectiveRates.wifiRate,
+        },
       };
     },
-    [settings]
+    [settings, tenants]
   );
 
   /**
