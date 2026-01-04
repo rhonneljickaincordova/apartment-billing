@@ -61,6 +61,9 @@ function BillsTable({
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
+              <th className="px-2 md:px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-12">
+                <Printer className="w-4 h-4 mx-auto" aria-hidden="true" />
+              </th>
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Room
               </th>
@@ -111,6 +114,16 @@ function BillsTable({
                       : ''
                   }`}
                 >
+                  <td className="px-2 md:px-3 py-4 text-center">
+                    <button
+                      onClick={() => onPrint(bill)}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      title="Print"
+                      aria-label={`Print bill for ${room?.name}`}
+                    >
+                      <Printer className="w-5 h-5" />
+                    </button>
+                  </td>
                   <td className="px-3 md:px-6 py-4 font-medium text-gray-900 dark:text-white">
                     {room?.name || 'Unknown'}
                   </td>
@@ -166,15 +179,9 @@ function BillsTable({
                   <td className="px-3 md:px-6 py-4">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => onPrint(bill)}
-                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
-                        aria-label={`Print bill for ${room?.name}`}
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
-                      <button
                         onClick={() => onEdit(bill)}
                         className="text-blue-500 hover:text-blue-700 p-1"
+                        title="Edit"
                         aria-label={`Edit bill for ${room?.name}`}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -182,6 +189,7 @@ function BillsTable({
                       <button
                         onClick={() => onDelete(bill.id)}
                         className="text-red-500 hover:text-red-700 p-1"
+                        title="Delete"
                         aria-label={`Delete bill for ${room?.name}`}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -193,7 +201,7 @@ function BillsTable({
             })}
             {bills.length === 0 && (
               <tr>
-                <td colSpan="10" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan="11" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                   No bills found.
                 </td>
               </tr>
