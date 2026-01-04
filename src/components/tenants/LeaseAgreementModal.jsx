@@ -43,9 +43,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   if (!isOpen || !tenant) return null;
 
   const monthlyRent = room?.rent || 0;
-  const waterRate = settings?.waterRate || 100;
-  const electricityRate = settings?.electricityRate || 15;
-  const wifiRate = settings?.wifiRate || 500;
+  // Use tenant's custom rates if set, otherwise fall back to global settings
+  const waterRate = tenant?.customRates?.waterRate ?? settings?.waterRate ?? 100;
+  const electricityRate = tenant?.customRates?.electricityRate ?? settings?.electricityRate ?? 15;
+  const wifiRate = tenant?.customRates?.wifiRate ?? settings?.wifiRate ?? 500;
 
   // Generate contract as image using canvas
   const generateContractImage = async () => {
