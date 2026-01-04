@@ -302,11 +302,26 @@ export function useBills(rooms, settings, tenants = []) {
 
   /**
    * Update a single form field
+   * Auto-fills lastMonthReading when roomId changes based on latest bill
    * @param {string} field - Field name
    * @param {any} value - New value
    */
   const updateFormField = useCallback((field, value) => {
-    setBillForm((prev) => ({ ...prev, [field]: value }));
+    setBillForm((prev) => {
+      const updates = { [field]: value };
+
+      // Auto-fill lastMonthReading when room is selected (only for new bills)
+      if (field === 'roomId' && value && !isEditing) {
+        const latestBill = getLatestBillForRoom(value);
+        if (latestBill && latestBill.currentReading) {
+          updates.lastMonthReading = latestBill.currentReading;
+        } else {
+          updates.lastMonthReading = 0;
+        }
+      }
+
+      return { ...prev, ...updates };
+    });
     // Clear error for the field being updated
     setErrors((prev) => {
       if (prev[field]) {
@@ -315,7 +330,7 @@ export function useBills(rooms, settings, tenants = []) {
       }
       return prev;
     });
-  }, []);
+  }, [isEditing, getLatestBillForRoom]);
 
   /**
    * Get a bill by ID
@@ -337,6 +352,22 @@ export function useBills(rooms, settings, tenants = []) {
   const getBillsByRoomId = useCallback(
     (roomId) => {
       return bills.filter((b) => b.roomId === roomId);
+    },
+    [bills]
+  );
+
+  /**
+   * Get the latest bill for a specific room (sorted by due date)
+   * @param {string} roomId - Room ID
+   * @returns {object|null}
+   */
+  const getLatestBillForRoom = useCallback(
+    (roomId) => {
+      const roomBills = bills.filter((b) => b.roomId === roomId);
+      if (roomBills.length === 0) return null;
+
+      // Sort by due date descending and return the most recent
+      return roomBills.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate))[0];
     },
     [bills]
   );
@@ -510,6 +541,7 @@ export function useBills(rooms, settings, tenants = []) {
     // Helpers
     getBillById,
     getBillsByRoomId,
+    getLatestBillForRoom,
     getPaidBills,
     getUnpaidBills,
     getOverdueBills,
