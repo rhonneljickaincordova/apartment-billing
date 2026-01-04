@@ -61,6 +61,7 @@ const ApartmentBillTracker = () => {
     resetForm: resetTenantForm,
     updateFormField: updateTenantField,
     toggleTenantStatus,
+    moveOutTenant,
     addValidIdImage,
     removeValidIdImage,
     setContractSignature,
@@ -385,6 +386,22 @@ const ApartmentBillTracker = () => {
     }
   };
 
+  const handleMoveOutTenant = (tenant) => {
+    confirmDialog.showConfirm(
+      'Move Out Tenant',
+      `Are you sure you want to mark "${tenant.fullName}" as moved out? This will set their status to inactive and record today's date as the move-out date.`,
+      async () => {
+        const result = await moveOutTenant(tenant);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
   const handleViewTenantDetails = (tenant) => {
     setSelectedTenant(tenant);
   };
@@ -573,6 +590,7 @@ const ApartmentBillTracker = () => {
               onDelete={handleDeleteTenant}
               onViewDetails={handleViewTenantDetails}
               onToggleStatus={handleToggleTenantStatus}
+              onMoveOut={handleMoveOutTenant}
             />
             <TenantDetailsModal
               tenant={selectedTenant}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2 } from 'lucide-react';
+import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2, LogOut } from 'lucide-react';
 import SignaturePad from './SignaturePad';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
@@ -93,6 +93,15 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
                   <p className="font-medium text-gray-900 dark:text-white">{formatDate(tenant.moveInDate)}</p>
                 </div>
               </div>
+              {tenant.moveOutDate && (
+                <div className="flex items-start gap-3">
+                  <LogOut className="w-5 h-5 text-red-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Move-out Date</p>
+                    <p className="font-medium text-red-600 dark:text-red-400">{formatDate(tenant.moveOutDate)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -226,10 +235,12 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
               className={`px-3 py-1 text-sm rounded-full ${
                 tenant.isActive
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : tenant.moveOutDate
+                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                   : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
-              {tenant.isActive ? 'Active Tenant' : 'Inactive Tenant'}
+              {tenant.isActive ? 'Active Tenant' : tenant.moveOutDate ? 'Moved Out' : 'Inactive Tenant'}
             </span>
           </div>
         </div>

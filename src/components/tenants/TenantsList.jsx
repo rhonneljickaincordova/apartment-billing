@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2 } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
 
   const getRoom = (roomId) => {
@@ -90,15 +90,24 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   {formatDate(tenant.moveInDate)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      tenant.isActive
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {tenant.isActive ? 'Active' : 'Inactive'}
-                  </span>
+                  <div className="flex flex-col">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full inline-block w-fit ${
+                        tenant.isActive
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : tenant.moveOutDate
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {tenant.isActive ? 'Active' : tenant.moveOutDate ? 'Moved Out' : 'Inactive'}
+                    </span>
+                    {tenant.moveOutDate && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formatDate(tenant.moveOutDate)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex justify-end gap-2">
@@ -131,6 +140,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                         <UserCheck className="w-4 h-4" />
                       )}
                     </button>
+                    {tenant.isActive && !tenant.moveOutDate && (
+                      <button
+                        onClick={() => onMoveOut(tenant)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1"
+                        title="Move Out"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(tenant)}
                       className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1"
@@ -165,15 +183,24 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   {tenant.phoneNumber}
                 </p>
               </div>
-              <span
-                className={`px-2 py-1 text-xs rounded-full ${
-                  tenant.isActive
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {tenant.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <div className="flex flex-col items-end">
+                <span
+                  className={`px-2 py-1 text-xs rounded-full ${
+                    tenant.isActive
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : tenant.moveOutDate
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {tenant.isActive ? 'Active' : tenant.moveOutDate ? 'Moved Out' : 'Inactive'}
+                </span>
+                {tenant.moveOutDate && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {formatDate(tenant.moveOutDate)}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
@@ -223,6 +250,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   </>
                 )}
               </button>
+              {tenant.isActive && !tenant.moveOutDate && (
+                <button
+                  onClick={() => onMoveOut(tenant)}
+                  className="text-red-600 hover:text-red-800 dark:text-red-400 flex items-center gap-1 text-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Move Out
+                </button>
+              )}
               <button
                 onClick={() => onEdit(tenant)}
                 className="text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1 text-sm"

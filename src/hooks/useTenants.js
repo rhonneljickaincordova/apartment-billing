@@ -29,6 +29,7 @@ export function useTenants() {
     contractSignedDate: null,
     roomId: '',
     moveInDate: '',
+    moveOutDate: null,
     leaseStartDate: '',
     leaseEndDate: '',
     rentDueDay: '5th',
@@ -66,6 +67,7 @@ export function useTenants() {
         contractSignedDate: tenantForm.contractSignedDate,
         roomId: tenantForm.roomId,
         moveInDate: tenantForm.moveInDate,
+        moveOutDate: tenantForm.moveOutDate,
         leaseStartDate: tenantForm.leaseStartDate,
         leaseEndDate: tenantForm.leaseEndDate,
         rentDueDay: tenantForm.rentDueDay || '5th',
@@ -139,6 +141,7 @@ export function useTenants() {
       contractSignedDate: null,
       roomId: '',
       moveInDate: '',
+      moveOutDate: null,
       leaseStartDate: '',
       leaseEndDate: '',
       rentDueDay: '5th',
@@ -268,6 +271,31 @@ export function useTenants() {
     [update]
   );
 
+  /**
+   * Move out a tenant - sets inactive status and records move-out date
+   * @param {object} tenant - Tenant to move out
+   * @returns {{ success: boolean, message: string }}
+   */
+  const moveOutTenant = useCallback(
+    async (tenant) => {
+      try {
+        const moveOutDate = new Date().toISOString().split('T')[0];
+        await update(tenant.id, {
+          isActive: false,
+          moveOutDate
+        });
+        return {
+          success: true,
+          message: `${tenant.fullName} has been moved out.`,
+        };
+      } catch (error) {
+        console.error('Error moving out tenant:', error);
+        return { success: false, message: 'Failed to move out tenant.' };
+      }
+    },
+    [update]
+  );
+
   return {
     // State
     tenants,
@@ -284,6 +312,7 @@ export function useTenants() {
     resetForm,
     updateFormField,
     toggleTenantStatus,
+    moveOutTenant,
 
     // Image handling
     addValidIdImage,
