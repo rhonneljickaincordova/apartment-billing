@@ -1,4 +1,4 @@
-import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind } from 'lucide-react';
+import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi } from 'lucide-react';
 
 /**
  * Bill Form Component
@@ -87,6 +87,24 @@ function BillForm({ form, errors, isEditing, rooms, onSave, onCancel, onUpdateFi
           {errors.currentReading && (
             <p className="text-red-500 text-xs mt-1">{errors.currentReading}</p>
           )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <Wifi className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            WiFi
+          </label>
+          <div className="flex items-center h-[42px] px-4 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+            <input
+              type="checkbox"
+              id="includeWifi"
+              checked={form.includeWifi !== false}
+              onChange={(e) => onUpdateField('includeWifi', e.target.checked)}
+              className="w-4 h-4 mr-2"
+            />
+            <label htmlFor="includeWifi" className="text-gray-700 dark:text-gray-300">
+              Include
+            </label>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

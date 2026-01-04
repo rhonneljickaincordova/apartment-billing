@@ -25,6 +25,7 @@ export function useBills(rooms, settings) {
     lastMonthReading: 0,
     currentReading: 0,
     includeAirconCleaning: false,
+    includeWifi: true,
     paid: false,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +42,7 @@ export function useBills(rooms, settings) {
       return {
         electricityBill: (formData.currentReading - formData.lastMonthReading) * settings.electricityRate,
         waterBill: (room?.persons || 0) * settings.waterRate,
-        wifiBill: settings.wifiRate,
+        wifiBill: formData.includeWifi !== false ? settings.wifiRate : 0,
         rentBill: room?.rent || 0,
         airconCleaningBill: formData.includeAirconCleaning ? (settings.airconCleaningRate || 0) : 0,
       };
@@ -82,6 +83,7 @@ export function useBills(rooms, settings) {
         lastMonthReading: billForm.lastMonthReading,
         currentReading: billForm.currentReading,
         includeAirconCleaning: billForm.includeAirconCleaning || false,
+        includeWifi: billForm.includeWifi !== false,
         paid: billForm.paid,
         ...calculateBillAmounts(billForm, room),
       };
@@ -188,6 +190,7 @@ export function useBills(rooms, settings) {
       lastMonthReading: 0,
       currentReading: 0,
       includeAirconCleaning: false,
+      includeWifi: true,
       paid: false,
     });
     setIsEditing(false);
@@ -362,7 +365,7 @@ export function useBills(rooms, settings) {
             </div>
             <div class="line-items">
               <div class="line-item"><span>Rent</span><span>₱${(bill.rentBill || 0).toFixed(2)}</span></div>
-              <div class="line-item"><span>WiFi</span><span>₱${(bill.wifiBill || 0).toFixed(2)}</span></div>
+              ${bill.wifiBill > 0 ? `<div class="line-item"><span>WiFi</span><span>₱${(bill.wifiBill || 0).toFixed(2)}</span></div>` : ''}
               <div class="line-item"><span>Water</span><span>₱${(bill.waterBill || 0).toFixed(2)}</span></div>
               <div class="line-item"><span>Electricity (${bill.lastMonthReading} → ${bill.currentReading})</span><span>₱${(bill.electricityBill || 0).toFixed(2)}</span></div>
               ${bill.airconCleaningBill > 0 ? `<div class="line-item"><span>Aircon Cleaning</span><span>₱${(bill.airconCleaningBill || 0).toFixed(2)}</span></div>` : ''}
