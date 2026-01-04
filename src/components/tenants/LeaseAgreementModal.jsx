@@ -203,7 +203,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Term of Lease</p>
                     <p className="text-gray-700">
-                      The term of this lease shall begin on <span className="bg-yellow-100 px-1 font-bold">{formatDate(new Date().toISOString())}</span>.
+                      The term of this lease shall begin on <span className="bg-yellow-100 px-1 font-bold">{formatDate(tenant?.moveInDate)}</span>.
                     </p>
                   </div>
                 </div>
