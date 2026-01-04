@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from './context/ToastContext';
 import { ConfirmDialog } from './components/ui';
 import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants } from './hooks';
-import { isBillDueSoon, isOverdue } from './utils/dateHelpers';
+import { isBillDueSoon } from './utils/dateHelpers';
 import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
-import { BillForm, BillsTable, BillFilters, BillPrintModal } from './components/bills';
+import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
 import { SummaryCards, RevenueCards, AlertsList } from './components/dashboard';
 import { SettingsForm } from './components/settings';
@@ -77,7 +77,7 @@ const ApartmentBillTracker = () => {
     editBill,
     deleteBill: deleteBillAction,
     deleteBillsByRoomId,
-    togglePaid,
+    recordPayment,
     resetForm: resetBillForm,
     updateFormField: updateBillField,
     getOverdueBills,
@@ -87,6 +87,8 @@ const ApartmentBillTracker = () => {
     getTotalPending,
     getTotalBilled,
     getBillTotal,
+    getBillStatus,
+    getRemainingBalance,
   } = useBills(rooms, settings, tenants);
 
   const {
@@ -112,6 +114,7 @@ const ApartmentBillTracker = () => {
 
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
+  const [paymentBillData, setPaymentBillData] = useState(null);
 
   const confirmDialog = useConfirmDialog();
 
@@ -128,11 +131,10 @@ const ApartmentBillTracker = () => {
         }
       }
 
-      // Status filter
+      // Status filter - use getBillStatus for accurate filtering
       if (billFilters.status !== 'all') {
-        if (billFilters.status === 'paid' && !bill.paid) return false;
-        if (billFilters.status === 'pending' && (bill.paid || isOverdue(bill.dueDate))) return false;
-        if (billFilters.status === 'overdue' && (bill.paid || !isOverdue(bill.dueDate))) return false;
+        const status = getBillStatus(bill);
+        if (billFilters.status !== status) return false;
       }
 
       // Room filter
@@ -252,15 +254,6 @@ const ApartmentBillTracker = () => {
     );
   };
 
-  const handleToggleBillPaid = async (billId) => {
-    const result = await togglePaid(billId);
-    if (result.success) {
-      toast.success(result.message);
-    } else {
-      toast.error(result.message);
-    }
-  };
-
   // Bill print modal handlers
   const handleOpenPrintModal = (bill) => {
     setPrintBillData(bill);
@@ -268,6 +261,24 @@ const ApartmentBillTracker = () => {
 
   const handleClosePrintModal = () => {
     setPrintBillData(null);
+  };
+
+  // Payment popup handlers
+  const handleOpenPaymentPopup = (bill) => {
+    setPaymentBillData(bill);
+  };
+
+  const handleClosePaymentPopup = () => {
+    setPaymentBillData(null);
+  };
+
+  const handleSubmitPayment = async (billId, amount) => {
+    const result = await recordPayment(billId, amount);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
   };
 
   // Aircon cleaning handlers with toast notifications
@@ -529,9 +540,11 @@ const ApartmentBillTracker = () => {
               bills={paginatedBills}
               getRoomById={getRoomById}
               getBillTotal={getBillTotal}
+              getBillStatus={getBillStatus}
+              getRemainingBalance={getRemainingBalance}
               isBillOverdue={isBillOverdue}
               isBillDueSoon={checkBillDueSoon}
-              onTogglePaid={handleToggleBillPaid}
+              onRecordPayment={handleOpenPaymentPopup}
               onPrint={handleOpenPrintModal}
               onEdit={editBill}
               onDelete={handleDeleteBill}
@@ -675,6 +688,18 @@ const ApartmentBillTracker = () => {
         bill={printBillData}
         room={printBillData ? getRoomById(printBillData.roomId) : null}
         getBillTotal={getBillTotal}
+      />
+
+      {/* Payment Popup */}
+      <PaymentPopup
+        isOpen={!!paymentBillData}
+        onClose={handleClosePaymentPopup}
+        bill={paymentBillData}
+        roomName={paymentBillData ? getRoomById(paymentBillData.roomId)?.name : ''}
+        total={paymentBillData ? getBillTotal(paymentBillData) : 0}
+        amountPaid={paymentBillData?.amountPaid || 0}
+        remainingBalance={paymentBillData ? getRemainingBalance(paymentBillData) : 0}
+        onSubmitPayment={handleSubmitPayment}
       />
     </div>
   );

@@ -172,9 +172,10 @@ export function useBills(rooms, settings, tenants = []) {
           return { success: false, message: 'Bill not found.' };
         }
 
+        const total = getBillTotal(bill);
         const updateData = bill.paid
-          ? { paid: false, paidDate: null }
-          : { paid: true, paidDate: getToday() };
+          ? { paid: false, paidDate: null, amountPaid: 0 }
+          : { paid: true, paidDate: getToday(), amountPaid: total };
 
         await update(billId, updateData);
 
@@ -187,8 +188,99 @@ export function useBills(rooms, settings, tenants = []) {
         return { success: false, message: 'Failed to update bill status.' };
       }
     },
-    [bills, update]
+    [bills, update, getBillTotal]
   );
+
+  /**
+   * Record a payment for a bill (supports partial payments)
+   * @param {string} billId - Bill ID
+   * @param {number} amount - Payment amount
+   * @returns {{ success: boolean, message: string }}
+   */
+  const recordPayment = useCallback(
+    async (billId, amount) => {
+      try {
+        const bill = bills.find((b) => b.id === billId);
+        if (!bill) {
+          return { success: false, message: 'Bill not found.' };
+        }
+
+        const total = getBillTotal(bill);
+        const currentAmountPaid = bill.amountPaid || 0;
+        const newAmountPaid = currentAmountPaid + amount;
+
+        if (amount <= 0) {
+          return { success: false, message: 'Payment amount must be greater than 0.' };
+        }
+
+        const remaining = total - newAmountPaid;
+
+        const updateData = {
+          amountPaid: newAmountPaid,
+          paid: newAmountPaid >= total,
+          paidDate: newAmountPaid >= total ? getToday() : null,
+        };
+
+        await update(billId, updateData);
+
+        if (newAmountPaid >= total) {
+          return { success: true, message: 'Bill fully paid!' };
+        }
+        return {
+          success: true,
+          message: `Payment of ₱${amount.toFixed(2)} recorded. Remaining: ₱${remaining.toFixed(2)}`,
+        };
+      } catch (error) {
+        console.error('Error recording payment:', error);
+        return { success: false, message: 'Failed to record payment.' };
+      }
+    },
+    [bills, update, getBillTotal]
+  );
+
+  /**
+   * Get the payment status of a bill
+   * @param {object} bill - Bill object
+   * @returns {'paid' | 'partial' | 'pending' | 'overdue'}
+   */
+  const getBillStatus = useCallback(
+    (bill) => {
+      const total = getBillTotal(bill);
+      const amountPaid = bill.amountPaid || 0;
+
+      if (amountPaid >= total || bill.paid) return 'paid';
+      if (amountPaid > 0) return 'partial';
+      if (isOverdue(bill.dueDate)) return 'overdue';
+      return 'pending';
+    },
+    [getBillTotal]
+  );
+
+  /**
+   * Get remaining balance for a bill
+   * @param {object} bill - Bill object
+   * @returns {number}
+   */
+  const getRemainingBalance = useCallback(
+    (bill) => {
+      const total = getBillTotal(bill);
+      const amountPaid = bill.amountPaid || 0;
+      return Math.max(0, total - amountPaid);
+    },
+    [getBillTotal]
+  );
+
+  /**
+   * Get bills with partial payments
+   * @returns {array}
+   */
+  const getPartialBills = useCallback(() => {
+    return bills.filter((b) => {
+      const total = getBillTotal(b);
+      const amountPaid = b.amountPaid || 0;
+      return amountPaid > 0 && amountPaid < total;
+    });
+  }, [bills, getBillTotal]);
 
   /**
    * Reset form to initial state
@@ -410,6 +502,7 @@ export function useBills(rooms, settings, tenants = []) {
     deleteBill,
     deleteBillsByRoomId,
     togglePaid,
+    recordPayment,
     resetForm,
     updateFormField,
     printBill,
@@ -420,9 +513,12 @@ export function useBills(rooms, settings, tenants = []) {
     getPaidBills,
     getUnpaidBills,
     getOverdueBills,
+    getPartialBills,
     getBillsDueSoon,
     isBillOverdue,
     getBillTotal,
+    getBillStatus,
+    getRemainingBalance,
     getTotalCollected,
     getTotalPending,
     getTotalBilled,

@@ -12,7 +12,10 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
   if (!isOpen || !bill) return null;
 
   const total = getBillTotal(bill);
-  const isPaid = bill.paid || false;
+  const amountPaid = bill.amountPaid || 0;
+  const remainingBalance = Math.max(0, total - amountPaid);
+  const isPaid = amountPaid >= total || bill.paid;
+  const isPartial = amountPaid > 0 && amountPaid < total;
   const paidDate = bill.paidDate || null;
 
   const formatDate = (dateString) => {
@@ -55,17 +58,19 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
       const fileName = `Bill-${room?.name || 'Room'}-${bill.dueDate}.png`;
       const file = new File([imageBlob], fileName, { type: 'image/png' });
 
+      const statusText = isPaid ? 'PAID' : isPartial ? `PARTIAL (₱${amountPaid.toFixed(2)} paid, ₱${remainingBalance.toFixed(2)} remaining)` : 'NOT PAID';
+
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `Monthly Bill - ${room?.name || 'Room'}`,
-          text: `Bill for ${room?.name || 'Room'} - Due: ${formattedDueDate} - Total: ₱${total.toFixed(2)}`,
+          text: `Bill for ${room?.name || 'Room'} - Due: ${formattedDueDate} - Total: ₱${total.toFixed(2)} - Status: ${statusText}`,
           files: [file],
         });
       } else if (navigator.share) {
         // Fallback: share without file (text only)
         await navigator.share({
           title: `Monthly Bill - ${room?.name || 'Room'}`,
-          text: `Bill for ${room?.name || 'Room'}\nDue Date: ${formattedDueDate}\nTotal: ₱${total.toFixed(2)}\nStatus: ${isPaid ? 'PAID' : 'NOT PAID'}`,
+          text: `Bill for ${room?.name || 'Room'}\nDue Date: ${formattedDueDate}\nTotal: ₱${total.toFixed(2)}\nStatus: ${statusText}`,
         });
       } else {
         // Fallback for browsers that don't support Web Share API
@@ -138,10 +143,12 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                 className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold ${
                   isPaid
                     ? 'bg-green-500 text-white'
+                    : isPartial
+                    ? 'bg-blue-500 text-white'
                     : 'bg-red-500 text-white'
                 }`}
               >
-                {isPaid ? '✓ PAID' : 'NOT PAID'}
+                {isPaid ? '✓ PAID' : isPartial ? '◐ PARTIAL' : 'NOT PAID'}
               </span>
             </div>
 
@@ -149,6 +156,20 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
             {isPaid && formattedPaidDate && (
               <div className="text-center mb-4 p-3 bg-green-100 rounded-lg text-green-800 font-semibold text-sm">
                 Payment Received: {formattedPaidDate}
+              </div>
+            )}
+
+            {/* Partial Payment Info */}
+            {isPartial && (
+              <div className="mb-4 p-3 bg-blue-100 rounded-lg text-blue-800 text-sm">
+                <div className="flex justify-between font-semibold">
+                  <span>Amount Paid:</span>
+                  <span>₱{amountPaid.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold mt-1">
+                  <span>Remaining Balance:</span>
+                  <span>₱{remainingBalance.toFixed(2)}</span>
+                </div>
               </div>
             )}
 

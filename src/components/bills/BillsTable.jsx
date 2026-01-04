@@ -10,12 +10,14 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  DollarSign,
 } from 'lucide-react';
 
 /**
  * Status Badge Component
+ * Now supports 'paid', 'partial', 'pending', 'overdue' statuses
  */
-function StatusBadge({ status, overdue }) {
+function StatusBadge({ status, remainingBalance }) {
   if (status === 'paid') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
@@ -24,7 +26,20 @@ function StatusBadge({ status, overdue }) {
       </span>
     );
   }
-  if (overdue) {
+  if (status === 'partial') {
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+          <DollarSign className="w-3 h-3" aria-hidden="true" />
+          Partial
+        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 pl-1">
+          ₱{remainingBalance.toFixed(2)} left
+        </span>
+      </div>
+    );
+  }
+  if (status === 'overdue') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
         <AlertCircle className="w-3 h-3" aria-hidden="true" />
@@ -48,9 +63,11 @@ function BillsTable({
   bills,
   getRoomById,
   getBillTotal,
+  getBillStatus,
+  getRemainingBalance,
   isBillOverdue,
   isBillDueSoon,
-  onTogglePaid,
+  onRecordPayment,
   onPrint,
   onEdit,
   onDelete,
@@ -61,6 +78,9 @@ function BillsTable({
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
+              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                Status
+              </th>
               <th className="px-2 md:px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-12">
                 <Printer className="w-4 h-4 mx-auto" aria-hidden="true" />
               </th>
@@ -89,9 +109,6 @@ function BillsTable({
                 Total
               </th>
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Status
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Actions
               </th>
             </tr>
@@ -100,8 +117,10 @@ function BillsTable({
             {bills.map((bill) => {
               const room = getRoomById(bill.roomId);
               const total = getBillTotal(bill);
-              const overdue = isBillOverdue(bill);
-              const dueSoon = isBillDueSoon(bill);
+              const status = getBillStatus(bill);
+              const remainingBalance = getRemainingBalance(bill);
+              const overdue = status === 'overdue';
+              const dueSoon = isBillDueSoon(bill) && status !== 'paid';
 
               return (
                 <tr
@@ -114,6 +133,16 @@ function BillsTable({
                       : ''
                   }`}
                 >
+                  <td className="px-3 md:px-6 py-4">
+                    <button
+                      onClick={() => onRecordPayment(bill)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      aria-label={`Record payment for ${room?.name}`}
+                      title="Click to record payment"
+                    >
+                      <StatusBadge status={status} remainingBalance={remainingBalance} />
+                    </button>
+                  </td>
                   <td className="px-2 md:px-3 py-4 text-center">
                     <button
                       onClick={() => onPrint(bill)}
@@ -166,15 +195,6 @@ function BillsTable({
                   </td>
                   <td className="px-3 md:px-6 py-4 font-bold text-gray-900 dark:text-white">
                     ₱{total.toFixed(2)}
-                  </td>
-                  <td className="px-3 md:px-6 py-4">
-                    <button
-                      onClick={() => onTogglePaid(bill.id)}
-                      className="cursor-pointer"
-                      aria-label={`Toggle payment status for ${room?.name}`}
-                    >
-                      <StatusBadge status={bill.paid ? 'paid' : 'unpaid'} overdue={overdue} />
-                    </button>
                   </td>
                   <td className="px-3 md:px-6 py-4">
                     <div className="flex gap-2">
