@@ -22,7 +22,7 @@ const ApartmentBillTracker = () => {
   // Bill filters state
   const [billFilters, setBillFilters] = useState({
     search: '',
-    status: 'all',
+    status: 'unpaid',
     roomId: '',
     dateFrom: '',
     dateTo: '',
@@ -134,7 +134,12 @@ const ApartmentBillTracker = () => {
       // Status filter - use getBillStatus for accurate filtering
       if (billFilters.status !== 'all') {
         const status = getBillStatus(bill);
-        if (billFilters.status !== status) return false;
+        // 'unpaid' shows all non-paid bills (pending, partial, overdue)
+        if (billFilters.status === 'unpaid') {
+          if (status === 'paid') return false;
+        } else if (billFilters.status !== status) {
+          return false;
+        }
       }
 
       // Room filter
@@ -181,7 +186,7 @@ const ApartmentBillTracker = () => {
   const handleClearFilters = () => {
     setBillFilters({
       search: '',
-      status: 'all',
+      status: 'unpaid',
       roomId: '',
       dateFrom: '',
       dateTo: '',

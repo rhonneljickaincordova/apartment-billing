@@ -6,7 +6,7 @@ import { Search, Filter, X } from 'lucide-react';
  */
 function BillFilters({ filters, rooms, onFilterChange, onClearFilters }) {
   const hasActiveFilters =
-    filters.search || filters.status !== 'all' || filters.roomId || filters.dateFrom || filters.dateTo;
+    filters.search || filters.status !== 'unpaid' || filters.roomId || filters.dateFrom || filters.dateTo;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
@@ -34,10 +34,11 @@ function BillFilters({ filters, rooms, onFilterChange, onClearFilters }) {
             Status
           </label>
           <select
-            value={filters.status || 'all'}
+            value={filters.status || 'unpaid'}
             onChange={(e) => onFilterChange('status', e.target.value)}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
+            <option value="unpaid">Unpaid</option>
             <option value="all">All Status</option>
             <option value="paid">Paid</option>
             <option value="partial">Partial</option>
