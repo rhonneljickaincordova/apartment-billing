@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from './context/ToastContext';
 import { ConfirmDialog } from './components/ui';
-import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants } from './hooks';
+import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants, useExpenses } from './hooks';
 import { isBillDueSoon } from './utils/dateHelpers';
 import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
@@ -12,6 +12,7 @@ import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/a
 import { SummaryCards, RevenueCards, AlertsList } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
+import { ExpenseForm, ExpensesTable } from './components/expenses';
 import { Pagination } from './components/ui';
 
 const ApartmentBillTracker = () => {
@@ -111,6 +112,18 @@ const ApartmentBillTracker = () => {
     isScheduleOverdue,
     isScheduleDueSoon,
   } = useAirconCleaning(rooms);
+
+  const {
+    expenses,
+    expenseForm,
+    isEditing: isEditingExpense,
+    errors: expenseErrors,
+    saveExpense: saveExpenseAction,
+    editExpense,
+    deleteExpense: deleteExpenseAction,
+    resetForm: resetExpenseForm,
+    updateFormField: updateExpenseField,
+  } = useExpenses();
 
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
@@ -461,6 +474,33 @@ const ApartmentBillTracker = () => {
     }
   };
 
+  // Expense handlers with toast notifications
+  const handleSaveExpense = async () => {
+    const result = await saveExpenseAction();
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.warning(result.message);
+    }
+  };
+
+  const handleDeleteExpense = (id) => {
+    const expense = expenses.find((e) => e.id === id);
+    confirmDialog.showConfirm(
+      'Delete Expense',
+      `Are you sure you want to delete "${expense?.description}"?`,
+      async () => {
+        const result = await deleteExpenseAction(id);
+        if (result.success) {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'danger'
+    );
+  };
+
   // Helper to check if bill is due soon
   const checkBillDueSoon = (bill) => {
     return !bill.paid && isBillDueSoon(bill.dueDate);
@@ -483,7 +523,7 @@ const ApartmentBillTracker = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
-          {['dashboard', 'bills', 'rooms', 'tenants', 'aircon', 'settings'].map((tab) => (
+          {['dashboard', 'bills', 'rooms', 'tenants', 'aircon', 'expenses', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -659,6 +699,25 @@ const ApartmentBillTracker = () => {
               onClose={closeHistory}
               roomName={getRoomById(selectedHistory?.roomId)?.name || 'Unknown'}
               history={selectedHistory?.history}
+            />
+          </div>
+        )}
+
+        {/* Expenses Tab */}
+        {activeTab === 'expenses' && (
+          <div className="space-y-6">
+            <ExpenseForm
+              form={expenseForm}
+              errors={expenseErrors}
+              isEditing={isEditingExpense}
+              onSave={handleSaveExpense}
+              onCancel={resetExpenseForm}
+              onUpdateField={updateExpenseField}
+            />
+            <ExpensesTable
+              expenses={expenses}
+              onEdit={editExpense}
+              onDelete={handleDeleteExpense}
             />
           </div>
         )}

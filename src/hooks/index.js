@@ -6,4 +6,5 @@ export { useBills } from './useBills';
 export { useAirconCleaning } from './useAirconCleaning';
 export { useSettings } from './useSettings';
 export { useTenants } from './useTenants';
+export { useExpenses } from './useExpenses';
 export { useConfirmDialog } from './useConfirmDialog';
