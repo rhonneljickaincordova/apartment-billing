@@ -9,7 +9,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
-import { SummaryCards, RevenueCards, AlertsList, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod } from './components/dashboard';
+import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable } from './components/expenses';
@@ -36,6 +36,7 @@ const ApartmentBillTracker = () => {
   // Dashboard filters state
   const [dashboardTimePeriod, setDashboardTimePeriod] = useState('month');
   const [dashboardYear, setDashboardYear] = useState(new Date().getFullYear());
+  const [dashboardCustomRange, setDashboardCustomRange] = useState({ startDate: '', endDate: '' });
 
   // Custom hooks for data management
   const { settings, updateSetting, saveSettings: saveSettingsAction } = useSettings();
@@ -112,7 +113,6 @@ const ApartmentBillTracker = () => {
     openHistory,
     closeHistory,
     getOverdueSchedules,
-    getSchedulesNeedingAttention,
     isScheduleOverdue,
     isScheduleDueSoon,
   } = useAirconCleaning(rooms);
@@ -142,13 +142,13 @@ const ApartmentBillTracker = () => {
 
   // Dashboard filtered bills
   const dashboardFilteredBills = useMemo(() => {
-    return bills.filter((bill) => filterByPeriod(bill.dueDate, dashboardTimePeriod, dashboardYear));
-  }, [bills, dashboardTimePeriod, dashboardYear]);
+    return bills.filter((bill) => filterByPeriod(bill.dueDate, dashboardTimePeriod, dashboardYear, dashboardCustomRange));
+  }, [bills, dashboardTimePeriod, dashboardYear, dashboardCustomRange]);
 
   // Dashboard filtered expenses
   const dashboardFilteredExpenses = useMemo(() => {
-    return expenses.filter((expense) => filterByPeriod(expense.date, dashboardTimePeriod, dashboardYear));
-  }, [expenses, dashboardTimePeriod, dashboardYear]);
+    return expenses.filter((expense) => filterByPeriod(expense.date, dashboardTimePeriod, dashboardYear, dashboardCustomRange));
+  }, [expenses, dashboardTimePeriod, dashboardYear, dashboardCustomRange]);
 
   // Filter and paginate bills
   const filteredBills = useMemo(() => {
@@ -536,9 +536,17 @@ const ApartmentBillTracker = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-6">
-          Apartment Bill Tracker
-        </h1>
+        {/* Header with Title and Notifications */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+            Apartment Bill Tracker
+          </h1>
+          <NotificationBell
+            overdueBills={getOverdueBills()}
+            overdueCleanings={getOverdueSchedules()}
+            getRoomById={getRoomById}
+          />
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
@@ -567,32 +575,46 @@ const ApartmentBillTracker = () => {
               timePeriod={dashboardTimePeriod}
               selectedYear={dashboardYear}
               availableYears={dashboardAvailableYears}
+              customRange={dashboardCustomRange}
               onTimePeriodChange={setDashboardTimePeriod}
               onYearChange={setDashboardYear}
+              onCustomRangeChange={setDashboardCustomRange}
             />
 
+            {/* Quick Stats */}
             <SummaryCards
               totalRooms={rooms.length}
-              occupiedRooms={getOccupiedRooms().length}
-              pendingBills={dashboardFilteredBills.filter((b) => !b.paid).length}
-              overdueBills={dashboardFilteredBills.filter((b) => !b.paid && new Date(b.dueDate) < new Date()).length}
-              airconDue={getSchedulesNeedingAttention().length}
-            />
-            <RevenueCards
-              collected={dashboardFilteredBills.filter((b) => b.paid).reduce((sum, b) => sum + getBillTotal(b), 0)}
-              pending={dashboardFilteredBills.filter((b) => !b.paid).reduce((sum, b) => sum + getBillTotal(b), 0)}
-              total={dashboardFilteredBills.reduce((sum, b) => sum + getBillTotal(b), 0)}
-            />
-            <AlertsList
-              overdueBills={dashboardFilteredBills.filter((b) => !b.paid && new Date(b.dueDate) < new Date())}
-              overdueCleanings={getOverdueSchedules()}
-              getRoomById={getRoomById}
+              occupiedRoomsList={getOccupiedRooms()}
+              pendingBillsList={dashboardFilteredBills
+                .filter((b) => !b.paid && new Date(b.dueDate) >= new Date())
+                .map((b) => ({ ...b, roomName: getRoomById(b.roomId)?.name || 'Unknown' }))}
+              overdueBillsList={dashboardFilteredBills
+                .filter((b) => !b.paid && new Date(b.dueDate) < new Date())
+                .map((b) => ({ ...b, roomName: getRoomById(b.roomId)?.name || 'Unknown' }))}
+              paidRoomsList={[...new Set(dashboardFilteredBills.filter((b) => b.paid).map((b) => b.roomId))]
+                .map((roomId) => ({ id: roomId, name: getRoomById(roomId)?.name || 'Unknown' }))}
+              totalBilledRooms={new Set(dashboardFilteredBills.map((b) => b.roomId)).size}
             />
 
-            {/* Financial Summary */}
-            <FinancialSummary
+            {/* Financial Summary & Monthly Comparison Row */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <FinancialSummary
+                bills={dashboardFilteredBills}
+                expenses={dashboardFilteredExpenses}
+                getBillTotal={getBillTotal}
+              />
+              <MonthlyComparison
+                bills={bills}
+                expenses={expenses}
+                getBillTotal={getBillTotal}
+              />
+            </div>
+
+            {/* Recent Activity */}
+            <RecentActivity
               bills={dashboardFilteredBills}
               expenses={dashboardFilteredExpenses}
+              getRoomById={getRoomById}
               getBillTotal={getBillTotal}
             />
 

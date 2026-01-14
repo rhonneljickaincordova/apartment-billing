@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react';
 
 /**
  * Financial Summary Component
@@ -35,126 +35,100 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     };
   }, [bills, expenses, getBillTotal]);
 
+  const formatCurrency = (value) => {
+    return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 mb-6">
-        <DollarSign className="w-5 h-5" />
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 md:p-6">
+      <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 mb-4 md:mb-6">
+        <DollarSign className="w-5 h-5 text-blue-500" />
         Financial Summary
       </h3>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Summary Cards - Clean layout without overlapping icons */}
+      <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
         {/* Gross Revenue */}
-        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Gross Revenue</p>
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                ₱{financialData.grossRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-                {financialData.billCount} bill{financialData.billCount !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full">
-              <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-300" />
-            </div>
+        <div className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
+          <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+            <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs md:text-sm text-blue-100 font-medium">Gross Revenue</p>
+            <p className="text-lg md:text-2xl font-bold truncate">{formatCurrency(financialData.grossRevenue)}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-xs md:text-sm text-blue-100">{financialData.billCount} bills</p>
           </div>
         </div>
 
         {/* Total Expenses */}
-        <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-red-600 dark:text-red-400 font-medium">Total Expenses</p>
-              <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                ₱{financialData.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                {financialData.expenseCount} expense{financialData.expenseCount !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <div className="bg-red-100 dark:bg-red-800 p-3 rounded-full">
-              <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-300" />
-            </div>
+        <div className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-gradient-to-r from-red-500 to-rose-600 rounded-xl text-white">
+          <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+            <TrendingDown className="w-5 h-5 md:w-6 md:h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs md:text-sm text-red-100 font-medium">Total Expenses</p>
+            <p className="text-lg md:text-2xl font-bold truncate">{formatCurrency(financialData.totalExpenses)}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-xs md:text-sm text-red-100">{financialData.expenseCount} expenses</p>
           </div>
         </div>
 
         {/* Net Profit */}
-        <div className={`rounded-lg p-4 ${
+        <div className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl text-white ${
           financialData.profit >= 0
-            ? 'bg-green-50 dark:bg-green-900/30'
-            : 'bg-orange-50 dark:bg-orange-900/30'
+            ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+            : 'bg-gradient-to-r from-orange-500 to-amber-600'
         }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-sm font-medium ${
-                financialData.profit >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-orange-600 dark:text-orange-400'
-              }`}>
-                Net Profit
-              </p>
-              <p className={`text-2xl font-bold ${
-                financialData.profit >= 0
-                  ? 'text-green-700 dark:text-green-300'
-                  : 'text-orange-700 dark:text-orange-300'
-              }`}>
-                ₱{financialData.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className={`text-xs mt-1 ${
-                financialData.profit >= 0
-                  ? 'text-green-500 dark:text-green-400'
-                  : 'text-orange-500 dark:text-orange-400'
-              }`}>
-                Based on collected
-              </p>
-            </div>
-            <div className={`p-3 rounded-full ${
-              financialData.profit >= 0
-                ? 'bg-green-100 dark:bg-green-800'
-                : 'bg-orange-100 dark:bg-orange-800'
-            }`}>
-              <DollarSign className={`w-6 h-6 ${
-                financialData.profit >= 0
-                  ? 'text-green-600 dark:text-green-300'
-                  : 'text-orange-600 dark:text-orange-300'
-              }`} />
-            </div>
+          <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+            <PiggyBank className="w-5 h-5 md:w-6 md:h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs md:text-sm font-medium ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
+              Net Profit
+            </p>
+            <p className="text-lg md:text-2xl font-bold truncate">{formatCurrency(financialData.profit)}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className={`text-xs md:text-sm ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
+              From collected
+            </p>
           </div>
         </div>
       </div>
 
       {/* Additional Details */}
-      <div className="border-t dark:border-gray-700 pt-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500 dark:text-gray-400">Collected</p>
-            <p className="font-semibold text-gray-800 dark:text-white">
-              ₱{financialData.collectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 text-sm">
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Collected</p>
+            <p className="font-bold text-xs md:text-sm text-gray-800 dark:text-white truncate">
+              {formatCurrency(financialData.collectedRevenue)}
             </p>
           </div>
-          <div>
-            <p className="text-gray-500 dark:text-gray-400">Pending</p>
-            <p className="font-semibold text-yellow-600 dark:text-yellow-400">
-              ₱{(financialData.grossRevenue - financialData.collectedRevenue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Pending</p>
+            <p className="font-bold text-xs md:text-sm text-amber-600 dark:text-amber-400 truncate">
+              {formatCurrency(financialData.grossRevenue - financialData.collectedRevenue)}
             </p>
           </div>
-          <div>
-            <p className="text-gray-500 dark:text-gray-400">Projected Profit</p>
-            <p className={`font-semibold ${
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Projected</p>
+            <p className={`font-bold text-xs md:text-sm truncate ${
               financialData.projectedProfit >= 0
-                ? 'text-green-600 dark:text-green-400'
+                ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-red-600 dark:text-red-400'
             }`}>
-              ₱{financialData.projectedProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(financialData.projectedProfit)}
             </p>
           </div>
-          <div>
-            <p className="text-gray-500 dark:text-gray-400">Profit Margin</p>
-            <p className={`font-semibold ${
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Margin</p>
+            <p className={`font-bold text-xs md:text-sm ${
               financialData.grossRevenue > 0 && (financialData.profit / financialData.grossRevenue) >= 0
-                ? 'text-green-600 dark:text-green-400'
+                ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-red-600 dark:text-red-400'
             }`}>
               {financialData.grossRevenue > 0
