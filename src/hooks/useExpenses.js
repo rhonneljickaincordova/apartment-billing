@@ -5,6 +5,7 @@ import { useFirestoreCollection } from './useFirestore';
 
 // Expense categories
 export const EXPENSE_CATEGORIES = [
+  { value: 'mortgage', label: 'Mortgage (Pag-ibig)' },
   { value: 'electricity', label: 'Electricity' },
   { value: 'water', label: 'Water Bill' },
   { value: 'internet', label: 'Internet' },
@@ -14,6 +15,15 @@ export const EXPENSE_CATEGORIES = [
   { value: 'taxes', label: 'Taxes' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'other', label: 'Other' },
+];
+
+// Recurring frequency options
+export const RECURRING_OPTIONS = [
+  { value: 'none', label: 'One-time' },
+  { value: 'biweekly', label: 'Every 15 Days' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'yearly', label: 'Yearly' },
 ];
 
 /**
@@ -67,7 +77,7 @@ export function useExpenses() {
     amount: 0,
     date: getToday(),
     notes: '',
-    recurring: false,
+    recurringFrequency: 'none',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -91,7 +101,7 @@ export function useExpenses() {
         amount: parseFloat(expenseForm.amount),
         date: expenseForm.date,
         notes: expenseForm.notes?.trim() || '',
-        recurring: expenseForm.recurring || false,
+        recurringFrequency: expenseForm.recurringFrequency || 'none',
       };
 
       let message;
@@ -151,7 +161,7 @@ export function useExpenses() {
       amount: 0,
       date: getToday(),
       notes: '',
-      recurring: false,
+      recurringFrequency: 'none',
     });
     setIsEditing(false);
     setErrors({});

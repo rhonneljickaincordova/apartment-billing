@@ -1,5 +1,5 @@
 import { Edit2, Trash2, RefreshCw } from 'lucide-react';
-import { EXPENSE_CATEGORIES } from '../../hooks/useExpenses';
+import { EXPENSE_CATEGORIES, RECURRING_OPTIONS } from '../../hooks/useExpenses';
 
 /**
  * Get category label from value
@@ -14,6 +14,7 @@ const getCategoryLabel = (value) => {
  */
 const getCategoryColor = (category) => {
   const colors = {
+    mortgage: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
     electricity: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     water: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
     internet: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
@@ -38,6 +39,14 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric',
   });
+};
+
+/**
+ * Get recurring frequency label
+ */
+const getFrequencyLabel = (value) => {
+  const option = RECURRING_OPTIONS.find((o) => o.value === value);
+  return option?.label || 'One-time';
 };
 
 /**
@@ -68,6 +77,9 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Date
               </th>
+              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                Frequency
+              </th>
               <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Amount
               </th>
@@ -86,9 +98,6 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
                     )}`}
                   >
                     {getCategoryLabel(expense.category)}
-                    {expense.recurring && (
-                      <RefreshCw className="w-3 h-3" title="Recurring expense" />
-                    )}
                   </span>
                 </td>
                 <td className="px-3 md:px-6 py-4 text-gray-900 dark:text-white">
@@ -101,6 +110,16 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
                 </td>
                 <td className="px-3 md:px-6 py-4 text-gray-600 dark:text-gray-300">
                   {formatDate(expense.date)}
+                </td>
+                <td className="px-3 md:px-6 py-4 text-gray-600 dark:text-gray-300">
+                  {expense.recurringFrequency && expense.recurringFrequency !== 'none' ? (
+                    <span className="inline-flex items-center gap-1 text-xs">
+                      <RefreshCw className="w-3 h-3" />
+                      {getFrequencyLabel(expense.recurringFrequency)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">One-time</span>
+                  )}
                 </td>
                 <td className="px-3 md:px-6 py-4 text-right font-medium text-gray-900 dark:text-white">
                   ₱{(expense.amount || 0).toFixed(2)}
@@ -128,7 +147,7 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
           </tbody>
           <tfoot className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <td colSpan="3" className="px-3 md:px-6 py-3 text-right font-medium text-gray-700 dark:text-gray-300">
+              <td colSpan="4" className="px-3 md:px-6 py-3 text-right font-medium text-gray-700 dark:text-gray-300">
                 Total:
               </td>
               <td className="px-3 md:px-6 py-3 text-right font-bold text-gray-900 dark:text-white">

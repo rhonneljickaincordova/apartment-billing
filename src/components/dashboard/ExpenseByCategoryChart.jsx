@@ -6,6 +6,7 @@ import { EXPENSE_CATEGORIES } from '../../hooks/useExpenses';
  * Category colors for the pie chart
  */
 const CATEGORY_COLORS = {
+  mortgage: '#EC4899',
   electricity: '#FBBF24',
   water: '#3B82F6',
   internet: '#8B5CF6',

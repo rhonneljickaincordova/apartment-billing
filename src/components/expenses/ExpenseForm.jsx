@@ -1,5 +1,5 @@
 import { DollarSign, Save, X, Tag, Calendar, FileText, RefreshCw } from 'lucide-react';
-import { EXPENSE_CATEGORIES } from '../../hooks/useExpenses';
+import { EXPENSE_CATEGORIES, RECURRING_OPTIONS } from '../../hooks/useExpenses';
 
 /**
  * Expense Form Component
@@ -103,20 +103,19 @@ function ExpenseForm({ form, errors, isEditing, onSave, onCancel, onUpdateField 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <RefreshCw className="w-4 h-4 inline mr-1" aria-hidden="true" />
-            Recurring
+            Frequency
           </label>
-          <div className="flex items-center h-[42px] px-4 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-            <input
-              type="checkbox"
-              id="recurring"
-              checked={form.recurring || false}
-              onChange={(e) => onUpdateField('recurring', e.target.checked)}
-              className="w-4 h-4 mr-2"
-            />
-            <label htmlFor="recurring" className="text-gray-700 dark:text-gray-300">
-              Monthly expense
-            </label>
-          </div>
+          <select
+            value={form.recurringFrequency || 'none'}
+            onChange={(e) => onUpdateField('recurringFrequency', e.target.value)}
+            className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          >
+            {RECURRING_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="flex gap-2 mt-6">
