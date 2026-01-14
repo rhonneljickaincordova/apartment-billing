@@ -9,7 +9,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
-import { SummaryCards, RevenueCards, AlertsList, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart } from './components/dashboard';
+import { SummaryCards, RevenueCards, AlertsList, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable } from './components/expenses';
@@ -559,6 +559,13 @@ const ApartmentBillTracker = () => {
               overdueBills={getOverdueBills()}
               overdueCleanings={getOverdueSchedules()}
               getRoomById={getRoomById}
+            />
+
+            {/* Financial Summary */}
+            <FinancialSummary
+              bills={bills}
+              expenses={expenses}
+              getBillTotal={getBillTotal}
             />
 
             {/* Analytics Charts */}
