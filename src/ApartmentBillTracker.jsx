@@ -9,7 +9,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
-import { SummaryCards, RevenueCards, AlertsList, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary } from './components/dashboard';
+import { SummaryCards, RevenueCards, AlertsList, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable } from './components/expenses';
@@ -32,6 +32,10 @@ const ApartmentBillTracker = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Dashboard filters state
+  const [dashboardTimePeriod, setDashboardTimePeriod] = useState('month');
+  const [dashboardYear, setDashboardYear] = useState(new Date().getFullYear());
 
   // Custom hooks for data management
   const { settings, updateSetting, saveSettings: saveSettingsAction } = useSettings();
@@ -130,6 +134,21 @@ const ApartmentBillTracker = () => {
   const [paymentBillData, setPaymentBillData] = useState(null);
 
   const confirmDialog = useConfirmDialog();
+
+  // Dashboard available years
+  const dashboardAvailableYears = useMemo(() => {
+    return getAvailableYears(bills, expenses);
+  }, [bills, expenses]);
+
+  // Dashboard filtered bills
+  const dashboardFilteredBills = useMemo(() => {
+    return bills.filter((bill) => filterByPeriod(bill.dueDate, dashboardTimePeriod, dashboardYear));
+  }, [bills, dashboardTimePeriod, dashboardYear]);
+
+  // Dashboard filtered expenses
+  const dashboardFilteredExpenses = useMemo(() => {
+    return expenses.filter((expense) => filterByPeriod(expense.date, dashboardTimePeriod, dashboardYear));
+  }, [expenses, dashboardTimePeriod, dashboardYear]);
 
   // Filter and paginate bills
   const filteredBills = useMemo(() => {
@@ -543,39 +562,48 @@ const ApartmentBillTracker = () => {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
+            {/* Dashboard Filters */}
+            <DashboardFilters
+              timePeriod={dashboardTimePeriod}
+              selectedYear={dashboardYear}
+              availableYears={dashboardAvailableYears}
+              onTimePeriodChange={setDashboardTimePeriod}
+              onYearChange={setDashboardYear}
+            />
+
             <SummaryCards
               totalRooms={rooms.length}
               occupiedRooms={getOccupiedRooms().length}
-              pendingBills={getUnpaidBills().length}
-              overdueBills={getOverdueBills().length}
+              pendingBills={dashboardFilteredBills.filter((b) => !b.paid).length}
+              overdueBills={dashboardFilteredBills.filter((b) => !b.paid && new Date(b.dueDate) < new Date()).length}
               airconDue={getSchedulesNeedingAttention().length}
             />
             <RevenueCards
-              collected={getTotalCollected()}
-              pending={getTotalPending()}
-              total={getTotalBilled()}
+              collected={dashboardFilteredBills.filter((b) => b.paid).reduce((sum, b) => sum + getBillTotal(b), 0)}
+              pending={dashboardFilteredBills.filter((b) => !b.paid).reduce((sum, b) => sum + getBillTotal(b), 0)}
+              total={dashboardFilteredBills.reduce((sum, b) => sum + getBillTotal(b), 0)}
             />
             <AlertsList
-              overdueBills={getOverdueBills()}
+              overdueBills={dashboardFilteredBills.filter((b) => !b.paid && new Date(b.dueDate) < new Date())}
               overdueCleanings={getOverdueSchedules()}
               getRoomById={getRoomById}
             />
 
             {/* Financial Summary */}
             <FinancialSummary
-              bills={bills}
-              expenses={expenses}
+              bills={dashboardFilteredBills}
+              expenses={dashboardFilteredExpenses}
               getBillTotal={getBillTotal}
             />
 
             {/* Analytics Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MonthlyBillsChart bills={bills} getBillTotal={getBillTotal} />
-              <MonthlyExpenseChart expenses={expenses} />
+              <MonthlyBillsChart bills={dashboardFilteredBills} getBillTotal={getBillTotal} />
+              <MonthlyExpenseChart expenses={dashboardFilteredExpenses} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <BillsByRoomChart bills={bills} rooms={rooms} getBillTotal={getBillTotal} />
-              <ExpenseByCategoryChart expenses={expenses} />
+              <BillsByRoomChart bills={dashboardFilteredBills} rooms={rooms} getBillTotal={getBillTotal} />
+              <ExpenseByCategoryChart expenses={dashboardFilteredExpenses} />
             </div>
           </div>
         )}

@@ -1,106 +1,22 @@
-import { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Filter } from 'lucide-react';
-
-/**
- * Time period options
- */
-const TIME_PERIODS = [
-  { value: 'month', label: 'This Month' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'year', label: 'This Year' },
-];
-
-/**
- * Get available years from data
- */
-const getAvailableYears = (bills, expenses) => {
-  const years = new Set();
-  const currentYear = new Date().getFullYear();
-
-  // Add current year by default
-  years.add(currentYear);
-
-  // Extract years from bills
-  bills.forEach((bill) => {
-    if (bill.dueDate) {
-      const year = new Date(bill.dueDate).getFullYear();
-      years.add(year);
-    }
-  });
-
-  // Extract years from expenses
-  expenses.forEach((expense) => {
-    if (expense.date) {
-      const year = new Date(expense.date).getFullYear();
-      years.add(year);
-    }
-  });
-
-  return Array.from(years).sort((a, b) => b - a);
-};
-
-/**
- * Filter data by time period
- */
-const filterByPeriod = (date, period, selectedYear) => {
-  if (!date) return false;
-
-  const itemDate = new Date(date);
-  const now = new Date();
-  const itemYear = itemDate.getFullYear();
-
-  // Filter by selected year first
-  if (itemYear !== selectedYear) return false;
-
-  switch (period) {
-    case 'month': {
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      return itemDate.getMonth() === currentMonth && itemYear === currentYear;
-    }
-    case '6months': {
-      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-      return itemDate >= sixMonthsAgo && itemDate <= now;
-    }
-    case 'year':
-    default:
-      return true; // Already filtered by year above
-  }
-};
+import { useMemo } from 'react';
+import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 /**
  * Financial Summary Component
- * Displays Gross Revenue, Expenses, and Profit with filtering
+ * Displays Gross Revenue, Expenses, and Profit based on filtered data
  */
 function FinancialSummary({ bills, expenses, getBillTotal }) {
-  const [timePeriod, setTimePeriod] = useState('month');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-  const availableYears = useMemo(() => {
-    return getAvailableYears(bills, expenses);
-  }, [bills, expenses]);
-
   const financialData = useMemo(() => {
-    // Filter bills by period
-    const filteredBills = bills.filter((bill) =>
-      filterByPeriod(bill.dueDate, timePeriod, selectedYear)
-    );
-
-    // Filter expenses by period
-    const filteredExpenses = expenses.filter((expense) =>
-      filterByPeriod(expense.date, timePeriod, selectedYear)
-    );
-
     // Calculate gross revenue (all bills - both paid and unpaid)
-    const grossRevenue = filteredBills.reduce((sum, bill) => sum + getBillTotal(bill), 0);
+    const grossRevenue = bills.reduce((sum, bill) => sum + getBillTotal(bill), 0);
 
     // Calculate collected revenue (only paid bills)
-    const collectedRevenue = filteredBills
+    const collectedRevenue = bills
       .filter((bill) => bill.paid)
       .reduce((sum, bill) => sum + getBillTotal(bill), 0);
 
     // Calculate total expenses
-    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
     // Calculate profit (collected revenue - expenses)
     const profit = collectedRevenue - totalExpenses;
@@ -114,60 +30,17 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
       totalExpenses,
       profit,
       projectedProfit,
-      billCount: filteredBills.length,
-      expenseCount: filteredExpenses.length,
+      billCount: bills.length,
+      expenseCount: expenses.length,
     };
-  }, [bills, expenses, timePeriod, selectedYear, getBillTotal]);
-
-  const getPeriodLabel = () => {
-    const option = TIME_PERIODS.find((p) => p.value === timePeriod);
-    if (timePeriod === 'year') {
-      return `Year ${selectedYear}`;
-    }
-    return option?.label || '';
-  };
+  }, [bills, expenses, getBillTotal]);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
-          Financial Summary
-        </h3>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <select
-              value={timePeriod}
-              onChange={(e) => setTimePeriod(e.target.value)}
-              className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              {TIME_PERIODS.map((period) => (
-                <option key={period.value} value={period.value}>
-                  {period.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 mb-6">
+        <DollarSign className="w-5 h-5" />
+        Financial Summary
+      </h3>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

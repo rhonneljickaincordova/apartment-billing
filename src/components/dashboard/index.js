@@ -6,3 +6,4 @@ export { default as MonthlyBillsChart } from './MonthlyBillsChart';
 export { default as ExpenseByCategoryChart } from './ExpenseByCategoryChart';
 export { default as BillsByRoomChart } from './BillsByRoomChart';
 export { default as FinancialSummary } from './FinancialSummary';
+export { default as DashboardFilters, TIME_PERIODS, getAvailableYears, filterByPeriod } from './DashboardFilters';
