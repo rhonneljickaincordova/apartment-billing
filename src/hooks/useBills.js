@@ -318,7 +318,7 @@ export function useBills(rooms, settings, tenants = []) {
 
   /**
    * Update a single form field
-   * Auto-fills lastMonthReading when roomId changes based on latest bill
+   * Auto-fills lastMonthReading and dueDate when roomId changes based on latest bill and tenant
    * @param {string} field - Field name
    * @param {any} value - New value
    */
@@ -326,13 +326,22 @@ export function useBills(rooms, settings, tenants = []) {
     setBillForm((prev) => {
       const updates = { [field]: value };
 
-      // Auto-fill lastMonthReading when room is selected (only for new bills)
+      // Auto-fill lastMonthReading and dueDate when room is selected (only for new bills)
       if (field === 'roomId' && value && !isEditing) {
+        // Auto-fill lastMonthReading from latest bill
         const latestBill = getLatestBillForRoom(value);
         if (latestBill && latestBill.currentReading) {
           updates.lastMonthReading = latestBill.currentReading;
         } else {
           updates.lastMonthReading = 0;
+        }
+
+        // Auto-fill dueDate from tenant's rentDueDate
+        const tenant = tenants.find((t) => t.roomId === value);
+        if (tenant && tenant.rentDueDate) {
+          updates.dueDate = tenant.rentDueDate;
+        } else {
+          updates.dueDate = getToday();
         }
       }
 
@@ -346,7 +355,7 @@ export function useBills(rooms, settings, tenants = []) {
       }
       return prev;
     });
-  }, [isEditing, getLatestBillForRoom]);
+  }, [isEditing, getLatestBillForRoom, tenants]);
 
   /**
    * Get a bill by ID

@@ -637,6 +637,7 @@ const ApartmentBillTracker = () => {
               errors={billErrors}
               isEditing={isEditingBill}
               rooms={getOccupiedRooms()}
+              tenants={tenants}
               onSave={handleSaveBill}
               onCancel={resetBillForm}
               onUpdateField={updateBillField}

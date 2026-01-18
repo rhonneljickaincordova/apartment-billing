@@ -4,7 +4,16 @@ import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi } fro
  * Bill Form Component
  * Handles creating and editing bills
  */
-function BillForm({ form, errors, isEditing, rooms, onSave, onCancel, onUpdateField }) {
+function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, onUpdateField, onRoomChange }) {
+  const handleRoomChange = (e) => {
+    const roomId = e.target.value;
+    if (onRoomChange) {
+      onRoomChange(roomId);
+    } else {
+      onUpdateField('roomId', roomId);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
@@ -19,7 +28,7 @@ function BillForm({ form, errors, isEditing, rooms, onSave, onCancel, onUpdateFi
           </label>
           <select
             value={form.roomId}
-            onChange={(e) => onUpdateField('roomId', e.target.value)}
+            onChange={handleRoomChange}
             className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
               errors.roomId ? 'border-red-500' : ''
             }`}
