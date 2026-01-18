@@ -8,7 +8,6 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
-import { CleaningForm, CleaningCard, CleaningHistoryModal } from './components/aircon';
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
@@ -550,7 +549,7 @@ const ApartmentBillTracker = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
-          {['dashboard', 'bills', 'rooms', 'tenants', 'aircon', 'expenses', 'settings'].map((tab) => (
+          {['dashboard', 'bills', 'rooms', 'tenants', 'expenses', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -729,47 +728,6 @@ const ApartmentBillTracker = () => {
           </div>
         )}
 
-        {/* Aircon Tab */}
-        {activeTab === 'aircon' && (
-          <div className="space-y-6">
-            <CleaningForm
-              form={cleaningForm}
-              errors={cleaningErrors}
-              isEditing={isEditingCleaning}
-              rooms={rooms}
-              onSave={handleSaveCleaningSchedule}
-              onCancel={resetCleaningForm}
-              onUpdateField={updateCleaningField}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {cleaningSchedules.map((schedule) => (
-                <CleaningCard
-                  key={schedule.id}
-                  schedule={schedule}
-                  roomName={getRoomById(schedule.roomId)?.name || 'Unknown Room'}
-                  isOverdue={isScheduleOverdue(schedule)}
-                  isDueSoon={isScheduleDueSoon(schedule)}
-                  onViewHistory={() => openHistory(schedule)}
-                  onEdit={() => editSchedule(schedule)}
-                  onDelete={() => handleDeleteCleaningSchedule(schedule.id)}
-                  onMarkCleaned={() => handleMarkAirconCleaned(schedule.roomId)}
-                />
-              ))}
-              {cleaningSchedules.length === 0 && (
-                <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
-                  No cleaning schedules added yet. Add your first schedule above.
-                </div>
-              )}
-            </div>
-            <CleaningHistoryModal
-              isOpen={!!selectedHistory}
-              onClose={closeHistory}
-              roomName={getRoomById(selectedHistory?.roomId)?.name || 'Unknown'}
-              history={selectedHistory?.history}
-            />
-          </div>
-        )}
-
         {/* Expenses Tab */}
         {activeTab === 'expenses' && (
           <div className="space-y-6">
@@ -797,6 +755,23 @@ const ApartmentBillTracker = () => {
             onSave={handleSaveSettings}
             onExportCSV={handleExportCSV}
             onExportJSON={handleExportJSON}
+            cleaningSchedules={cleaningSchedules}
+            cleaningForm={cleaningForm}
+            cleaningErrors={cleaningErrors}
+            isEditingCleaning={isEditingCleaning}
+            rooms={rooms}
+            getRoomById={getRoomById}
+            selectedHistory={selectedHistory}
+            onSaveSchedule={handleSaveCleaningSchedule}
+            onEditSchedule={editSchedule}
+            onDeleteSchedule={handleDeleteCleaningSchedule}
+            onCancelCleaning={resetCleaningForm}
+            onUpdateCleaningField={updateCleaningField}
+            onOpenHistory={openHistory}
+            onCloseHistory={closeHistory}
+            onMarkCleaned={handleMarkAirconCleaned}
+            isScheduleOverdue={isScheduleOverdue}
+            isScheduleDueSoon={isScheduleDueSoon}
           />
         )}
       </div>

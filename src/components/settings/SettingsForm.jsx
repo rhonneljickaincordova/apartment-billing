@@ -1,10 +1,35 @@
 import { Save, Droplet, Zap, Wifi, Wind, Download } from 'lucide-react';
+import { CleaningForm, CleaningCard, CleaningHistoryModal } from '../aircon';
 
 /**
  * Settings Form Component
- * Handles rate settings and export options
+ * Handles rate settings, export options, and aircon cleaning management
  */
-function SettingsForm({ settings, onUpdateSetting, onSave, onExportCSV, onExportJSON }) {
+function SettingsForm({
+  settings,
+  onUpdateSetting,
+  onSave,
+  onExportCSV,
+  onExportJSON,
+  // Aircon props
+  cleaningSchedules,
+  cleaningForm,
+  cleaningErrors,
+  isEditingCleaning,
+  rooms,
+  getRoomById,
+  selectedHistory,
+  onSaveSchedule,
+  onEditSchedule,
+  onDeleteSchedule,
+  onCancelCleaning,
+  onUpdateCleaningField,
+  onOpenHistory,
+  onCloseHistory,
+  onMarkCleaned,
+  isScheduleOverdue,
+  isScheduleDueSoon,
+}) {
   return (
     <div className="space-y-6">
       {/* Rate Settings */}
@@ -71,6 +96,46 @@ function SettingsForm({ settings, onUpdateSetting, onSave, onExportCSV, onExport
           <Save className="w-4 h-4" />
           Save Settings
         </button>
+      </div>
+
+      {/* Aircon Cleaning Management */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+        <h2 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">Aircon Cleaning Schedule</h2>
+        <CleaningForm
+          form={cleaningForm}
+          errors={cleaningErrors}
+          isEditing={isEditingCleaning}
+          rooms={rooms}
+          onSave={onSaveSchedule}
+          onCancel={onCancelCleaning}
+          onUpdateField={onUpdateCleaningField}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {cleaningSchedules.map((schedule) => (
+            <CleaningCard
+              key={schedule.id}
+              schedule={schedule}
+              roomName={getRoomById(schedule.roomId)?.name || 'Unknown Room'}
+              isOverdue={isScheduleOverdue(schedule)}
+              isDueSoon={isScheduleDueSoon(schedule)}
+              onViewHistory={() => onOpenHistory(schedule)}
+              onEdit={() => onEditSchedule(schedule)}
+              onDelete={() => onDeleteSchedule(schedule.id)}
+              onMarkCleaned={() => onMarkCleaned(schedule.roomId)}
+            />
+          ))}
+          {cleaningSchedules.length === 0 && (
+            <div className="col-span-full bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center text-gray-500 dark:text-gray-400">
+              No cleaning schedules added yet. Add your first schedule above.
+            </div>
+          )}
+        </div>
+        <CleaningHistoryModal
+          isOpen={!!selectedHistory}
+          onClose={onCloseHistory}
+          roomName={getRoomById(selectedHistory?.roomId)?.name || 'Unknown'}
+          history={selectedHistory?.history}
+        />
       </div>
 
       {/* Data Export */}
