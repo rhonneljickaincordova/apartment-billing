@@ -33,6 +33,7 @@ export function useTenants() {
     leaseStartDate: '',
     leaseEndDate: '',
     rentDueDate: '',
+    securityDeposit: 0,
     isActive: true,
     customRates: {
       electricityRate: null,
@@ -71,6 +72,7 @@ export function useTenants() {
         leaseStartDate: tenantForm.leaseStartDate,
         leaseEndDate: tenantForm.leaseEndDate,
         rentDueDate: tenantForm.rentDueDate || '',
+        securityDeposit: tenantForm.securityDeposit || 0,
         isActive: tenantForm.isActive,
         customRates: tenantForm.customRates || {
           electricityRate: null,

@@ -49,6 +49,7 @@ export function printLeaseAgreement(tenant, room, settings) {
   const waterRate = settings?.waterRate || UTILITY_RATES.water;
   const electricityRate = settings?.electricityRate || UTILITY_RATES.electricity;
   const wifiRate = settings?.wifiRate || UTILITY_RATES.wifi;
+  const securityDeposit = tenant?.securityDeposit || monthlyRent;
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -424,7 +425,7 @@ export function printLeaseAgreement(tenant, room, settings) {
             <span class="term-title">Early Termination</span>
             <span class="term-content">
               If the Lessee terminates this lease before the completion of <strong>six (6) months</strong>
-              from the start date, the <span class="highlight">entire security deposit</span> shall be forfeited.
+              from the start date, a penalty of <span class="highlight amount">${formatCurrency(securityDeposit)}</span> shall be forfeited.
             </span>
           </li>
 

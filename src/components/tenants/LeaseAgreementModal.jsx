@@ -47,6 +47,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   const waterRate = tenant?.customRates?.waterRate ?? settings?.waterRate ?? 100;
   const electricityRate = tenant?.customRates?.electricityRate ?? settings?.electricityRate ?? 15;
   const wifiRate = tenant?.customRates?.wifiRate ?? settings?.wifiRate ?? 500;
+  const securityDeposit = tenant?.securityDeposit || monthlyRent;
 
   // Generate contract as image using canvas
   const generateContractImage = async () => {
@@ -266,7 +267,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Early Termination</p>
                     <p className="text-gray-700 text-justify">
                       If the Lessee terminates this lease before the completion of <strong>six (6) months</strong> from the start date,
-                      the <span className="bg-yellow-100 px-1 font-bold">entire security deposit</span> shall be forfeited.
+                      a penalty of <span className="bg-yellow-100 px-1 font-bold text-green-700">{formatCurrency(securityDeposit)}</span> shall be forfeited.
                     </p>
                   </div>
                 </div>

@@ -239,6 +239,33 @@ function TenantForm({
         </div>
       </div>
 
+      {/* Early Termination Penalty */}
+      <div className="mb-6">
+        <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+          <FileText className="w-4 h-4 inline mr-1" aria-hidden="true" />
+          Early Termination Penalty
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Security Deposit Amount
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Enter penalty amount"
+              value={form.securityDeposit ?? ''}
+              onChange={(e) => onUpdateField('securityDeposit', parseFloat(e.target.value) || 0)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Amount forfeited if tenant terminates lease early (before 6 months)
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Custom Utility Rates */}
       <div className="mb-6">
         <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
