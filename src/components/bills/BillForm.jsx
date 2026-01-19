@@ -1,4 +1,4 @@
-import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi } from 'lucide-react';
+import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi, Droplets } from 'lucide-react';
 
 /**
  * Bill Form Component
@@ -132,6 +132,20 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
               Include
             </label>
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <Droplets className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            Number of Mineral Water (Optional)
+          </label>
+          <input
+            type="number"
+            placeholder="0"
+            value={form.mineralWaterCount || ''}
+            onChange={(e) => onUpdateField('mineralWaterCount', parseFloat(e.target.value) || 0)}
+            className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            min="0"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

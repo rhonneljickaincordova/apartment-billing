@@ -29,6 +29,27 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
     });
   };
 
+  const calculateDuration = (moveInDate, moveOutDate) => {
+    if (!moveInDate) return '-';
+
+    const startDate = new Date(moveInDate);
+    const endDate = moveOutDate ? new Date(moveOutDate) : new Date();
+
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const years = Math.floor(diffDays / 365);
+    const months = Math.floor((diffDays % 365) / 30);
+    const days = (diffDays % 365) % 30;
+
+    const parts = [];
+    if (years > 0) parts.push(`${years}y`);
+    if (months > 0) parts.push(`${months}m`);
+    if (days > 0 || parts.length === 0) parts.push(`${days}d`);
+
+    return parts.join(' ');
+  };
+
   if (tenants.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
@@ -62,6 +83,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 Move-in Date
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Duration
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -88,6 +112,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {formatDate(tenant.moveInDate)}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  {calculateDuration(tenant.moveInDate, tenant.moveOutDate)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex flex-col">
@@ -210,6 +237,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Move-in:</span>
                 <span className="ml-1 text-gray-900 dark:text-white">{formatDate(tenant.moveInDate)}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Duration:</span>
+                <span className="ml-1 text-gray-900 dark:text-white">{calculateDuration(tenant.moveInDate, tenant.moveOutDate)}</span>
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">

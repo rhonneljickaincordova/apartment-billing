@@ -1,4 +1,4 @@
-import { Save, Droplet, Zap, Wifi, Wind, Download } from 'lucide-react';
+import { Save, Droplet, Zap, Wifi, Wind, Download, Droplets } from 'lucide-react';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from '../aircon';
 
 /**
@@ -84,6 +84,19 @@ function SettingsForm({
               type="number"
               value={settings.airconCleaningRate || 0}
               onChange={(e) => onUpdateSetting('airconCleaningRate', parseFloat(e.target.value) || 0)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Droplets className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Mineral Water Rate
+            </label>
+            <input
+              type="number"
+              value={settings.mineralWaterRate || 0}
+              onChange={(e) => onUpdateSetting('mineralWaterRate', parseFloat(e.target.value) || 0)}
               className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               min="0"
             />
