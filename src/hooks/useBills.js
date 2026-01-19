@@ -50,11 +50,14 @@ export function useBills(rooms, settings, tenants = []) {
         wifiBill: formData.includeWifi !== false ? effectiveRates.wifiRate : 0,
         rentBill: room?.rent || 0,
         airconCleaningBill: formData.includeAirconCleaning ? (settings.airconCleaningRate || 0) : 0,
+        mineralWaterBill: (formData.mineralWaterCount || 0) * (settings.mineralWaterRate || 0),
+        mineralWaterCount: formData.mineralWaterCount || 0,
         // Store rates used for historical reference
         ratesUsed: {
           electricityRate: effectiveRates.electricityRate,
           waterRate: effectiveRates.waterRate,
           wifiRate: effectiveRates.wifiRate,
+          mineralWaterRate: settings.mineralWaterRate || 0,
         },
       };
     },
@@ -67,7 +70,7 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getBillTotal = useCallback((bill) => {
-    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0);
+    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
   }, []);
 
   /**
@@ -512,6 +515,7 @@ export function useBills(rooms, settings, tenants = []) {
               <div class="line-item"><span>Water</span><span>₱${(bill.waterBill || 0).toFixed(2)}</span></div>
               <div class="line-item"><span>Electricity (${bill.lastMonthReading} → ${bill.currentReading})</span><span>₱${(bill.electricityBill || 0).toFixed(2)}</span></div>
               ${bill.airconCleaningBill > 0 ? `<div class="line-item"><span>Aircon Cleaning</span><span>₱${(bill.airconCleaningBill || 0).toFixed(2)}</span></div>` : ''}
+              ${bill.mineralWaterBill > 0 ? `<div class="line-item"><span>Mineral Water (${bill.mineralWaterCount || 0})</span><span>₱${(bill.mineralWaterBill || 0).toFixed(2)}</span></div>` : ''}
               <div class="line-item total"><span>TOTAL</span><span>₱${total.toFixed(2)}</span></div>
             </div>
             <div class="footer">

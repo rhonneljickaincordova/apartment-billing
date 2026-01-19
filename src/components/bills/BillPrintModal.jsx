@@ -218,6 +218,12 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                   <span>₱{(bill.airconCleaningBill || 0).toFixed(2)}</span>
                 </div>
               )}
+              {bill.mineralWaterBill > 0 && (
+                <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                  <span>Mineral Water ({bill.mineralWaterCount || 0})</span>
+                  <span>₱{(bill.mineralWaterBill || 0).toFixed(2)}</span>
+                </div>
+              )}
               {/* Total */}
               <div className="flex justify-between py-4 border-t-2 border-b-2 border-gray-900 mt-3 text-xl font-bold text-gray-900">
                 <span>TOTAL</span>
