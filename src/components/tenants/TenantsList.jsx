@@ -50,6 +50,18 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
     return parts.join(' ');
   };
 
+  const formatDueDay = (rentDueDay) => {
+    if (!rentDueDay) return '-';
+    const num = parseInt(rentDueDay);
+    if (num >= 11 && num <= 13) return num + 'th';
+    switch (num % 10) {
+      case 1: return num + 'st';
+      case 2: return num + 'nd';
+      case 3: return num + 'rd';
+      default: return num + 'th';
+    }
+  };
+
   if (tenants.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
@@ -86,6 +98,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 Duration
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Due Day
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -115,6 +130,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {calculateDuration(tenant.moveInDate, tenant.moveOutDate)}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  {formatDueDay(tenant.rentDueDay)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex flex-col">
@@ -241,6 +259,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Duration:</span>
                 <span className="ml-1 text-gray-900 dark:text-white">{calculateDuration(tenant.moveInDate, tenant.moveOutDate)}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Due Day:</span>
+                <span className="ml-1 text-gray-900 dark:text-white">{formatDueDay(tenant.rentDueDay)}</span>
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
