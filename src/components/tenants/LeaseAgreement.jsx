@@ -51,6 +51,19 @@ const getOrdinalSuffix = (day) => {
   // Handle if day is already a string with suffix (from old data)
   const dayStr = String(day).trim();
 
+  // If it's a date string (YYYY-MM-DD), extract the day
+  if (dayStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const dateObj = new Date(dayStr);
+    const dayNum = dateObj.getDate();
+    if (dayNum >= 11 && dayNum <= 13) return dayNum + 'th';
+    switch (dayNum % 10) {
+      case 1: return dayNum + 'st';
+      case 2: return dayNum + 'nd';
+      case 3: return dayNum + 'rd';
+      default: return dayNum + 'th';
+    }
+  }
+
   // If already has suffix, extract and reformat
   const withSuffixMatch = dayStr.match(/^(\d+)(st|nd|rd|th)$/);
   if (withSuffixMatch) {
