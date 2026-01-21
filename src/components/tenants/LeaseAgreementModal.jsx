@@ -33,6 +33,55 @@ const formatCurrency = (amount) => {
 };
 
 /**
+ * Get ordinal suffix for a day number
+ */
+const getOrdinalSuffix = (day) => {
+  // Default to 5th if no day provided
+  if (day === null || day === undefined || day === '') return '5th';
+
+  // Handle if day is already a string with suffix (from old data)
+  const dayStr = String(day).trim();
+
+  // If it's a date string (YYYY-MM-DD), extract the day
+  if (dayStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const dateObj = new Date(dayStr);
+    const dayNum = dateObj.getDate();
+    if (dayNum >= 11 && dayNum <= 13) return dayNum + 'th';
+    switch (dayNum % 10) {
+      case 1: return dayNum + 'st';
+      case 2: return dayNum + 'nd';
+      case 3: return dayNum + 'rd';
+      default: return dayNum + 'th';
+    }
+  }
+
+  // If already has suffix, extract and reformat
+  const withSuffixMatch = dayStr.match(/^(\d+)(st|nd|rd|th)$/);
+  if (withSuffixMatch) {
+    const num = parseInt(withSuffixMatch[1]);
+    if (num >= 11 && num <= 13) return num + 'th';
+    switch (num % 10) {
+      case 1: return num + 'st';
+      case 2: return num + 'nd';
+      case 3: return num + 'rd';
+      default: return num + 'th';
+    }
+  }
+
+  // Normal processing for numeric values
+  const num = parseInt(dayStr);
+  if (isNaN(num)) return '5th';
+
+  if (num >= 11 && num <= 13) return num + 'th';
+  switch (num % 10) {
+    case 1: return num + 'st';
+    case 2: return num + 'nd';
+    case 3: return num + 'rd';
+    default: return num + 'th';
+  }
+};
+
+/**
  * Lease Agreement Modal Component
  * Displays a lease agreement preview in a modal with share functionality
  */
@@ -219,7 +268,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Monthly Rent</p>
                     <p className="text-gray-700">
                       The Lessee agrees to pay the Lessor the monthly rent of <span className="text-green-700 font-bold">{formatCurrency(monthlyRent)}</span>,
-                      payable on or before the <strong>{tenant?.rentDueDay || '5th'}</strong> of each month.
+                      payable on or before the <strong>{getOrdinalSuffix(tenant?.rentDueDay || tenant?.rentDueDate || 5)}</strong> day of each month.
                     </p>
                   </div>
                 </div>
