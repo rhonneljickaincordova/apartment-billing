@@ -32,7 +32,7 @@ export function useTenants() {
     moveOutDate: null,
     leaseStartDate: '',
     leaseEndDate: '',
-    rentDueDate: '',
+    rentDueDay: null,
     securityDeposit: 0,
     isActive: true,
     customRates: {
@@ -71,7 +71,7 @@ export function useTenants() {
         moveOutDate: tenantForm.moveOutDate || null,
         leaseStartDate: tenantForm.leaseStartDate || '',
         leaseEndDate: tenantForm.leaseEndDate || '',
-        rentDueDate: tenantForm.rentDueDate || '',
+        rentDueDay: tenantForm.rentDueDay || null,
         securityDeposit: tenantForm.securityDeposit || 0,
         isActive: tenantForm.isActive,
         customRates: tenantForm.customRates || {
@@ -146,7 +146,8 @@ export function useTenants() {
       moveOutDate: null,
       leaseStartDate: '',
       leaseEndDate: '',
-      rentDueDay: '5th',
+      rentDueDay: null,
+      securityDeposit: 0,
       isActive: true,
       customRates: {
         electricityRate: null,
