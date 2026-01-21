@@ -45,13 +45,16 @@ const formatCurrency = (amount) => {
  * Get ordinal suffix for a day number
  */
 const getOrdinalSuffix = (day) => {
-  if (!day) return '5th';
+  // Default to 5th if no day provided
+  if (day === null || day === undefined || day === '') return '5th';
 
   // Handle if day is already a string with suffix (from old data)
-  const dayStr = String(day);
-  if (dayStr.match(/^\d+(st|nd|rd|th)$/)) {
-    // Already has suffix, extract number and reformat
-    const num = parseInt(dayStr);
+  const dayStr = String(day).trim();
+
+  // If already has suffix, extract and reformat
+  const withSuffixMatch = dayStr.match(/^(\d+)(st|nd|rd|th)$/);
+  if (withSuffixMatch) {
+    const num = parseInt(withSuffixMatch[1]);
     if (num >= 11 && num <= 13) return num + 'th';
     switch (num % 10) {
       case 1: return num + 'st';
@@ -62,8 +65,9 @@ const getOrdinalSuffix = (day) => {
   }
 
   // Normal processing for numeric values
-  const num = parseInt(day);
+  const num = parseInt(dayStr);
   if (isNaN(num)) return '5th';
+
   if (num >= 11 && num <= 13) return num + 'th';
   switch (num % 10) {
     case 1: return num + 'st';
@@ -427,7 +431,7 @@ export function printLeaseAgreement(tenant, room, settings) {
             <span class="term-title">Monthly Rent</span>
             <span class="term-content">
               The Lessee agrees to pay the Lessor the monthly rent of <span class="amount">${formatCurrency(monthlyRent)}</span>,
-              payable on or before the <strong>${getOrdinalSuffix(tenant.rentDueDay)} day of each month</strong>.
+              payable on or before the <strong>${getOrdinalSuffix(tenant.rentDueDay || tenant.rentDueDate || 5)} day of each month</strong>.
             </span>
           </li>
 
