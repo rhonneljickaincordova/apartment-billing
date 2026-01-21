@@ -339,10 +339,24 @@ export function useBills(rooms, settings, tenants = []) {
           updates.lastMonthReading = 0;
         }
 
-        // Auto-fill dueDate from tenant's rentDueDate
+        // Auto-fill dueDate from tenant's rentDueDay
         const tenant = tenants.find((t) => t.roomId === value);
-        if (tenant && tenant.rentDueDate) {
-          updates.dueDate = tenant.rentDueDate;
+        if (tenant && tenant.rentDueDay) {
+          // Calculate the next occurrence of this day
+          const today = new Date();
+          const currentMonth = today.getMonth();
+          const currentYear = today.getFullYear();
+          const dueDay = parseInt(tenant.rentDueDay);
+
+          // Create date with the due day in current month
+          let dueDate = new Date(currentYear, currentMonth, dueDay);
+
+          // If that date has passed, use next month
+          if (dueDate < today) {
+            dueDate = new Date(currentYear, currentMonth + 1, dueDay);
+          }
+
+          updates.dueDate = dueDate.toISOString().split('T')[0];
         } else {
           updates.dueDate = getToday();
         }

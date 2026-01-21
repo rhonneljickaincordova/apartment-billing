@@ -224,16 +224,22 @@ function TenantForm({
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
-              Rent Due Date
+              Rent Due Day
             </label>
-            <input
-              type="date"
-              value={form.rentDueDate || ''}
-              onChange={(e) => onUpdateField('rentDueDate', e.target.value)}
+            <select
+              value={form.rentDueDay || ''}
+              onChange={(e) => onUpdateField('rentDueDay', e.target.value ? parseInt(e.target.value) : null)}
               className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
+            >
+              <option value="">Select day of month</option>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} day of the month
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              This date will be used as default for bills
+              Day of the month when rent is due
             </p>
           </div>
         </div>

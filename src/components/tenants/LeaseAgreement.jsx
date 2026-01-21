@@ -42,6 +42,21 @@ const formatCurrency = (amount) => {
 };
 
 /**
+ * Get ordinal suffix for a day number
+ */
+const getOrdinalSuffix = (day) => {
+  if (!day) return '5th';
+  const num = parseInt(day);
+  if (num >= 11 && num <= 13) return num + 'th';
+  switch (num % 10) {
+    case 1: return num + 'st';
+    case 2: return num + 'nd';
+    case 3: return num + 'rd';
+    default: return num + 'th';
+  }
+};
+
+/**
  * Print the lease agreement
  */
 export function printLeaseAgreement(tenant, room, settings) {
@@ -395,7 +410,7 @@ export function printLeaseAgreement(tenant, room, settings) {
             <span class="term-title">Monthly Rent</span>
             <span class="term-content">
               The Lessee agrees to pay the Lessor the monthly rent of <span class="amount">${formatCurrency(monthlyRent)}</span>,
-              payable on or before the <strong>${tenant.rentDueDay || '5th'}</strong> of each month.
+              payable on or before the <strong>every ${getOrdinalSuffix(tenant.rentDueDay)} day of the month</strong>.
             </span>
           </li>
 
