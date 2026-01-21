@@ -410,7 +410,7 @@ export function printLeaseAgreement(tenant, room, settings) {
             <span class="term-title">Monthly Rent</span>
             <span class="term-content">
               The Lessee agrees to pay the Lessor the monthly rent of <span class="amount">${formatCurrency(monthlyRent)}</span>,
-              payable on or before the <strong>every ${getOrdinalSuffix(tenant.rentDueDay)} day of the month</strong>.
+              payable on or before the <strong>${getOrdinalSuffix(tenant.rentDueDay)} day of each month</strong>.
             </span>
           </li>
 
