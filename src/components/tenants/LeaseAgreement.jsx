@@ -45,50 +45,45 @@ const formatCurrency = (amount) => {
  * Get ordinal suffix for a day number
  */
 const getOrdinalSuffix = (day) => {
-  // Default to 5th if no day provided
+  // Default fallback
   if (day === null || day === undefined || day === '') return '5th';
 
-  // Handle if day is already a string with suffix (from old data)
+  const toOrdinal = (num) => {
+    if (num >= 11 && num <= 13) return `${num}th`;
+
+    switch (num % 10) {
+      case 1: return `${num}st`;
+      case 2: return `${num}nd`;
+      case 3: return `${num}rd`;
+      default: return `${num}th`;
+    }
+  };
+
+  let dayNum;
+
   const dayStr = String(day).trim();
 
-  // If it's a date string (YYYY-MM-DD), extract the day
-  if (dayStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const dateObj = new Date(dayStr);
-    const dayNum = dateObj.getDate();
-    if (dayNum >= 11 && dayNum <= 13) return dayNum + 'th';
-    switch (dayNum % 10) {
-      case 1: return dayNum + 'st';
-      case 2: return dayNum + 'nd';
-      case 3: return dayNum + 'rd';
-      default: return dayNum + 'th';
+  // Handle YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dayStr)) {
+    const date = new Date(dayStr);
+    if (!isNaN(date)) {
+      dayNum = date.getDate();
     }
   }
-
-  // If already has suffix, extract and reformat
-  const withSuffixMatch = dayStr.match(/^(\d+)(st|nd|rd|th)$/);
-  if (withSuffixMatch) {
-    const num = parseInt(withSuffixMatch[1]);
-    if (num >= 11 && num <= 13) return num + 'th';
-    switch (num % 10) {
-      case 1: return num + 'st';
-      case 2: return num + 'nd';
-      case 3: return num + 'rd';
-      default: return num + 'th';
-    }
+  // Handle already suffixed values (e.g., "21st")
+  else if (/^\d+(st|nd|rd|th)$/.test(dayStr)) {
+    dayNum = parseInt(dayStr, 10);
+  }
+  // Handle plain numbers
+  else {
+    dayNum = parseInt(dayStr, 10);
   }
 
-  // Normal processing for numeric values
-  const num = parseInt(dayStr);
-  if (isNaN(num)) return '5th';
+  if (isNaN(dayNum)) return '5th';
 
-  if (num >= 11 && num <= 13) return num + 'th';
-  switch (num % 10) {
-    case 1: return num + 'st';
-    case 2: return num + 'nd';
-    case 3: return num + 'rd';
-    default: return num + 'th';
-  }
+  return toOrdinal(dayNum);
 };
+
 
 /**
  * Print the lease agreement
@@ -444,7 +439,7 @@ export function printLeaseAgreement(tenant, room, settings) {
             <span class="term-title">Monthly Rent</span>
             <span class="term-content">
               The Lessee agrees to pay the Lessor the monthly rent of <span class="amount">${formatCurrency(monthlyRent)}</span>,
-              payable on or before the <strong>${getOrdinalSuffix(tenant.rentDueDay || tenant.rentDueDate || 5)} day of each month</strong>.
+              payable on or before the <strong>${getOrdinalSuffix(tenant.rentDueDay || tenant.rentDueDate || 5)}</strong> day of each month.
             </span>
           </li>
 
