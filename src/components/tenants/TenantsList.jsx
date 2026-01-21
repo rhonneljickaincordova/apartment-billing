@@ -83,22 +83,22 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Room
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Name
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Phone
+                Due Day
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Room
+                Phone
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Move-in Date
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Duration
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Due Day
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
@@ -111,6 +111,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {tenants.map((tenant) => (
               <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  {getRoomName(tenant.roomId)}
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">
                     {tenant.fullName}
@@ -120,19 +123,16 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                  {tenant.phoneNumber}
+                  {formatDueDay(tenant.rentDueDay)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                  {getRoomName(tenant.roomId)}
+                  {tenant.phoneNumber}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {formatDate(tenant.moveInDate)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {calculateDuration(tenant.moveInDate, tenant.moveOutDate)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                  {formatDueDay(tenant.rentDueDay)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex flex-col">
