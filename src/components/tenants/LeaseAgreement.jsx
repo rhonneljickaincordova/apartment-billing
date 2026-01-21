@@ -46,7 +46,24 @@ const formatCurrency = (amount) => {
  */
 const getOrdinalSuffix = (day) => {
   if (!day) return '5th';
+
+  // Handle if day is already a string with suffix (from old data)
+  const dayStr = String(day);
+  if (dayStr.match(/^\d+(st|nd|rd|th)$/)) {
+    // Already has suffix, extract number and reformat
+    const num = parseInt(dayStr);
+    if (num >= 11 && num <= 13) return num + 'th';
+    switch (num % 10) {
+      case 1: return num + 'st';
+      case 2: return num + 'nd';
+      case 3: return num + 'rd';
+      default: return num + 'th';
+    }
+  }
+
+  // Normal processing for numeric values
   const num = parseInt(day);
+  if (isNaN(num)) return '5th';
   if (num >= 11 && num <= 13) return num + 'th';
   switch (num % 10) {
     case 1: return num + 'st';
