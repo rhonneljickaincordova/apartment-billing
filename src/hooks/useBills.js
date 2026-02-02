@@ -30,6 +30,8 @@ export function useBills(rooms, settings, tenants = []) {
     paid: false,
     applyDeposit: false,
     depositAmount: 0,
+    applyPenalty: false,
+    penaltyAmount: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -72,7 +74,9 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getBillTotal = useCallback((bill) => {
-    return (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
+    const baseTotal = (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
+    const penalty = (bill.penaltyApplied && bill.penaltyAmount) ? bill.penaltyAmount : 0;
+    return baseTotal + penalty;
   }, []);
 
   /**
@@ -104,6 +108,12 @@ export function useBills(rooms, settings, tenants = []) {
         ...calculateBillAmounts(billForm, room),
       };
 
+      // Handle penalty application
+      if (billForm.applyPenalty && billForm.penaltyAmount > 0) {
+        billData.penaltyApplied = true;
+        billData.penaltyAmount = billForm.penaltyAmount;
+      }
+
       // Handle deposit application
       if (billForm.applyDeposit && billForm.depositAmount > 0) {
         const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
@@ -112,7 +122,7 @@ export function useBills(rooms, settings, tenants = []) {
           billData.depositAmount = billForm.depositAmount;
           billData.amountPaid = billForm.depositAmount;
 
-          // Check if deposit covers full amount
+          // Check if deposit covers full amount (including penalty if applied)
           const total = getBillTotal({ ...billData });
           if (billForm.depositAmount >= total) {
             billData.paid = true;
@@ -146,9 +156,14 @@ export function useBills(rooms, settings, tenants = []) {
             });
           }
         }
-        message = billData.depositApplied
-          ? `Bill created successfully! Deposit of ₱${billData.depositAmount.toFixed(2)} applied.`
-          : 'Bill created successfully!';
+        const parts = ['Bill created successfully!'];
+        if (billData.depositApplied) {
+          parts.push(`Deposit of ₱${billData.depositAmount.toFixed(2)} applied.`);
+        }
+        if (billData.penaltyApplied) {
+          parts.push(`Penalty of ₱${billData.penaltyAmount.toFixed(2)} added.`);
+        }
+        message = parts.join(' ');
       }
 
       resetForm();
@@ -339,6 +354,8 @@ export function useBills(rooms, settings, tenants = []) {
       paid: false,
       applyDeposit: false,
       depositAmount: 0,
+      applyPenalty: false,
+      penaltyAmount: 0,
     });
     setIsEditing(false);
     setErrors({});

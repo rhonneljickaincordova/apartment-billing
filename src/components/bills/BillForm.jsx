@@ -1,4 +1,4 @@
-import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi, Droplets, Wallet } from 'lucide-react';
+import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi, Droplets, Wallet, AlertCircle } from 'lucide-react';
 
 /**
  * Bill Form Component
@@ -22,12 +22,25 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
   const hasDeposit = tenant && tenant.securityDeposit > 0 && !tenant.depositUsed;
   const depositAmount = tenant?.securityDeposit || 0;
 
+  // Check if early termination penalty applies
+  const hasPenalty = tenant && tenant.earlyTerminationPenalty > 0;
+  const penaltyAmount = tenant?.earlyTerminationPenalty || 0;
+
   const handleApplyDeposit = (checked) => {
     onUpdateField('applyDeposit', checked);
     if (checked && hasDeposit) {
       onUpdateField('depositAmount', depositAmount);
     } else {
       onUpdateField('depositAmount', 0);
+    }
+  };
+
+  const handleApplyPenalty = (checked) => {
+    onUpdateField('applyPenalty', checked);
+    if (checked && hasPenalty) {
+      onUpdateField('penaltyAmount', penaltyAmount);
+    } else {
+      onUpdateField('penaltyAmount', 0);
     }
   };
 
@@ -235,6 +248,47 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
               <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   No deposit available for this tenant
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Early Termination Penalty Section */}
+      {form.roomId && tenant && hasPenalty && (
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            Early Termination Penalty
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 dark:text-gray-300">Tenant:</span>
+              <span className="font-medium text-gray-900 dark:text-white">{tenant.fullName}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 dark:text-gray-300">Penalty Amount:</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">
+                ₱{penaltyAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 pt-2 border-t border-red-200 dark:border-red-800">
+              <input
+                type="checkbox"
+                id="applyPenalty"
+                checked={form.applyPenalty || false}
+                onChange={(e) => handleApplyPenalty(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="applyPenalty" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Deduct early termination penalty from this bill (tenant leaving before 6 months)
+              </label>
+            </div>
+            {form.applyPenalty && (
+              <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  ⚠ Penalty of ₱{penaltyAmount.toFixed(2)} will be added to this bill
                 </p>
               </div>
             )}
