@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Users, DollarSign, Settings } from 'lucide-react';
 import { useToast } from './context/ToastContext';
 import { ConfirmDialog } from './components/ui';
 import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants, useExpenses } from './hooks';
@@ -138,6 +139,10 @@ const ApartmentBillTracker = () => {
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
   const [showBusinessReport, setShowBusinessReport] = useState(false);
+  const [pendingBillRoomId, setPendingBillRoomId] = useState(null);
+  const [isTenantFormExpanded, setIsTenantFormExpanded] = useState(false);
+  const [isExpenseFormExpanded, setIsExpenseFormExpanded] = useState(false);
+  const [isSettingsFormExpanded, setIsSettingsFormExpanded] = useState(false);
 
   const confirmDialog = useConfirmDialog();
 
@@ -215,6 +220,14 @@ const ApartmentBillTracker = () => {
     const timer = setTimeout(() => setLoading(false), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Handle pending bill creation from tenant list
+  useEffect(() => {
+    if (pendingBillRoomId && activeTab === 'bills' && !isEditingBill) {
+      updateBillField('roomId', pendingBillRoomId);
+      setPendingBillRoomId(null);
+    }
+  }, [pendingBillRoomId, activeTab, isEditingBill, updateBillField]);
 
   // Filter handlers
   const handleFilterChange = (key, value) => {
@@ -436,9 +449,15 @@ const ApartmentBillTracker = () => {
     const result = await saveTenantAction();
     if (result.success) {
       toast.success(result.message);
+      setIsTenantFormExpanded(false);
     } else {
       toast.warning(result.message);
     }
+  };
+
+  const handleEditTenant = (tenant) => {
+    editTenant(tenant);
+    setIsTenantFormExpanded(true);
   };
 
   const handleDeleteTenant = (id) => {
@@ -531,9 +550,15 @@ const ApartmentBillTracker = () => {
     const result = await saveExpenseAction();
     if (result.success) {
       toast.success(result.message);
+      setIsExpenseFormExpanded(false);
     } else {
       toast.warning(result.message);
     }
+  };
+
+  const handleEditExpense = (expense) => {
+    editExpense(expense);
+    setIsExpenseFormExpanded(true);
   };
 
   const handleDeleteExpense = (id) => {
@@ -556,6 +581,13 @@ const ApartmentBillTracker = () => {
   // Helper to check if bill is due soon
   const checkBillDueSoon = (bill) => {
     return !bill.paid && isBillDueSoon(bill.dueDate);
+  };
+
+  // Handle create bill from tenant list
+  const handleCreateBillForTenant = (tenant) => {
+    setPendingBillRoomId(tenant.roomId);
+    setActiveTab('bills');
+    toast.info(`Creating bill for ${tenant.fullName}...`);
   };
 
   if (loading) {
@@ -740,27 +772,59 @@ const ApartmentBillTracker = () => {
         {/* Tenants Tab */}
         {activeTab === 'tenants' && (
           <div className="space-y-6">
-            <TenantForm
-              form={tenantForm}
-              errors={tenantErrors}
-              isEditing={isEditingTenant}
-              rooms={rooms}
-              settings={settings}
-              onSave={handleSaveTenant}
-              onCancel={resetTenantForm}
-              onUpdateField={updateTenantField}
-              onAddImage={addValidIdImage}
-              onRemoveImage={removeValidIdImage}
-            />
+            {/* Collapsible Tenant Form */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <button
+                onClick={() => setIsTenantFormExpanded(!isTenantFormExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {isEditingTenant ? 'Edit Tenant' : 'Add New Tenant'}
+                  </h3>
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                    isTenantFormExpanded ? 'transform rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isTenantFormExpanded && (
+                <div className="px-6 pb-6 border-t border-gray-200 dark:border-gray-700">
+                  <TenantForm
+                    form={tenantForm}
+                    errors={tenantErrors}
+                    isEditing={isEditingTenant}
+                    rooms={rooms}
+                    settings={settings}
+                    onSave={handleSaveTenant}
+                    onCancel={() => {
+                      resetTenantForm();
+                      setIsTenantFormExpanded(false);
+                    }}
+                    onUpdateField={updateTenantField}
+                    onAddImage={addValidIdImage}
+                    onRemoveImage={removeValidIdImage}
+                  />
+                </div>
+              )}
+            </div>
             <TenantsList
               tenants={tenants}
               rooms={rooms}
               settings={settings}
-              onEdit={editTenant}
+              onEdit={handleEditTenant}
               onDelete={handleDeleteTenant}
               onViewDetails={handleViewTenantDetails}
               onToggleStatus={handleToggleTenantStatus}
               onMoveOut={handleMoveOutTenant}
+              onCreateBill={handleCreateBillForTenant}
             />
             <TenantDetailsModal
               tenant={selectedTenant}
@@ -777,21 +841,52 @@ const ApartmentBillTracker = () => {
         {/* Expenses Tab */}
         {activeTab === 'expenses' && (
           <div className="space-y-6">
-            <ExpenseForm
-              form={expenseForm}
-              errors={expenseErrors}
-              isEditing={isEditingExpense}
-              onSave={handleSaveExpense}
-              onCancel={resetExpenseForm}
-              onUpdateField={updateExpenseField}
-            />
+            {/* Collapsible Expense Form */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <button
+                onClick={() => setIsExpenseFormExpanded(!isExpenseFormExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {isEditingExpense ? 'Edit Expense' : 'Add New Expense'}
+                  </h3>
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
+                    isExpenseFormExpanded ? 'transform rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isExpenseFormExpanded && (
+                <div className="px-6 pb-6 border-t border-gray-200 dark:border-gray-700">
+                  <ExpenseForm
+                    form={expenseForm}
+                    errors={expenseErrors}
+                    isEditing={isEditingExpense}
+                    onSave={handleSaveExpense}
+                    onCancel={() => {
+                      resetExpenseForm();
+                      setIsExpenseFormExpanded(false);
+                    }}
+                    onUpdateField={updateExpenseField}
+                  />
+                </div>
+              )}
+            </div>
             <ExpenseFilters
               filters={expenseFilters}
               onFilterChange={handleExpenseFilterChange}
             />
             <ExpensesTable
               expenses={filteredExpenses}
-              onEdit={editExpense}
+              onEdit={handleEditExpense}
               onDelete={handleDeleteExpense}
             />
           </div>

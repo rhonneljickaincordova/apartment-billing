@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onCreateBill }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
   const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
@@ -111,11 +111,8 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Room
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Name
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Bill
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 <button
@@ -129,6 +126,12 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   )}
                   {sortBy !== 'rentDueDay' && <ArrowUpDown className="w-3 h-3 opacity-50" />}
                 </button>
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Room
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Name
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Phone
@@ -150,6 +153,20 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {sortedTenants.map((tenant) => (
               <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                <td className="px-4 py-3 whitespace-nowrap text-center">
+                  {tenant.isActive && !tenant.moveOutDate && (
+                    <button
+                      onClick={() => onCreateBill(tenant)}
+                      className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 p-1"
+                      title="Create Bill"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  {formatDueDay(tenant.rentDueDay)}
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {getRoomName(tenant.roomId)}
                 </td>
@@ -160,9 +177,6 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Emergency: {tenant.emergencyContactName} ({tenant.relationship})
                   </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                  {formatDueDay(tenant.rentDueDay)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {tenant.phoneNumber}
@@ -308,6 +322,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               Emergency: {tenant.emergencyContactName} ({tenant.relationship}) - {tenant.emergencyContactNumber}
             </div>
             <div className="flex flex-wrap justify-end gap-3 pt-2 border-t dark:border-gray-700">
+              {tenant.isActive && !tenant.moveOutDate && (
+                <button
+                  onClick={() => onCreateBill(tenant)}
+                  className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 flex items-center gap-1 text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  Bill
+                </button>
+              )}
               <button
                 onClick={() => setLeaseModalTenant(tenant)}
                 className="text-green-600 hover:text-green-800 dark:text-green-400 flex items-center gap-1 text-sm"
