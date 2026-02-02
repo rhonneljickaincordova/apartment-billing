@@ -34,6 +34,7 @@ export function useTenants() {
     leaseEndDate: '',
     rentDueDay: null,
     securityDeposit: 0,
+    earlyTerminationPenalty: 0,
     isActive: true,
     customRates: {
       electricityRate: null,
@@ -73,6 +74,7 @@ export function useTenants() {
         leaseEndDate: tenantForm.leaseEndDate || '',
         rentDueDay: tenantForm.rentDueDay || null,
         securityDeposit: tenantForm.securityDeposit || 0,
+        earlyTerminationPenalty: tenantForm.earlyTerminationPenalty || 0,
         isActive: tenantForm.isActive,
         customRates: tenantForm.customRates || {
           electricityRate: null,
@@ -148,6 +150,7 @@ export function useTenants() {
       leaseEndDate: '',
       rentDueDay: null,
       securityDeposit: 0,
+      earlyTerminationPenalty: 0,
       isActive: true,
       customRates: {
         electricityRate: null,
