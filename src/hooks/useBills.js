@@ -28,6 +28,8 @@ export function useBills(rooms, settings, tenants = []) {
     includeAirconCleaning: false,
     includeWifi: true,
     paid: false,
+    applyDeposit: false,
+    depositAmount: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -102,14 +104,51 @@ export function useBills(rooms, settings, tenants = []) {
         ...calculateBillAmounts(billForm, room),
       };
 
+      // Handle deposit application
+      if (billForm.applyDeposit && billForm.depositAmount > 0) {
+        const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
+        if (tenant && !tenant.depositUsed) {
+          billData.depositApplied = true;
+          billData.depositAmount = billForm.depositAmount;
+          billData.amountPaid = billForm.depositAmount;
+
+          // Check if deposit covers full amount
+          const total = getBillTotal({ ...billData });
+          if (billForm.depositAmount >= total) {
+            billData.paid = true;
+            billData.paidDate = getToday();
+          }
+
+          // Update tenant to mark deposit as used
+          const { tenantsService } = await import('../services/firestore');
+          await tenantsService.update(tenant.id, {
+            depositUsed: true,
+            depositUsedDate: getToday(),
+            depositBillId: isEditing ? billForm.id : 'pending',
+          });
+        }
+      }
+
       let message;
 
       if (isEditing) {
         await update(billForm.id, billData);
         message = 'Bill updated successfully!';
       } else {
-        await add(billData);
-        message = 'Bill created successfully!';
+        const newBillId = await add(billData);
+        // Update tenant with actual bill ID if deposit was applied
+        if (billData.depositApplied) {
+          const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
+          if (tenant) {
+            const { tenantsService } = await import('../services/firestore');
+            await tenantsService.update(tenant.id, {
+              depositBillId: newBillId,
+            });
+          }
+        }
+        message = billData.depositApplied
+          ? `Bill created successfully! Deposit of ₱${billData.depositAmount.toFixed(2)} applied.`
+          : 'Bill created successfully!';
       }
 
       resetForm();
@@ -298,6 +337,8 @@ export function useBills(rooms, settings, tenants = []) {
       includeAirconCleaning: false,
       includeWifi: true,
       paid: false,
+      applyDeposit: false,
+      depositAmount: 0,
     });
     setIsEditing(false);
     setErrors({});

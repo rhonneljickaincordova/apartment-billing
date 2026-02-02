@@ -1,4 +1,4 @@
-import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi, Droplets } from 'lucide-react';
+import { DollarSign, Save, X, Home, Calendar, Zap, CheckSquare, Wind, Wifi, Droplets, Wallet } from 'lucide-react';
 
 /**
  * Bill Form Component
@@ -11,6 +11,23 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
       onRoomChange(roomId);
     } else {
       onUpdateField('roomId', roomId);
+    }
+  };
+
+  // Get tenant for the selected room
+  const selectedRoom = rooms.find(r => r.id === form.roomId);
+  const tenant = tenants.find(t => t.roomId === form.roomId && t.isActive);
+
+  // Check if deposit is available
+  const hasDeposit = tenant && tenant.securityDeposit > 0 && !tenant.depositUsed;
+  const depositAmount = tenant?.securityDeposit || 0;
+
+  const handleApplyDeposit = (checked) => {
+    onUpdateField('applyDeposit', checked);
+    if (checked && hasDeposit) {
+      onUpdateField('depositAmount', depositAmount);
+    } else {
+      onUpdateField('depositAmount', 0);
     }
   };
 
@@ -166,6 +183,64 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
           </div>
         </div>
       </div>
+
+      {/* Security Deposit Section */}
+      {form.roomId && tenant && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-blue-600" />
+            Security Deposit
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 dark:text-gray-300">Tenant:</span>
+              <span className="font-medium text-gray-900 dark:text-white">{tenant.fullName}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 dark:text-gray-300">Deposit Amount:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                ₱{depositAmount.toFixed(2)}
+              </span>
+            </div>
+            {hasDeposit ? (
+              <>
+                <div className="flex items-center gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                  <input
+                    type="checkbox"
+                    id="applyDeposit"
+                    checked={form.applyDeposit || false}
+                    onChange={(e) => handleApplyDeposit(e.target.checked)}
+                    className="w-4 h-4"
+                    disabled={isEditing && form.depositAmount > 0}
+                  />
+                  <label htmlFor="applyDeposit" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Apply deposit to this bill (typically used for move-out/final bill)
+                  </label>
+                </div>
+                {form.applyDeposit && (
+                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      ✓ Deposit of ₱{depositAmount.toFixed(2)} will be applied as payment
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : tenant.depositUsed ? (
+              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Deposit has already been used
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  No deposit available for this tenant
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 mt-6">
         <button
           onClick={onSave}
