@@ -1,5 +1,5 @@
-import { DollarSign, Save, X, Tag, Calendar, FileText, RefreshCw } from 'lucide-react';
-import { EXPENSE_CATEGORIES, RECURRING_OPTIONS } from '../../hooks/useExpenses';
+import { DollarSign, Save, X, Tag, Calendar, FileText, RefreshCw, Building2, User } from 'lucide-react';
+import { EXPENSE_CATEGORIES, RECURRING_OPTIONS, EXPENSE_TYPES } from '../../hooks/useExpenses';
 
 /**
  * Expense Form Component
@@ -13,6 +13,27 @@ function ExpenseForm({ form, errors, isEditing, onSave, onCancel, onUpdateField 
         {isEditing ? 'Edit Expense' : 'Add New Expense'}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {form.expenseType === 'personal' ? (
+              <User className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            ) : (
+              <Building2 className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            )}
+            Expense Type
+          </label>
+          <select
+            value={form.expenseType || 'apartment'}
+            onChange={(e) => onUpdateField('expenseType', e.target.value)}
+            className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          >
+            {EXPENSE_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             <Tag className="w-4 h-4 inline mr-1" aria-hidden="true" />

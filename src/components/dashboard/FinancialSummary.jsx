@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PiggyBank, Building2, User } from 'lucide-react';
 
 /**
  * Financial Summary Component
@@ -15,19 +15,28 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
       .filter((bill) => bill.paid)
       .reduce((sum, bill) => sum + getBillTotal(bill), 0);
 
-    // Calculate total expenses
+    // Separate expenses by type
+    const apartmentExpenses = expenses.filter((e) => (e.expenseType || 'apartment') === 'apartment');
+    const personalExpenses = expenses.filter((e) => e.expenseType === 'personal');
+
+    const totalApartmentExpenses = apartmentExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalPersonalExpenses = personalExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
-    // Calculate profit (collected revenue - expenses)
-    const profit = collectedRevenue - totalExpenses;
+    // Calculate profit using only apartment expenses (business expenses)
+    const profit = collectedRevenue - totalApartmentExpenses;
 
-    // Calculate projected profit (gross - expenses)
-    const projectedProfit = grossRevenue - totalExpenses;
+    // Calculate projected profit (gross - apartment expenses)
+    const projectedProfit = grossRevenue - totalApartmentExpenses;
 
     return {
       grossRevenue,
       collectedRevenue,
       totalExpenses,
+      totalApartmentExpenses,
+      totalPersonalExpenses,
+      apartmentExpenseCount: apartmentExpenses.length,
+      personalExpenseCount: personalExpenses.length,
       profit,
       projectedProfit,
       billCount: bills.length,
@@ -70,6 +79,16 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs md:text-sm text-red-100 font-medium">Total Expenses</p>
             <p className="text-lg md:text-2xl font-bold truncate">{formatCurrency(financialData.totalExpenses)}</p>
+            <div className="flex flex-wrap gap-2 md:gap-3 mt-1">
+              <span className="inline-flex items-center gap-1 text-[10px] md:text-xs text-red-100">
+                <Building2 className="w-3 h-3" />
+                Apartment: {formatCurrency(financialData.totalApartmentExpenses)}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] md:text-xs text-red-100">
+                <User className="w-3 h-3" />
+                Personal: {formatCurrency(financialData.totalPersonalExpenses)}
+              </span>
+            </div>
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-xs md:text-sm text-red-100">{financialData.expenseCount} expenses</p>
@@ -93,7 +112,7 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
           </div>
           <div className="text-right flex-shrink-0">
             <p className={`text-xs md:text-sm ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
-              From collected
+              Apartment only
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
@@ -8,6 +8,8 @@ import LeaseAgreementModal from './LeaseAgreementModal';
  */
 function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
+  const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
+  const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
 
   const getRoom = (roomId) => {
     if (!roomId) return null;
@@ -62,6 +64,33 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
     }
   };
 
+  // Sort tenants by due day
+  const sortedTenants = useMemo(() => {
+    if (sortBy !== 'rentDueDay') return tenants;
+
+    return [...tenants].sort((a, b) => {
+      const dayA = parseInt(a.rentDueDay) || 0;
+      const dayB = parseInt(b.rentDueDay) || 0;
+
+      if (sortOrder === 'asc') {
+        return dayA - dayB;
+      } else {
+        return dayB - dayA;
+      }
+    });
+  }, [tenants, sortBy, sortOrder]);
+
+  const handleSortByDueDay = () => {
+    if (sortBy === 'rentDueDay') {
+      // Toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set to sort by due day with ascending order
+      setSortBy('rentDueDay');
+      setSortOrder('asc');
+    }
+  };
+
   if (tenants.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
@@ -89,7 +118,17 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 Name
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Due Day
+                <button
+                  onClick={handleSortByDueDay}
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors"
+                  title="Sort by Due Day"
+                >
+                  Due Day
+                  {sortBy === 'rentDueDay' && (
+                    sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                  )}
+                  {sortBy !== 'rentDueDay' && <ArrowUpDown className="w-3 h-3 opacity-50" />}
+                </button>
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Phone
@@ -109,7 +148,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {tenants.map((tenant) => (
+            {sortedTenants.map((tenant) => (
               <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                   {getRoomName(tenant.roomId)}
@@ -218,7 +257,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
 
       {/* Mobile Card View */}
       <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {tenants.map((tenant) => (
+        {sortedTenants.map((tenant) => (
           <div key={tenant.id} className="p-4 space-y-3">
             <div className="flex justify-between items-start">
               <div>

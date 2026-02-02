@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { Building2, User } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '../../hooks/useExpenses';
 
 /**
@@ -27,26 +28,50 @@ const getCategoryLabel = (value) => {
 };
 
 /**
+ * Format currency
+ */
+const formatCurrency = (value) => {
+  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+/**
  * Expense By Category Chart Component
  * Shows expenses breakdown by category as a pie chart
  */
 function ExpenseByCategoryChart({ expenses }) {
-  const chartData = useMemo(() => {
+  const { chartData, typeSummary } = useMemo(() => {
     // Group expenses by category
     const categoryTotals = {};
+    let apartmentTotal = 0;
+    let personalTotal = 0;
+
     expenses.forEach((expense) => {
       const category = expense.category || 'other';
-      categoryTotals[category] = (categoryTotals[category] || 0) + (expense.amount || 0);
+      const amount = expense.amount || 0;
+      const expenseType = expense.expenseType || 'apartment';
+
+      categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+
+      if (expenseType === 'personal') {
+        personalTotal += amount;
+      } else {
+        apartmentTotal += amount;
+      }
     });
 
     // Convert to array and sort by value
-    return Object.entries(categoryTotals)
+    const data = Object.entries(categoryTotals)
       .map(([category, value]) => ({
         name: getCategoryLabel(category),
         value,
         category,
       }))
       .sort((a, b) => b.value - a.value);
+
+    return {
+      chartData: data,
+      typeSummary: { apartmentTotal, personalTotal },
+    };
   }, [expenses]);
 
   if (expenses.length === 0 || chartData.length === 0) {
@@ -64,9 +89,20 @@ function ExpenseByCategoryChart({ expenses }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
         Expenses by Category
       </h3>
+      {/* Expense Type Summary */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+          <Building2 className="w-3 h-3" />
+          Apartment: {formatCurrency(typeSummary.apartmentTotal)}
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+          <User className="w-3 h-3" />
+          Personal: {formatCurrency(typeSummary.personalTotal)}
+        </span>
+      </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

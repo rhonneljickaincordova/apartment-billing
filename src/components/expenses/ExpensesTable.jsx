@@ -1,5 +1,5 @@
-import { Edit2, Trash2, RefreshCw } from 'lucide-react';
-import { EXPENSE_CATEGORIES, RECURRING_OPTIONS } from '../../hooks/useExpenses';
+import { Edit2, Trash2, RefreshCw, Building2, User } from 'lucide-react';
+import { EXPENSE_CATEGORIES, RECURRING_OPTIONS, EXPENSE_TYPES } from '../../hooks/useExpenses';
 
 /**
  * Get category label from value
@@ -50,6 +50,30 @@ const getFrequencyLabel = (value) => {
 };
 
 /**
+ * Get expense type label
+ */
+const getExpenseTypeLabel = (value) => {
+  const type = EXPENSE_TYPES.find((t) => t.value === value);
+  return type?.label || 'Apartment';
+};
+
+/**
+ * Get expense type badge color and icon
+ */
+const getExpenseTypeStyle = (type) => {
+  if (type === 'personal') {
+    return {
+      color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+      Icon: User,
+    };
+  }
+  return {
+    color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+    Icon: Building2,
+  };
+};
+
+/**
  * Expenses Table Component
  * Displays a list of expenses with actions
  */
@@ -68,6 +92,9 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
+              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                Type
+              </th>
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Category
               </th>
@@ -89,8 +116,18 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-            {expenses.map((expense) => (
+            {expenses.map((expense) => {
+              const typeStyle = getExpenseTypeStyle(expense.expenseType);
+              return (
               <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-3 md:px-6 py-4">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${typeStyle.color}`}
+                  >
+                    <typeStyle.Icon className="w-3 h-3" />
+                    {getExpenseTypeLabel(expense.expenseType)}
+                  </span>
+                </td>
                 <td className="px-3 md:px-6 py-4">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(
@@ -143,11 +180,12 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           <tfoot className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <td colSpan="4" className="px-3 md:px-6 py-3 text-right font-medium text-gray-700 dark:text-gray-300">
+              <td colSpan="5" className="px-3 md:px-6 py-3 text-right font-medium text-gray-700 dark:text-gray-300">
                 Total:
               </td>
               <td className="px-3 md:px-6 py-3 text-right font-bold text-gray-900 dark:text-white">

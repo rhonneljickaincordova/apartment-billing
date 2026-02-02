@@ -17,6 +17,12 @@ export const EXPENSE_CATEGORIES = [
   { value: 'other', label: 'Other' },
 ];
 
+// Expense types (personal vs apartment)
+export const EXPENSE_TYPES = [
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'personal', label: 'Personal' },
+];
+
 // Recurring frequency options
 export const RECURRING_OPTIONS = [
   { value: 'none', label: 'One-time' },
@@ -78,6 +84,7 @@ export function useExpenses() {
     date: getToday(),
     notes: '',
     recurringFrequency: 'none',
+    expenseType: 'apartment',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -102,6 +109,7 @@ export function useExpenses() {
         date: expenseForm.date,
         notes: expenseForm.notes?.trim() || '',
         recurringFrequency: expenseForm.recurringFrequency || 'none',
+        expenseType: expenseForm.expenseType || 'apartment',
       };
 
       let message;
@@ -162,6 +170,7 @@ export function useExpenses() {
       date: getToday(),
       notes: '',
       recurringFrequency: 'none',
+      expenseType: 'apartment',
     });
     setIsEditing(false);
     setErrors({});
@@ -205,6 +214,30 @@ export function useExpenses() {
       return expenses.filter((e) => e.category === category);
     },
     [expenses]
+  );
+
+  /**
+   * Get expenses by type (personal or apartment)
+   * @param {string} type - Expense type
+   * @returns {array}
+   */
+  const getExpensesByType = useCallback(
+    (type) => {
+      return expenses.filter((e) => (e.expenseType || 'apartment') === type);
+    },
+    [expenses]
+  );
+
+  /**
+   * Get total expenses by type
+   * @param {string} type - Expense type
+   * @returns {number}
+   */
+  const getTotalByType = useCallback(
+    (type) => {
+      return getExpensesByType(type).reduce((sum, e) => sum + (e.amount || 0), 0);
+    },
+    [getExpensesByType]
   );
 
   /**
@@ -278,9 +311,11 @@ export function useExpenses() {
     // Helpers
     getExpenseById,
     getExpensesByCategory,
+    getExpensesByType,
     getExpensesByDateRange,
     getTotalExpenses,
     getTotalByCategory,
+    getTotalByType,
     getMonthlyExpenses,
   };
 }

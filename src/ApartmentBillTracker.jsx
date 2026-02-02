@@ -8,10 +8,10 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
-import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell } from './components/dashboard';
+import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
-import { ExpenseForm, ExpensesTable } from './components/expenses';
+import { ExpenseForm, ExpensesTable, ExpenseFilters } from './components/expenses';
 import { Pagination } from './components/ui';
 
 const ApartmentBillTracker = () => {
@@ -26,6 +26,12 @@ const ApartmentBillTracker = () => {
     roomId: '',
     dateFrom: '',
     dateTo: '',
+  });
+
+  // Expense filters state
+  const [expenseFilters, setExpenseFilters] = useState({
+    expenseType: 'all',
+    category: 'all',
   });
 
   // Pagination state
@@ -131,6 +137,7 @@ const ApartmentBillTracker = () => {
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
+  const [showBusinessReport, setShowBusinessReport] = useState(false);
 
   const confirmDialog = useConfirmDialog();
 
@@ -213,6 +220,33 @@ const ApartmentBillTracker = () => {
   const handleFilterChange = (key, value) => {
     setBillFilters((prev) => ({ ...prev, [key]: value }));
   };
+
+  // Expense filter handler
+  const handleExpenseFilterChange = (key, value) => {
+    setExpenseFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Filtered expenses based on expense filters
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      // Type filter
+      if (expenseFilters.expenseType !== 'all') {
+        const expType = expense.expenseType || 'apartment';
+        if (expType !== expenseFilters.expenseType) {
+          return false;
+        }
+      }
+
+      // Category filter
+      if (expenseFilters.category !== 'all') {
+        if (expense.category !== expenseFilters.category) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [expenses, expenseFilters]);
 
   const handleClearFilters = () => {
     setBillFilters({
@@ -540,11 +574,22 @@ const ApartmentBillTracker = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
             Apartment Bill Tracker
           </h1>
-          <NotificationBell
-            overdueBills={getOverdueBills()}
-            overdueCleanings={getOverdueSchedules()}
-            getRoomById={getRoomById}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBusinessReport(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden md:inline">Report</span>
+            </button>
+            <NotificationBell
+              overdueBills={getOverdueBills()}
+              overdueCleanings={getOverdueSchedules()}
+              getRoomById={getRoomById}
+            />
+          </div>
         </div>
 
         {/* Tabs */}
@@ -740,8 +785,12 @@ const ApartmentBillTracker = () => {
               onCancel={resetExpenseForm}
               onUpdateField={updateExpenseField}
             />
+            <ExpenseFilters
+              filters={expenseFilters}
+              onFilterChange={handleExpenseFilterChange}
+            />
             <ExpensesTable
-              expenses={expenses}
+              expenses={filteredExpenses}
               onEdit={editExpense}
               onDelete={handleDeleteExpense}
             />
@@ -807,6 +856,18 @@ const ApartmentBillTracker = () => {
         amountPaid={paymentBillData?.amountPaid || 0}
         remainingBalance={paymentBillData ? getRemainingBalance(paymentBillData) : 0}
         onSubmitPayment={handleSubmitPayment}
+      />
+
+      {/* Business Report Modal */}
+      <BusinessReportModal
+        isOpen={showBusinessReport}
+        onClose={() => setShowBusinessReport(false)}
+        rooms={rooms}
+        tenants={tenants}
+        bills={bills}
+        expenses={expenses}
+        getBillTotal={getBillTotal}
+        settings={settings}
       />
     </div>
   );
