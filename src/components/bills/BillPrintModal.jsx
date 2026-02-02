@@ -11,7 +11,9 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
 
   if (!isOpen || !bill) return null;
 
-  const total = getBillTotal(bill);
+  // When deposit is applied, rent is excluded from total
+  const excludeRent = bill.rentExcluded || false;
+  const total = getBillTotal(bill, excludeRent);
   const amountPaid = bill.amountPaid || 0;
   const remainingBalance = Math.max(0, total - amountPaid);
   const isPaid = amountPaid >= total || bill.paid;
@@ -189,12 +191,22 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
               </div>
             </div>
 
+            {/* Deposit Application Note */}
+            {excludeRent && (
+              <div className="mb-4 p-3 bg-blue-100 rounded-lg text-blue-800 text-sm">
+                <p className="font-semibold">Security Deposit Applied</p>
+                <p className="text-xs mt-1">Rent excluded from this bill. Your advance payment covers the final month's rent.</p>
+              </div>
+            )}
+
             {/* Line Items */}
             <div className="space-y-0 border-t border-gray-200">
-              <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
-                <span>Rent</span>
-                <span>₱{(bill.rentBill || 0).toFixed(2)}</span>
-              </div>
+              {!excludeRent && (
+                <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                  <span>Rent</span>
+                  <span>₱{(bill.rentBill || 0).toFixed(2)}</span>
+                </div>
+              )}
               {bill.wifiBill > 0 && (
                 <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
                   <span>WiFi</span>
@@ -231,10 +243,31 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                 </div>
               )}
               {/* Total */}
-              <div className="flex justify-between py-4 border-t-2 border-b-2 border-gray-900 mt-3 text-xl font-bold text-gray-900">
+              <div className="flex justify-between py-4 border-t-2 border-gray-900 mt-3 text-xl font-bold text-gray-900">
                 <span>TOTAL</span>
                 <span>₱{total.toFixed(2)}</span>
               </div>
+
+              {/* Deposit Application and Final Calculation */}
+              {bill.depositApplied && bill.depositAmount > 0 && (
+                <>
+                  <div className="flex justify-between py-3 text-blue-700 font-semibold">
+                    <span>- Security Deposit Applied</span>
+                    <span>₱{(bill.depositAmount || 0).toFixed(2)}</span>
+                  </div>
+                  {bill.depositAmount >= total ? (
+                    <div className="flex justify-between py-4 border-t-2 border-b-2 border-green-600 bg-green-50 px-3 text-lg font-bold text-green-700">
+                      <span>Refund to Tenant</span>
+                      <span>₱{(bill.depositAmount - total).toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between py-4 border-t-2 border-b-2 border-red-600 bg-red-50 px-3 text-lg font-bold text-red-700">
+                      <span>Remaining Balance</span>
+                      <span>₱{(total - bill.depositAmount).toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Footer */}

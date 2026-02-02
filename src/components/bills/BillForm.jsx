@@ -18,8 +18,8 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
   const selectedRoom = rooms.find(r => r.id === form.roomId);
   const tenant = tenants.find(t => t.roomId === form.roomId && t.isActive);
 
-  // Check if deposit is available
-  const hasDeposit = tenant && tenant.securityDeposit > 0 && !tenant.depositUsed;
+  // Check if deposit is available (for testing, ignoring depositUsed flag)
+  const hasDeposit = tenant && tenant.securityDeposit > 0;
   const depositAmount = tenant?.securityDeposit || 0;
 
   // Check if early termination penalty applies
@@ -224,7 +224,6 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
                     checked={form.applyDeposit || false}
                     onChange={(e) => handleApplyDeposit(e.target.checked)}
                     className="w-4 h-4"
-                    disabled={isEditing && form.depositAmount > 0}
                   />
                   <label htmlFor="applyDeposit" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Apply deposit to this bill (typically used for move-out/final bill)
@@ -233,17 +232,11 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
                 {form.applyDeposit && (
                   <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-700 dark:text-green-300">
-                      ✓ Deposit of ₱{depositAmount.toFixed(2)} will be applied as payment
+                      ✓ Deposit of ₱{depositAmount.toFixed(2)} will be applied as payment (rent excluded)
                     </p>
                   </div>
                 )}
               </>
-            ) : tenant.depositUsed ? (
-              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Deposit has already been used
-                </p>
-              </div>
             ) : (
               <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                 <p className="text-sm text-gray-600 dark:text-gray-400">

@@ -71,10 +71,12 @@ export function useBills(rooms, settings, tenants = []) {
   /**
    * Get total amount for a bill
    * @param {object} bill - Bill object
+   * @param {boolean} excludeRent - If true, exclude rent from total (used when applying deposit for final bill)
    * @returns {number}
    */
-  const getBillTotal = useCallback((bill) => {
-    const baseTotal = (bill.rentBill || 0) + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
+  const getBillTotal = useCallback((bill, excludeRent = false) => {
+    const rent = excludeRent ? 0 : (bill.rentBill || 0);
+    const baseTotal = rent + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
     const penalty = (bill.penaltyApplied && bill.penaltyAmount) ? bill.penaltyAmount : 0;
     return baseTotal + penalty;
   }, []);
@@ -117,25 +119,27 @@ export function useBills(rooms, settings, tenants = []) {
       // Handle deposit application
       if (billForm.applyDeposit && billForm.depositAmount > 0) {
         const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
-        if (tenant && !tenant.depositUsed) {
+        if (tenant) {
           billData.depositApplied = true;
           billData.depositAmount = billForm.depositAmount;
           billData.amountPaid = billForm.depositAmount;
+          // When deposit is applied, rent is excluded (advance rent covers last month)
+          billData.rentExcluded = true;
 
-          // Check if deposit covers full amount (including penalty if applied)
-          const total = getBillTotal({ ...billData });
+          // Calculate total excluding rent (only utilities + penalty)
+          const total = getBillTotal({ ...billData }, true); // true = exclude rent
           if (billForm.depositAmount >= total) {
             billData.paid = true;
             billData.paidDate = getToday();
           }
 
-          // Update tenant to mark deposit as used
-          const { tenantsService } = await import('../services/firestore');
-          await tenantsService.update(tenant.id, {
-            depositUsed: true,
-            depositUsedDate: getToday(),
-            depositBillId: isEditing ? billForm.id : 'pending',
-          });
+          // TODO: Uncomment this when ready to mark deposit as permanently used
+          // const { tenantsService } = await import('../services/firestore');
+          // await tenantsService.update(tenant.id, {
+          //   depositUsed: true,
+          //   depositUsedDate: getToday(),
+          //   depositBillId: isEditing ? billForm.id : 'pending',
+          // });
         }
       }
 
@@ -145,17 +149,17 @@ export function useBills(rooms, settings, tenants = []) {
         await update(billForm.id, billData);
         message = 'Bill updated successfully!';
       } else {
-        const newBillId = await add(billData);
-        // Update tenant with actual bill ID if deposit was applied
-        if (billData.depositApplied) {
-          const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
-          if (tenant) {
-            const { tenantsService } = await import('../services/firestore');
-            await tenantsService.update(tenant.id, {
-              depositBillId: newBillId,
-            });
-          }
-        }
+        await add(billData);
+        // TODO: Uncomment when ready to track which bill used the deposit
+        // if (billData.depositApplied) {
+        //   const tenant = tenants.find(t => t.roomId === billForm.roomId && t.isActive);
+        //   if (tenant) {
+        //     const { tenantsService } = await import('../services/firestore');
+        //     await tenantsService.update(tenant.id, {
+        //       depositBillId: newBillId,
+        //     });
+        //   }
+        // }
         const parts = ['Bill created successfully!'];
         if (billData.depositApplied) {
           parts.push(`Deposit of ₱${billData.depositAmount.toFixed(2)} applied.`);
@@ -229,7 +233,8 @@ export function useBills(rooms, settings, tenants = []) {
           return { success: false, message: 'Bill not found.' };
         }
 
-        const total = getBillTotal(bill);
+        const excludeRent = bill.rentExcluded || false;
+        const total = getBillTotal(bill, excludeRent);
         const updateData = bill.paid
           ? { paid: false, paidDate: null, amountPaid: 0 }
           : { paid: true, paidDate: getToday(), amountPaid: total };
@@ -262,7 +267,8 @@ export function useBills(rooms, settings, tenants = []) {
           return { success: false, message: 'Bill not found.' };
         }
 
-        const total = getBillTotal(bill);
+        const excludeRent = bill.rentExcluded || false;
+        const total = getBillTotal(bill, excludeRent);
         const currentAmountPaid = bill.amountPaid || 0;
         const newAmountPaid = currentAmountPaid + amount;
 
@@ -302,7 +308,8 @@ export function useBills(rooms, settings, tenants = []) {
    */
   const getBillStatus = useCallback(
     (bill) => {
-      const total = getBillTotal(bill);
+      const excludeRent = bill.rentExcluded || false;
+      const total = getBillTotal(bill, excludeRent);
       const amountPaid = bill.amountPaid || 0;
 
       if (amountPaid >= total || bill.paid) return 'paid';
@@ -320,7 +327,8 @@ export function useBills(rooms, settings, tenants = []) {
    */
   const getRemainingBalance = useCallback(
     (bill) => {
-      const total = getBillTotal(bill);
+      const excludeRent = bill.rentExcluded || false;
+      const total = getBillTotal(bill, excludeRent);
       const amountPaid = bill.amountPaid || 0;
       return Math.max(0, total - amountPaid);
     },
@@ -502,7 +510,7 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getTotalCollected = useCallback(() => {
-    return getPaidBills().reduce((sum, b) => sum + getBillTotal(b), 0);
+    return getPaidBills().reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
   }, [getPaidBills, getBillTotal]);
 
   /**
@@ -510,7 +518,7 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getTotalPending = useCallback(() => {
-    return getUnpaidBills().reduce((sum, b) => sum + getBillTotal(b), 0);
+    return getUnpaidBills().reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
   }, [getUnpaidBills, getBillTotal]);
 
   /**
@@ -518,7 +526,7 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getTotalBilled = useCallback(() => {
-    return bills.reduce((sum, b) => sum + getBillTotal(b), 0);
+    return bills.reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
   }, [bills, getBillTotal]);
 
   /**

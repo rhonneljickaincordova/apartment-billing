@@ -116,7 +116,8 @@ function BillsTable({
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {bills.map((bill) => {
               const room = getRoomById(bill.roomId);
-              const total = getBillTotal(bill);
+              const excludeRent = bill.rentExcluded || false;
+              const total = getBillTotal(bill, excludeRent);
               const status = getBillStatus(bill);
               const remainingBalance = getRemainingBalance(bill);
               const overdue = status === 'overdue';
