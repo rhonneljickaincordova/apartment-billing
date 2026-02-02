@@ -260,7 +260,7 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {{ success: boolean, message: string }}
    */
   const recordPayment = useCallback(
-    async (billId, amount) => {
+    async (billId, amount, paymentDetails = null) => {
       try {
         const bill = bills.find((b) => b.id === billId);
         if (!bill) {
@@ -278,10 +278,24 @@ export function useBills(rooms, settings, tenants = []) {
 
         const remaining = total - newAmountPaid;
 
+        // Create payment history entry
+        const paymentEntry = {
+          date: getToday(),
+          amount: amount,
+          paymentMethods: paymentDetails?.paymentMethods || [{ method: 'Cash', amount: amount, proofImages: [] }],
+          notes: paymentDetails?.notes || '',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Get existing payment history
+        const paymentHistory = bill.paymentHistory || [];
+        paymentHistory.push(paymentEntry);
+
         const updateData = {
           amountPaid: newAmountPaid,
           paid: newAmountPaid >= total,
           paidDate: newAmountPaid >= total ? getToday() : null,
+          paymentHistory: paymentHistory,
         };
 
         await update(billId, updateData);
