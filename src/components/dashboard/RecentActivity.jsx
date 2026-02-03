@@ -1,4 +1,4 @@
-import { Activity, CheckCircle, FileText, Receipt, Clock } from 'lucide-react';
+import { Activity, CheckCircle, FileText, Receipt, Clock, Wallet } from 'lucide-react';
 
 /**
  * Recent Activity Feed Component
@@ -8,20 +8,27 @@ function RecentActivity({ bills, expenses, getRoomById, getBillTotal }) {
   // Combine and sort activities by date
   const activities = [];
 
-  // Add paid bills as "payment" activities
+  // Add paid bills as "payment" or "deposit applied" activities
   bills
     .filter((bill) => bill.paid && bill.paidDate)
     .forEach((bill) => {
+      // Check if this bill was settled via deposit (no actual cash received)
+      const isDepositSettlement = bill.depositApplied && bill.depositAmount > 0;
+
       activities.push({
         id: `payment-${bill.id}`,
-        type: 'payment',
+        type: isDepositSettlement ? 'deposit' : 'payment',
         date: bill.paidDate,
         roomName: getRoomById(bill.roomId)?.name || 'Unknown',
-        amount: getBillTotal(bill),
-        icon: CheckCircle,
-        iconBg: 'bg-green-100 dark:bg-green-900/50',
-        iconColor: 'text-green-600 dark:text-green-400',
-        label: 'Payment received',
+        amount: getBillTotal(bill, bill.rentExcluded || false),
+        icon: isDepositSettlement ? Wallet : CheckCircle,
+        iconBg: isDepositSettlement
+          ? 'bg-purple-100 dark:bg-purple-900/50'
+          : 'bg-green-100 dark:bg-green-900/50',
+        iconColor: isDepositSettlement
+          ? 'text-purple-600 dark:text-purple-400'
+          : 'text-green-600 dark:text-green-400',
+        label: isDepositSettlement ? 'Deposit applied' : 'Payment received',
       });
     });
 
@@ -34,7 +41,7 @@ function RecentActivity({ bills, expenses, getRoomById, getBillTotal }) {
         type: 'bill',
         date: bill.createdAt || bill.dueDate,
         roomName: getRoomById(bill.roomId)?.name || 'Unknown',
-        amount: getBillTotal(bill),
+        amount: getBillTotal(bill, bill.rentExcluded || false),
         dueDate: bill.dueDate,
         icon: FileText,
         iconBg: 'bg-blue-100 dark:bg-blue-900/50',
@@ -118,6 +125,8 @@ function RecentActivity({ bills, expenses, getRoomById, getBillTotal }) {
                     <span className={`text-sm font-semibold flex-shrink-0 ${
                       activity.type === 'payment'
                         ? 'text-green-600 dark:text-green-400'
+                        : activity.type === 'deposit'
+                        ? 'text-purple-600 dark:text-purple-400'
                         : activity.type === 'expense'
                         ? 'text-red-600 dark:text-red-400'
                         : 'text-blue-600 dark:text-blue-400'

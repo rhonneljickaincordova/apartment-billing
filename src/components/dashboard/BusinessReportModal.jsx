@@ -62,9 +62,9 @@ function BusinessReportModal({
   const inactiveTenants = tenants.length - activeTenants;
 
   // Financial calculations
-  const totalRevenue = bills.reduce((sum, bill) => sum + (getBillTotal(bill) || 0), 0);
+  const totalRevenue = bills.reduce((sum, bill) => sum + (getBillTotal(bill, bill.rentExcluded || false) || 0), 0);
   const collectedRevenue = bills.reduce((sum, bill) => {
-    if (bill.paid) return sum + (getBillTotal(bill) || 0);
+    if (bill.paid) return sum + (getBillTotal(bill, bill.rentExcluded || false) || 0);
     return sum + (bill.amountPaid || 0);
   }, 0);
 
@@ -94,7 +94,7 @@ function BusinessReportModal({
     if (!roomRevenue[bill.roomId]) {
       roomRevenue[bill.roomId] = 0;
     }
-    roomRevenue[bill.roomId] += getBillTotal(bill) || 0;
+    roomRevenue[bill.roomId] += getBillTotal(bill, bill.rentExcluded || false) || 0;
   });
 
   const topRooms = Object.entries(roomRevenue)
@@ -147,13 +147,13 @@ function BusinessReportModal({
   const today = new Date();
   const overdueBillsData = bills.filter((b) => !b.paid && new Date(b.dueDate) < today);
   const overdueAmount = overdueBillsData.reduce((sum, bill) => {
-    const total = getBillTotal(bill) || 0;
+    const total = getBillTotal(bill, bill.rentExcluded || false) || 0;
     const paid = bill.amountPaid || 0;
     return sum + (total - paid);
   }, 0);
   const upcomingBillsData = bills.filter((b) => !b.paid && new Date(b.dueDate) >= today);
   const upcomingAmount = upcomingBillsData.reduce((sum, bill) => {
-    const total = getBillTotal(bill) || 0;
+    const total = getBillTotal(bill, bill.rentExcluded || false) || 0;
     const paid = bill.amountPaid || 0;
     return sum + (total - paid);
   }, 0);

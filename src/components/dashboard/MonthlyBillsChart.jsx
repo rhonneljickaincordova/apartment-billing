@@ -36,11 +36,11 @@ function MonthlyBillsChart({ bills, getBillTotal }) {
 
       const collected = monthBills
         .filter((b) => b.paid)
-        .reduce((sum, b) => sum + getBillTotal(b), 0);
+        .reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
 
       const pending = monthBills
         .filter((b) => !b.paid)
-        .reduce((sum, b) => sum + getBillTotal(b), 0);
+        .reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
 
       return {
         name: label,

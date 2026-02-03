@@ -8,12 +8,23 @@ import { TrendingUp, TrendingDown, DollarSign, PiggyBank, Building2, User } from
 function FinancialSummary({ bills, expenses, getBillTotal }) {
   const financialData = useMemo(() => {
     // Calculate gross revenue (all bills - both paid and unpaid)
-    const grossRevenue = bills.reduce((sum, bill) => sum + getBillTotal(bill), 0);
+    const grossRevenue = bills.reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
 
-    // Calculate collected revenue (only paid bills)
-    const collectedRevenue = bills
-      .filter((bill) => bill.paid)
-      .reduce((sum, bill) => sum + getBillTotal(bill), 0);
+    // Separate paid bills into cash payments vs deposit settlements
+    const paidBills = bills.filter((bill) => bill.paid);
+
+    // Cash Collected: Actual money received (not deposit settlements)
+    const cashCollected = paidBills
+      .filter((bill) => !(bill.depositApplied && bill.depositAmount > 0))
+      .reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
+
+    // Deposits Applied: Bills settled via deposit (no actual cash received)
+    const depositsApplied = paidBills
+      .filter((bill) => bill.depositApplied && bill.depositAmount > 0)
+      .reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
+
+    // Total Settled: Sum of both (for reference)
+    const collectedRevenue = cashCollected + depositsApplied;
 
     // Separate expenses by type
     const apartmentExpenses = expenses.filter((e) => (e.expenseType || 'apartment') === 'apartment');
@@ -23,8 +34,9 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     const totalPersonalExpenses = personalExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
-    // Calculate profit using only apartment expenses (business expenses)
-    const profit = collectedRevenue - totalApartmentExpenses;
+    // Calculate profit using only actual CASH collected (exclude deposit settlements)
+    // This gives accurate cash flow picture
+    const profit = cashCollected - totalApartmentExpenses;
 
     // Calculate projected profit (gross - apartment expenses)
     const projectedProfit = grossRevenue - totalApartmentExpenses;
@@ -32,6 +44,8 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     return {
       grossRevenue,
       collectedRevenue,
+      cashCollected,
+      depositsApplied,
       totalExpenses,
       totalApartmentExpenses,
       totalPersonalExpenses,
@@ -112,7 +126,32 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
           </div>
           <div className="text-right flex-shrink-0">
             <p className={`text-xs md:text-sm ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
-              Apartment only
+              Cash only
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Breakdown - Cash vs Deposits */}
+      <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
+        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mb-2">Revenue Breakdown</p>
+        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+          <div className="text-center p-2 md:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <p className="text-green-600 dark:text-green-400 text-[10px] md:text-xs mb-1">Cash Collected</p>
+            <p className="font-bold text-xs md:text-sm text-green-700 dark:text-green-300 truncate">
+              {formatCurrency(financialData.cashCollected)}
+            </p>
+          </div>
+          <div className="text-center p-2 md:p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-purple-600 dark:text-purple-400 text-[10px] md:text-xs mb-1">Deposits Applied</p>
+            <p className="font-bold text-xs md:text-sm text-purple-700 dark:text-purple-300 truncate">
+              {formatCurrency(financialData.depositsApplied)}
+            </p>
+          </div>
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Total Settled</p>
+            <p className="font-bold text-xs md:text-sm text-gray-800 dark:text-white truncate">
+              {formatCurrency(financialData.collectedRevenue)}
             </p>
           </div>
         </div>
@@ -120,13 +159,7 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
 
       {/* Additional Details */}
       <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 text-sm">
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Collected</p>
-            <p className="font-bold text-xs md:text-sm text-gray-800 dark:text-white truncate">
-              {formatCurrency(financialData.collectedRevenue)}
-            </p>
-          </div>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 text-sm">
           <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Pending</p>
             <p className="font-bold text-xs md:text-sm text-amber-600 dark:text-amber-400 truncate">
@@ -134,7 +167,7 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
             </p>
           </div>
           <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Projected</p>
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Projected Profit</p>
             <p className={`font-bold text-xs md:text-sm truncate ${
               financialData.projectedProfit >= 0
                 ? 'text-emerald-600 dark:text-emerald-400'
@@ -143,15 +176,15 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
               {formatCurrency(financialData.projectedProfit)}
             </p>
           </div>
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Margin</p>
+          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg col-span-2 md:col-span-1">
+            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Cash Margin</p>
             <p className={`font-bold text-xs md:text-sm ${
-              financialData.grossRevenue > 0 && (financialData.profit / financialData.grossRevenue) >= 0
+              financialData.cashCollected > 0 && (financialData.profit / financialData.cashCollected) >= 0
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-red-600 dark:text-red-400'
             }`}>
-              {financialData.grossRevenue > 0
-                ? `${((financialData.profit / financialData.grossRevenue) * 100).toFixed(1)}%`
+              {financialData.cashCollected > 0
+                ? `${((financialData.profit / financialData.cashCollected) * 100).toFixed(1)}%`
                 : '0%'
               }
             </p>

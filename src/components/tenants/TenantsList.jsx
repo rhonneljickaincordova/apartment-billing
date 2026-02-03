@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
@@ -10,6 +10,8 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
   const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
+  const [statusFilter, setStatusFilter] = useState('active'); // 'all', 'active', 'movedOut'
+  const [searchQuery, setSearchQuery] = useState('');
 
   const getRoom = (roomId) => {
     if (!roomId) return null;
@@ -64,21 +66,47 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
     }
   };
 
-  // Sort tenants by due day
-  const sortedTenants = useMemo(() => {
-    if (sortBy !== 'rentDueDay') return tenants;
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return '-';
+    return `₱${parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
-    return [...tenants].sort((a, b) => {
-      const dayA = parseInt(a.rentDueDay) || 0;
-      const dayB = parseInt(b.rentDueDay) || 0;
-
-      if (sortOrder === 'asc') {
-        return dayA - dayB;
-      } else {
-        return dayB - dayA;
+  // Filter and sort tenants
+  const filteredAndSortedTenants = useMemo(() => {
+    // First, filter by status
+    let filtered = tenants.filter((tenant) => {
+      if (statusFilter === 'active') {
+        return tenant.isActive && !tenant.moveOutDate;
+      } else if (statusFilter === 'movedOut') {
+        return !!tenant.moveOutDate;
       }
+      return true; // 'all'
     });
-  }, [tenants, sortBy, sortOrder]);
+
+    // Then, filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((tenant) => {
+        const roomName = getRoomName(tenant.roomId).toLowerCase();
+        return (
+          tenant.fullName?.toLowerCase().includes(query) ||
+          tenant.phoneNumber?.toLowerCase().includes(query) ||
+          roomName.includes(query)
+        );
+      });
+    }
+
+    // Finally, sort
+    if (sortBy === 'rentDueDay') {
+      filtered.sort((a, b) => {
+        const dayA = parseInt(a.rentDueDay) || 0;
+        const dayB = parseInt(b.rentDueDay) || 0;
+        return sortOrder === 'asc' ? dayA - dayB : dayB - dayA;
+      });
+    }
+
+    return filtered;
+  }, [tenants, statusFilter, searchQuery, sortBy, sortOrder]);
 
   const handleSortByDueDay = () => {
     if (sortBy === 'rentDueDay') {
@@ -103,10 +131,88 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <h2 className="text-lg font-semibold p-4 border-b dark:border-gray-700 flex items-center gap-2 text-gray-900 dark:text-white">
         <Users className="w-5 h-5" />
-        Tenants List ({tenants.length})
+        Tenants List ({filteredAndSortedTenants.length}{filteredAndSortedTenants.length !== tenants.length ? ` of ${tenants.length}` : ''})
       </h2>
 
+      {/* Filter Bar */}
+      <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-750 space-y-3 md:space-y-0 md:flex md:items-center md:gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search name, phone, room..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
+                statusFilter === 'active'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setStatusFilter('movedOut')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
+                statusFilter === 'movedOut'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              }`}
+            >
+              Moved Out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* No results message */}
+      {filteredAndSortedTenants.length === 0 && tenants.length > 0 && (
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>No tenants match your filters.</p>
+          <button
+            onClick={() => {
+              setStatusFilter('all');
+              setSearchQuery('');
+            }}
+            className="mt-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
+
       {/* Desktop Table View */}
+      {filteredAndSortedTenants.length > 0 && (
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
@@ -146,12 +252,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 Status
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Refund
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedTenants.map((tenant) => (
+            {filteredAndSortedTenants.map((tenant) => (
               <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   {tenant.isActive && !tenant.moveOutDate && (
@@ -206,6 +315,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                       </span>
                     )}
                   </div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  {tenant.moveOutDate && tenant.moveOutDetails?.refundAmount !== undefined ? (
+                    <span className={`text-sm font-medium ${tenant.moveOutDetails.refundAmount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {formatCurrency(tenant.moveOutDetails.refundAmount)}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex justify-end gap-2">
@@ -268,10 +386,12 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Mobile Card View */}
+      {filteredAndSortedTenants.length > 0 && (
       <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {sortedTenants.map((tenant) => (
+        {filteredAndSortedTenants.map((tenant) => (
           <div key={tenant.id} className="p-4 space-y-3">
             <div className="flex justify-between items-start">
               <div>
@@ -317,6 +437,14 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 <span className="text-gray-500 dark:text-gray-400">Due Day:</span>
                 <span className="ml-1 text-gray-900 dark:text-white">{formatDueDay(tenant.rentDueDay)}</span>
               </div>
+              {tenant.moveOutDate && tenant.moveOutDetails?.refundAmount !== undefined && (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Refund:</span>
+                  <span className={`ml-1 font-medium ${tenant.moveOutDetails.refundAmount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                    {formatCurrency(tenant.moveOutDetails.refundAmount)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Emergency: {tenant.emergencyContactName} ({tenant.relationship}) - {tenant.emergencyContactNumber}
@@ -392,6 +520,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           </div>
         ))}
       </div>
+      )}
 
       {/* Lease Agreement Modal */}
       <LeaseAgreementModal

@@ -40,14 +40,14 @@ function MonthlyComparison({ bills, expenses, getBillTotal }) {
     });
 
     // Calculate totals for current month
-    const currentRevenue = currentMonthBills.reduce((sum, b) => sum + getBillTotal(b), 0);
-    const currentCollected = currentMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b), 0);
+    const currentRevenue = currentMonthBills.reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
+    const currentCollected = currentMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
     const currentExpenseTotal = currentMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const currentProfit = currentCollected - currentExpenseTotal;
 
     // Calculate totals for last month
-    const lastRevenue = lastMonthBills.reduce((sum, b) => sum + getBillTotal(b), 0);
-    const lastCollected = lastMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b), 0);
+    const lastRevenue = lastMonthBills.reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
+    const lastCollected = lastMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
     const lastExpenseTotal = lastMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const lastProfit = lastCollected - lastExpenseTotal;
 

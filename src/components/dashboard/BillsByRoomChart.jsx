@@ -23,7 +23,7 @@ function BillsByRoomChart({ bills, rooms, getBillTotal }) {
       if (!roomTotals[roomId]) {
         roomTotals[roomId] = { collected: 0, pending: 0 };
       }
-      const total = getBillTotal(bill);
+      const total = getBillTotal(bill, bill.rentExcluded || false);
       if (bill.paid) {
         roomTotals[roomId].collected += total;
       } else {
