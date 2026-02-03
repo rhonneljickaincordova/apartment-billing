@@ -8,3 +8,4 @@ export { useSettings } from './useSettings';
 export { useTenants } from './useTenants';
 export { useExpenses } from './useExpenses';
 export { useConfirmDialog } from './useConfirmDialog';
+export { useAuth } from '../context/AuthContext';

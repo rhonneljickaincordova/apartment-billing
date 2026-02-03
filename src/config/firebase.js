@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // Firebase configuration
 // Replace these values with your Firebase project config
@@ -19,6 +20,9 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore
 const db = getFirestore(app);
 
+// Initialize Auth
+const auth = getAuth(app);
+
 // Enable offline persistence (stores data in IndexedDB for offline access)
 enableIndexedDbPersistence(db).catch((err) => {
   if (err.code === 'failed-precondition') {
@@ -30,5 +34,5 @@ enableIndexedDbPersistence(db).catch((err) => {
   }
 });
 
-export { db };
+export { db, auth };
 export default app;

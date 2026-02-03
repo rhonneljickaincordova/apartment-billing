@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Users, DollarSign, Settings } from 'lucide-react';
+import { Users, DollarSign, Settings, ArrowLeft, LogOut } from 'lucide-react';
 import { useToast } from './context/ToastContext';
+import { useAuth } from './context/AuthContext';
 import { ConfirmDialog } from './components/ui';
 import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants, useExpenses } from './hooks';
 import { isBillDueSoon } from './utils/dateHelpers';
@@ -17,6 +18,7 @@ import { Pagination } from './components/ui';
 
 const ApartmentBillTracker = () => {
   const toast = useToast();
+  const { user, logout, goBackToAppSelection } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
@@ -613,10 +615,28 @@ const ApartmentBillTracker = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header with Title and Notifications */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-            Apartment Bill Tracker
-          </h1>
+          <div className="flex items-center gap-3">
+            {/* Back to App Selection */}
+            <button
+              onClick={goBackToAppSelection}
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              title="Back to Apps"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+              Apartment Bill Tracker
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
+            {/* User avatar */}
+            {user?.photoURL && (
+              <img
+                src={user.photoURL}
+                alt={user.displayName}
+                className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700"
+              />
+            )}
             <button
               onClick={() => setShowBusinessReport(true)}
               className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -631,6 +651,14 @@ const ApartmentBillTracker = () => {
               overdueCleanings={getOverdueSchedules()}
               getRoomById={getRoomById}
             />
+            {/* Logout button */}
+            <button
+              onClick={logout}
+              className="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
