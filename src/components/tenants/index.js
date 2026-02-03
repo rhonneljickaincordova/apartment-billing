@@ -3,4 +3,5 @@ export { default as TenantsList } from './TenantsList';
 export { default as TenantDetailsModal } from './TenantDetailsModal';
 export { default as SignaturePad } from './SignaturePad';
 export { default as LeaseAgreementModal } from './LeaseAgreementModal';
+export { default as MoveOutModal } from './MoveOutModal';
 export { printLeaseAgreement } from './LeaseAgreement';

@@ -278,21 +278,43 @@ export function useTenants() {
   );
 
   /**
-   * Move out a tenant - sets inactive status and records move-out date
+   * Move out a tenant - sets inactive status and records move-out date with refund details
    * @param {object} tenant - Tenant to move out
+   * @param {object} moveOutDetails - Move out details including refund
    * @returns {{ success: boolean, message: string }}
    */
   const moveOutTenant = useCallback(
-    async (tenant) => {
+    async (tenant, moveOutDetails = {}) => {
       try {
-        const moveOutDate = new Date().toISOString().split('T')[0];
+        const {
+          moveOutDate = new Date().toISOString().split('T')[0],
+          refundAmount = 0,
+          deductions = 0,
+          notes = '',
+          isEarlyTermination = false,
+          monthsStayed = 0,
+        } = moveOutDetails;
+
         await update(tenant.id, {
           isActive: false,
-          moveOutDate
+          moveOutDate,
+          moveOutDetails: {
+            refundAmount,
+            deductions,
+            notes,
+            isEarlyTermination,
+            monthsStayed,
+            processedDate: new Date().toISOString(),
+          }
         });
+
+        const refundMessage = refundAmount > 0
+          ? ` Refund of ₱${refundAmount.toFixed(2)} recorded.`
+          : ' No refund applicable.';
+
         return {
           success: true,
-          message: `${tenant.fullName} has been moved out.`,
+          message: `${tenant.fullName} has been moved out.${refundMessage}`,
         };
       } catch (error) {
         console.error('Error moving out tenant:', error);

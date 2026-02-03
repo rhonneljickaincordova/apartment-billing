@@ -11,7 +11,7 @@ import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
-import { TenantForm, TenantsList, TenantDetailsModal } from './components/tenants';
+import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable, ExpenseFilters } from './components/expenses';
 import { Pagination } from './components/ui';
 
@@ -136,6 +136,7 @@ const ApartmentBillTracker = () => {
   } = useExpenses();
 
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [moveOutTenantData, setMoveOutTenantData] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
   const [showBusinessReport, setShowBusinessReport] = useState(false);
@@ -487,19 +488,21 @@ const ApartmentBillTracker = () => {
   };
 
   const handleMoveOutTenant = (tenant) => {
-    confirmDialog.showConfirm(
-      'Move Out Tenant',
-      `Are you sure you want to mark "${tenant.fullName}" as moved out? This will set their status to inactive and record today's date as the move-out date.`,
-      async () => {
-        const result = await moveOutTenant(tenant);
-        if (result.success) {
-          toast.success(result.message);
-        } else {
-          toast.error(result.message);
-        }
-      },
-      'danger'
-    );
+    setMoveOutTenantData(tenant);
+  };
+
+  const handleConfirmMoveOut = async (tenant, moveOutDetails) => {
+    const result = await moveOutTenant(tenant, moveOutDetails);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+    setMoveOutTenantData(null);
+  };
+
+  const handleCloseMoveOutModal = () => {
+    setMoveOutTenantData(null);
   };
 
   const handleViewTenantDetails = (tenant) => {
@@ -834,6 +837,13 @@ const ApartmentBillTracker = () => {
               onClose={handleCloseTenantDetails}
               onSaveSignature={handleSaveTenantSignature}
               onClearSignature={handleClearTenantSignature}
+            />
+            <MoveOutModal
+              isOpen={!!moveOutTenantData}
+              onClose={handleCloseMoveOutModal}
+              tenant={moveOutTenantData}
+              room={moveOutTenantData ? rooms.find(r => r.id === moveOutTenantData.roomId) : null}
+              onConfirmMoveOut={handleConfirmMoveOut}
             />
           </div>
         )}
