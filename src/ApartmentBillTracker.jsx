@@ -494,6 +494,13 @@ const ApartmentBillTracker = () => {
   const handleConfirmMoveOut = async (tenant, moveOutDetails) => {
     const result = await moveOutTenant(tenant, moveOutDetails);
     if (result.success) {
+      // Also update the room status to vacant if tenant had a room assigned
+      if (tenant.roomId) {
+        const room = getRoomById(tenant.roomId);
+        if (room && room.status === 'occupied') {
+          await toggleRoomStatus(room);
+        }
+      }
       toast.success(result.message);
     } else {
       toast.error(result.message);
