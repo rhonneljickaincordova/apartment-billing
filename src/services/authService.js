@@ -14,29 +14,16 @@ const facebookProvider = new FacebookAuthProvider();
 // Session persistence key
 const SESSION_KEY = 'apt_billing_session';
 
-// Detect if running on mobile device
-const isMobile = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-};
-
 export const authService = {
   // Get current user
   getCurrentUser() {
     return auth.currentUser;
   },
 
-  // Sign in with Facebook (auto-detect popup vs redirect)
+  // Sign in with Facebook (try popup first, fallback to redirect)
   async signInWithFacebook() {
     try {
-      // Use redirect for mobile (popups often blocked), popup for desktop
-      if (isMobile()) {
-        await signInWithRedirect(auth, facebookProvider);
-        // Redirect will navigate away, so we return a pending state
-        return { success: true, pending: true };
-      }
-
+      // Try popup first for all devices (better UX when it works)
       const result = await signInWithPopup(auth, facebookProvider);
       const credential = FacebookAuthProvider.credentialFromResult(result);
       const accessToken = credential?.accessToken;
