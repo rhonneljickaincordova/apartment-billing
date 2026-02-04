@@ -14,15 +14,29 @@ const facebookProvider = new FacebookAuthProvider();
 // Session persistence key
 const SESSION_KEY = 'apt_billing_session';
 
+// Detect if running on mobile device
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
+
 export const authService = {
   // Get current user
   getCurrentUser() {
     return auth.currentUser;
   },
 
-  // Sign in with Facebook popup
+  // Sign in with Facebook (auto-detect popup vs redirect)
   async signInWithFacebook() {
     try {
+      // Use redirect for mobile (popups often blocked), popup for desktop
+      if (isMobile()) {
+        await signInWithRedirect(auth, facebookProvider);
+        // Redirect will navigate away, so we return a pending state
+        return { success: true, pending: true };
+      }
+
       const result = await signInWithPopup(auth, facebookProvider);
       const credential = FacebookAuthProvider.credentialFromResult(result);
       const accessToken = credential?.accessToken;
@@ -41,6 +55,19 @@ export const authService = {
       return { success: true, user: result.user, accessToken };
     } catch (error) {
       console.error('Facebook sign-in error:', error);
+      // If popup is blocked, try redirect
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        try {
+          await signInWithRedirect(auth, facebookProvider);
+          return { success: true, pending: true };
+        } catch (redirectError) {
+          return {
+            success: false,
+            error: redirectError.message,
+            errorCode: redirectError.code,
+          };
+        }
+      }
       return {
         success: false,
         error: error.message,

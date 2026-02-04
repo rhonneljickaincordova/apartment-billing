@@ -10,31 +10,44 @@ export function AuthProvider({ children }) {
 
   // Check for existing session on mount
   useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        // Merge with stored session data
-        const storedSession = authService.getStoredSession();
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          accessToken: storedSession?.accessToken || null,
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    let unsubscribe;
 
-    // Also check for redirect result (mobile)
-    authService.handleRedirectResult().then((result) => {
-      if (result.success && result.user) {
-        // Auth state listener will handle the update
+    const initAuth = async () => {
+      // First, check for redirect result (important for mobile)
+      try {
+        const redirectResult = await authService.handleRedirectResult();
+        if (redirectResult.success && redirectResult.user) {
+          // Redirect login successful, auth state listener will update the user
+          console.log('Redirect login successful');
+        }
+      } catch (error) {
+        console.error('Error handling redirect result:', error);
       }
-    });
 
-    return () => unsubscribe();
+      // Then set up the auth state listener
+      unsubscribe = authService.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+          // Merge with stored session data
+          const storedSession = authService.getStoredSession();
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            accessToken: storedSession?.accessToken || null,
+          });
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      });
+    };
+
+    initAuth();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Restore selected app from localStorage
@@ -48,7 +61,10 @@ export function AuthProvider({ children }) {
   const login = useCallback(async () => {
     setLoading(true);
     const result = await authService.signInWithFacebook();
-    setLoading(false);
+    // Don't set loading to false if it's a redirect (page will navigate away)
+    if (!result.pending) {
+      setLoading(false);
+    }
     return result;
   }, []);
 
