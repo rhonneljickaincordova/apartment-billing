@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback(async () => {
+  const loginWithFacebook = useCallback(async () => {
     setLoading(true);
     const result = await authService.signInWithFacebook();
     // Don't set loading to false if it's a redirect (page will navigate away)
@@ -67,6 +67,19 @@ export function AuthProvider({ children }) {
     }
     return result;
   }, []);
+
+  const loginWithGoogle = useCallback(async () => {
+    setLoading(true);
+    const result = await authService.signInWithGoogle();
+    // Don't set loading to false if it's a redirect (page will navigate away)
+    if (!result.pending) {
+      setLoading(false);
+    }
+    return result;
+  }, []);
+
+  // Alias for backward compatibility
+  const login = loginWithFacebook;
 
   const logout = useCallback(async () => {
     setLoading(true);
@@ -93,6 +106,8 @@ export function AuthProvider({ children }) {
     selectedApp,
     isAuthenticated: !!user,
     login,
+    loginWithFacebook,
+    loginWithGoogle,
     logout,
     selectApp,
     goBackToAppSelection,

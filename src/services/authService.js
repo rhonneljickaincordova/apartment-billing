@@ -3,13 +3,14 @@ import {
   signInWithRedirect,
   getRedirectResult,
   FacebookAuthProvider,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 const facebookProvider = new FacebookAuthProvider();
-// Using default scopes (public_profile is included automatically)
+const googleProvider = new GoogleAuthProvider();
 
 // Session persistence key
 const SESSION_KEY = 'apt_billing_session';
@@ -63,13 +64,46 @@ export const authService = {
     }
   },
 
-  // Sign in with redirect (for mobile)
-  async signInWithFacebookRedirect() {
+  // Sign in with Google
+  async signInWithGoogle() {
     try {
-      await signInWithRedirect(auth, facebookProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const accessToken = credential?.accessToken;
+
+      // Store session data
+      const sessionData = {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        accessToken,
+        provider: 'google',
+        lastLogin: new Date().toISOString(),
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+
+      return { success: true, user: result.user, accessToken };
     } catch (error) {
-      console.error('Facebook redirect error:', error);
-      throw error;
+      console.error('Google sign-in error:', error);
+      // If popup is blocked, try redirect
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return { success: true, pending: true };
+        } catch (redirectError) {
+          return {
+            success: false,
+            error: redirectError.message,
+            errorCode: redirectError.code,
+          };
+        }
+      }
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+      };
     }
   },
 
