@@ -316,6 +316,136 @@ export function useBills(rooms, settings, tenants = []) {
   );
 
   /**
+   * Update a specific payment in the payment history
+   * @param {string} billId - Bill ID
+   * @param {number} paymentIndex - Index of the payment to update
+   * @param {object} updatedPayment - Updated payment data
+   * @returns {{ success: boolean, message: string }}
+   */
+  const updatePaymentHistory = useCallback(
+    async (billId, paymentIndex, updatedPayment) => {
+      try {
+        const bill = bills.find((b) => b.id === billId);
+        if (!bill) {
+          return { success: false, message: 'Bill not found.' };
+        }
+
+        const paymentHistory = [...(bill.paymentHistory || [])];
+        if (paymentIndex < 0 || paymentIndex >= paymentHistory.length) {
+          return { success: false, message: 'Payment record not found.' };
+        }
+
+        // Update the specific payment entry
+        paymentHistory[paymentIndex] = {
+          ...paymentHistory[paymentIndex],
+          ...updatedPayment,
+          lastModified: new Date().toISOString(),
+        };
+
+        await update(billId, { paymentHistory });
+
+        return { success: true, message: 'Payment record updated successfully!' };
+      } catch (error) {
+        console.error('Error updating payment history:', error);
+        return { success: false, message: 'Failed to update payment record.' };
+      }
+    },
+    [bills, update]
+  );
+
+  /**
+   * Add a missing payment record (retroactive)
+   * @param {string} billId - Bill ID
+   * @param {object} paymentData - Payment data to add
+   * @returns {{ success: boolean, message: string }}
+   */
+  const addMissingPaymentRecord = useCallback(
+    async (billId, paymentData) => {
+      try {
+        const bill = bills.find((b) => b.id === billId);
+        if (!bill) {
+          return { success: false, message: 'Bill not found.' };
+        }
+
+        const paymentHistory = [...(bill.paymentHistory || [])];
+
+        // Create payment entry
+        const paymentEntry = {
+          date: getToday(),
+          amount: paymentData.amount,
+          paymentMethods: paymentData.paymentMethods || [{ method: 'Cash', amount: paymentData.amount, proofImages: [] }],
+          notes: paymentData.notes || 'Retroactive payment record',
+          timestamp: new Date().toISOString(),
+          isRetroactive: true,
+        };
+
+        paymentHistory.push(paymentEntry);
+
+        await update(billId, { paymentHistory });
+
+        return { success: true, message: 'Payment record added successfully!' };
+      } catch (error) {
+        console.error('Error adding payment record:', error);
+        return { success: false, message: 'Failed to add payment record.' };
+      }
+    },
+    [bills, update]
+  );
+
+  /**
+   * Record a refund for a bill
+   * @param {string} billId - Bill ID
+   * @param {object} refundData - Refund data { amount, method, reason }
+   * @returns {{ success: boolean, message: string }}
+   */
+  const recordRefund = useCallback(
+    async (billId, refundData) => {
+      try {
+        const bill = bills.find((b) => b.id === billId);
+        if (!bill) {
+          return { success: false, message: 'Bill not found.' };
+        }
+
+        const currentAmountPaid = bill.amountPaid || 0;
+        if (refundData.amount > currentAmountPaid) {
+          return { success: false, message: 'Refund amount cannot exceed total paid.' };
+        }
+
+        const newAmountPaid = currentAmountPaid - refundData.amount;
+        const paymentHistory = [...(bill.paymentHistory || [])];
+
+        // Create refund entry (negative amount)
+        const refundEntry = {
+          date: getToday(),
+          amount: -refundData.amount, // Negative to indicate refund
+          paymentMethods: [{ method: refundData.method, amount: -refundData.amount, proofImages: [] }],
+          notes: refundData.reason || 'Refund to tenant',
+          timestamp: new Date().toISOString(),
+          isRefund: true,
+        };
+
+        paymentHistory.push(refundEntry);
+
+        const excludeRent = bill.rentExcluded || false;
+        const total = getBillTotal(bill, excludeRent);
+
+        await update(billId, {
+          amountPaid: newAmountPaid,
+          paid: newAmountPaid >= total,
+          paidDate: newAmountPaid >= total ? bill.paidDate : null,
+          paymentHistory,
+        });
+
+        return { success: true, message: `Refund of ₱${refundData.amount.toFixed(2)} recorded successfully!` };
+      } catch (error) {
+        console.error('Error recording refund:', error);
+        return { success: false, message: 'Failed to record refund.' };
+      }
+    },
+    [bills, update, getBillTotal]
+  );
+
+  /**
    * Get the payment status of a bill
    * @param {object} bill - Bill object
    * @returns {'paid' | 'partial' | 'pending' | 'overdue'}
@@ -641,6 +771,9 @@ export function useBills(rooms, settings, tenants = []) {
     deleteBillsByRoomId,
     togglePaid,
     recordPayment,
+    updatePaymentHistory,
+    addMissingPaymentRecord,
+    recordRefund,
     resetForm,
     updateFormField,
     printBill,

@@ -11,6 +11,9 @@ import {
   Clock,
   AlertCircle,
   DollarSign,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 
 /**
@@ -56,6 +59,32 @@ function StatusBadge({ status, remainingBalance }) {
 }
 
 /**
+ * Sortable Header Component
+ */
+function SortableHeader({ field, label, sortField, sortDirection, onSort, icon: Icon, className = '' }) {
+  const isActive = sortField === field;
+
+  const getSortIcon = () => {
+    if (!onSort) return null;
+    if (!isActive) return <ArrowUpDown className="w-3 h-3 opacity-50" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
+  };
+
+  return (
+    <th className={`px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase ${className}`}>
+      <button
+        onClick={() => onSort?.(field)}
+        className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-100 transition-colors"
+      >
+        {Icon && <Icon className="w-4 h-4" aria-hidden="true" />}
+        {label}
+        {getSortIcon()}
+      </button>
+    </th>
+  );
+}
+
+/**
  * Bills Table Component
  * Displays bills in a table format with actions
  */
@@ -68,46 +97,97 @@ function BillsTable({
   isBillOverdue,
   isBillDueSoon,
   onRecordPayment,
+  onViewPaymentHistory,
   onPrint,
   onEdit,
   onDelete,
+  sortField = 'dueDate',
+  sortDirection = 'desc',
+  onSort,
 }) {
+  const handleStatusClick = (bill, status) => {
+    if (status === 'paid' && onViewPaymentHistory) {
+      onViewPaymentHistory(bill);
+    } else {
+      onRecordPayment(bill);
+    }
+  };
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Status
-              </th>
+              <SortableHeader
+                field="status"
+                label="Status"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
               <th className="px-2 md:px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-12">
                 <Printer className="w-4 h-4 mx-auto" aria-hidden="true" />
               </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Room
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Due Date
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Rent
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Electricity
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Water
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                WiFi
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Aircon
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Total
-              </th>
+              <SortableHeader
+                field="room"
+                label="Room"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="dueDate"
+                label="Due Date"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="rentBill"
+                label="Rent"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="electricityBill"
+                label="Electricity"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                icon={Zap}
+              />
+              <SortableHeader
+                field="waterBill"
+                label="Water"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                icon={Droplet}
+              />
+              <SortableHeader
+                field="wifiBill"
+                label="WiFi"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                icon={Wifi}
+              />
+              <SortableHeader
+                field="airconCleaningBill"
+                label="Aircon"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                icon={Wind}
+              />
+              <SortableHeader
+                field="total"
+                label="Total"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Actions
               </th>
@@ -136,10 +216,10 @@ function BillsTable({
                 >
                   <td className="px-3 md:px-6 py-4">
                     <button
-                      onClick={() => onRecordPayment(bill)}
+                      onClick={() => handleStatusClick(bill, status)}
                       className="cursor-pointer hover:opacity-80 transition-opacity"
-                      aria-label={`Record payment for ${room?.name}`}
-                      title="Click to record payment"
+                      aria-label={status === 'paid' ? `View payment history for ${room?.name}` : `Record payment for ${room?.name}`}
+                      title={status === 'paid' ? 'Click to view payment history' : 'Click to record payment'}
                     >
                       <StatusBadge status={status} remainingBalance={remainingBalance} />
                     </button>

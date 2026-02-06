@@ -9,7 +9,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
-import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup } from './components/bills';
+import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, PaymentHistoryModal } from './components/bills';
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
@@ -30,6 +30,10 @@ const ApartmentBillTracker = () => {
     dateFrom: '',
     dateTo: '',
   });
+
+  // Bill sorting state
+  const [billSortField, setBillSortField] = useState('dueDate');
+  const [billSortDirection, setBillSortDirection] = useState('desc');
 
   // Expense filters state
   const [expenseFilters, setExpenseFilters] = useState({
@@ -103,6 +107,9 @@ const ApartmentBillTracker = () => {
     getBillTotal,
     getBillStatus,
     getRemainingBalance,
+    updatePaymentHistory,
+    addMissingPaymentRecord,
+    recordRefund,
   } = useBills(rooms, settings, tenants);
 
   const {
@@ -141,6 +148,7 @@ const ApartmentBillTracker = () => {
   const [moveOutTenantData, setMoveOutTenantData] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
+  const [paymentHistoryData, setPaymentHistoryData] = useState(null);
   const [showBusinessReport, setShowBusinessReport] = useState(false);
   const [pendingBillRoomId, setPendingBillRoomId] = useState(null);
   const [isTenantFormExpanded, setIsTenantFormExpanded] = useState(false);
@@ -166,7 +174,7 @@ const ApartmentBillTracker = () => {
 
   // Filter and paginate bills
   const filteredBills = useMemo(() => {
-    return bills.filter((bill) => {
+    const filtered = bills.filter((bill) => {
       const room = getRoomById(bill.roomId);
 
       // Search filter
@@ -203,7 +211,58 @@ const ApartmentBillTracker = () => {
 
       return true;
     });
-  }, [bills, billFilters, getRoomById]);
+
+    // Apply sorting
+    return [...filtered].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (billSortField) {
+        case 'status':
+          aValue = getBillStatus(a);
+          bValue = getBillStatus(b);
+          break;
+        case 'room':
+          aValue = getRoomById(a.roomId)?.name || '';
+          bValue = getRoomById(b.roomId)?.name || '';
+          break;
+        case 'dueDate':
+          aValue = a.dueDate;
+          bValue = b.dueDate;
+          break;
+        case 'total':
+          aValue = getBillTotal(a);
+          bValue = getBillTotal(b);
+          break;
+        case 'rentBill':
+          aValue = a.rentBill || 0;
+          bValue = b.rentBill || 0;
+          break;
+        case 'electricityBill':
+          aValue = a.electricityBill || 0;
+          bValue = b.electricityBill || 0;
+          break;
+        case 'waterBill':
+          aValue = a.waterBill || 0;
+          bValue = b.waterBill || 0;
+          break;
+        case 'wifiBill':
+          aValue = a.wifiBill || 0;
+          bValue = b.wifiBill || 0;
+          break;
+        case 'airconCleaningBill':
+          aValue = a.airconCleaningBill || 0;
+          bValue = b.airconCleaningBill || 0;
+          break;
+        default:
+          aValue = a.dueDate;
+          bValue = b.dueDate;
+      }
+
+      if (aValue < bValue) return billSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return billSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [bills, billFilters, getRoomById, getBillStatus, getBillTotal, billSortField, billSortDirection]);
 
   // Paginated bills
   const paginatedBills = useMemo(() => {
@@ -358,12 +417,78 @@ const ApartmentBillTracker = () => {
     setPaymentBillData(null);
   };
 
-  const handleSubmitPayment = async (billId, amount) => {
-    const result = await recordPayment(billId, amount);
+  const handleSubmitPayment = async (billId, amount, paymentDetails) => {
+    const result = await recordPayment(billId, amount, paymentDetails);
     if (result.success) {
       toast.success(result.message);
     } else {
       toast.error(result.message);
+    }
+  };
+
+  // Payment history modal handlers
+  const handleOpenPaymentHistory = (bill) => {
+    setPaymentHistoryData(bill);
+  };
+
+  const handleClosePaymentHistory = () => {
+    setPaymentHistoryData(null);
+  };
+
+  const handleUpdatePaymentHistory = async (billId, paymentIndex, updatedPayment) => {
+    const result = await updatePaymentHistory(billId, paymentIndex, updatedPayment);
+    if (result.success) {
+      toast.success(result.message);
+      // Refresh the payment history data
+      const updatedBill = bills.find(b => b.id === billId);
+      if (updatedBill) {
+        setPaymentHistoryData({ ...updatedBill });
+      }
+    } else {
+      toast.error(result.message);
+    }
+    return result;
+  };
+
+  const handleAddMissingRecord = async (billId, paymentData) => {
+    const result = await addMissingPaymentRecord(billId, paymentData);
+    if (result.success) {
+      toast.success(result.message);
+      // Refresh the payment history data
+      const updatedBill = bills.find(b => b.id === billId);
+      if (updatedBill) {
+        setPaymentHistoryData({ ...updatedBill });
+      }
+    } else {
+      toast.error(result.message);
+    }
+    return result;
+  };
+
+  const handleRecordRefund = async (billId, refundData) => {
+    const result = await recordRefund(billId, refundData);
+    if (result.success) {
+      toast.success(result.message);
+      // Refresh the payment history data
+      const updatedBill = bills.find(b => b.id === billId);
+      if (updatedBill) {
+        setPaymentHistoryData({ ...updatedBill });
+      }
+    } else {
+      toast.error(result.message);
+    }
+    return result;
+  };
+
+  // Bill sorting handler
+  const handleBillSort = (field) => {
+    if (billSortField === field) {
+      // Toggle direction if same field
+      setBillSortDirection(billSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to descending
+      setBillSortField(field);
+      setBillSortDirection('desc');
     }
   };
 
@@ -772,9 +897,13 @@ const ApartmentBillTracker = () => {
               isBillOverdue={isBillOverdue}
               isBillDueSoon={checkBillDueSoon}
               onRecordPayment={handleOpenPaymentPopup}
+              onViewPaymentHistory={handleOpenPaymentHistory}
               onPrint={handleOpenPrintModal}
               onEdit={editBill}
               onDelete={handleDeleteBill}
+              sortField={billSortField}
+              sortDirection={billSortDirection}
+              onSort={handleBillSort}
             />
             {filteredBills.length > 0 && (
               <Pagination
@@ -996,6 +1125,19 @@ const ApartmentBillTracker = () => {
         amountPaid={paymentBillData?.amountPaid || 0}
         remainingBalance={paymentBillData ? getRemainingBalance(paymentBillData) : 0}
         onSubmitPayment={handleSubmitPayment}
+      />
+
+      {/* Payment History Modal */}
+      <PaymentHistoryModal
+        isOpen={!!paymentHistoryData}
+        onClose={handleClosePaymentHistory}
+        bill={paymentHistoryData}
+        roomName={paymentHistoryData ? getRoomById(paymentHistoryData.roomId)?.name : ''}
+        total={paymentHistoryData ? getBillTotal(paymentHistoryData) : 0}
+        amountPaid={paymentHistoryData?.amountPaid || 0}
+        onUpdatePayment={handleUpdatePaymentHistory}
+        onAddMissingRecord={handleAddMissingRecord}
+        onRecordRefund={handleRecordRefund}
       />
 
       {/* Business Report Modal */}
