@@ -182,6 +182,25 @@ export function useRooms() {
     return rooms.filter((r) => r.status === 'vacant');
   }, [rooms]);
 
+  /**
+   * Update room media (images/videos)
+   * @param {string} roomId - Room ID
+   * @param {array} media - Array of media objects
+   * @returns {{ success: boolean, message: string }}
+   */
+  const updateRoomMedia = useCallback(
+    async (roomId, media) => {
+      try {
+        await update(roomId, { media });
+        return { success: true, message: 'Room media updated!' };
+      } catch (error) {
+        console.error('Error updating room media:', error);
+        return { success: false, message: 'Failed to update room media.' };
+      }
+    },
+    [update]
+  );
+
   return {
     // State
     rooms,
@@ -203,5 +222,6 @@ export function useRooms() {
     getRoomById,
     getOccupiedRooms,
     getVacantRooms,
+    updateRoomMedia,
   };
 }

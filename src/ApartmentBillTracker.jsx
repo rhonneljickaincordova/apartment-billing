@@ -12,6 +12,7 @@ import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, PaymentHistoryModal } from './components/bills';
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
+import MediaLibrarySection from './components/settings/MediaLibrarySection';
 import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable, ExpenseFilters } from './components/expenses';
 import { Pagination } from './components/ui';
@@ -51,7 +52,7 @@ const ApartmentBillTracker = () => {
   const [dashboardCustomRange, setDashboardCustomRange] = useState({ startDate: '', endDate: '' });
 
   // Custom hooks for data management
-  const { settings, updateSetting, saveSettings: saveSettingsAction } = useSettings();
+  const { settings, updateSetting, saveSettings: saveSettingsAction, updateMediaLibrary } = useSettings();
 
   const {
     rooms,
@@ -66,6 +67,7 @@ const ApartmentBillTracker = () => {
     toggleRoomStatus,
     getRoomById,
     getOccupiedRooms,
+    updateRoomMedia,
   } = useRooms();
 
   const {
@@ -369,6 +371,26 @@ const ApartmentBillTracker = () => {
       },
       'danger'
     );
+  };
+
+  const handleUpdateRoomMedia = async (roomId, media) => {
+    const result = await updateRoomMedia(roomId, media);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+    return result;
+  };
+
+  const handleUpdateMediaLibrary = async (mediaLibrary) => {
+    const result = await updateMediaLibrary(mediaLibrary);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+    return result;
   };
 
   // Bill handlers with toast notifications
@@ -789,7 +811,7 @@ const ApartmentBillTracker = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
-          {['dashboard', 'bills', 'rooms', 'tenants', 'expenses', 'settings'].map((tab) => (
+          {['dashboard', 'bills', 'tenants', 'expenses', 'rooms', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -932,7 +954,7 @@ const ApartmentBillTracker = () => {
               onCancel={resetRoomForm}
               onUpdateField={updateRoomField}
             />
-            <RoomsList rooms={rooms} onEdit={editRoom} onDelete={handleDeleteRoom} onToggleStatus={handleToggleRoomStatus} />
+            <RoomsList rooms={rooms} onEdit={editRoom} onDelete={handleDeleteRoom} onToggleStatus={handleToggleRoomStatus} shareTemplate={settings.shareTemplate} settings={settings} onUpdateMedia={handleUpdateRoomMedia} mediaLibrary={[...(settings.media || []), ...(settings.mediaLibrary || [])]} />
           </div>
         )}
 
@@ -1068,30 +1090,36 @@ const ApartmentBillTracker = () => {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <SettingsForm
-            settings={settings}
-            onUpdateSetting={updateSetting}
-            onSave={handleSaveSettings}
-            onExportCSV={handleExportCSV}
-            onExportJSON={handleExportJSON}
-            cleaningSchedules={cleaningSchedules}
-            cleaningForm={cleaningForm}
-            cleaningErrors={cleaningErrors}
-            isEditingCleaning={isEditingCleaning}
-            rooms={rooms}
-            getRoomById={getRoomById}
-            selectedHistory={selectedHistory}
-            onSaveSchedule={handleSaveCleaningSchedule}
-            onEditSchedule={editSchedule}
-            onDeleteSchedule={handleDeleteCleaningSchedule}
-            onCancelCleaning={resetCleaningForm}
-            onUpdateCleaningField={updateCleaningField}
-            onOpenHistory={openHistory}
-            onCloseHistory={closeHistory}
-            onMarkCleaned={handleMarkAirconCleaned}
-            isScheduleOverdue={isScheduleOverdue}
-            isScheduleDueSoon={isScheduleDueSoon}
-          />
+          <div className="space-y-6">
+            <SettingsForm
+              settings={settings}
+              onUpdateSetting={updateSetting}
+              onSave={handleSaveSettings}
+              onExportCSV={handleExportCSV}
+              onExportJSON={handleExportJSON}
+              cleaningSchedules={cleaningSchedules}
+              cleaningForm={cleaningForm}
+              cleaningErrors={cleaningErrors}
+              isEditingCleaning={isEditingCleaning}
+              rooms={rooms}
+              getRoomById={getRoomById}
+              selectedHistory={selectedHistory}
+              onSaveSchedule={handleSaveCleaningSchedule}
+              onEditSchedule={editSchedule}
+              onDeleteSchedule={handleDeleteCleaningSchedule}
+              onCancelCleaning={resetCleaningForm}
+              onUpdateCleaningField={updateCleaningField}
+              onOpenHistory={openHistory}
+              onCloseHistory={closeHistory}
+              onMarkCleaned={handleMarkAirconCleaned}
+              isScheduleOverdue={isScheduleOverdue}
+              isScheduleDueSoon={isScheduleDueSoon}
+            />
+            <MediaLibrarySection
+              mediaLibrary={settings.mediaLibrary || []}
+              onUpdateMediaLibrary={handleUpdateMediaLibrary}
+            />
+          </div>
         )}
       </div>
 

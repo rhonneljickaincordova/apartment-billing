@@ -3,11 +3,59 @@ import { validateSettings } from '../utils/validation';
 import { settingsService } from '../services/firestore';
 import { useFirestoreDocument } from './useFirestore';
 
+const DEFAULT_SHARE_TEMPLATE = `🏠 ROOM FOR RENT
+
+📍 {roomName}
+💰 Monthly Rent: ₱{rent}
+👥 Good for {persons} person(s)
+
+✨ Amenities:
+• WiFi included
+• Water included
+• Electricity (metered)
+
+📞 Contact us for viewing!
+
+#RoomForRent #Apartment #ForRent`;
+
+const DEFAULT_GENERAL_TEMPLATE = `PERMISSION TO POST ADMIN
+Studio Type Apartment for Rent 🏡
+
+{vacantRoomsList}
+
+- 1 month advance
+- 1 month deposit
+- with own sink, cr and ac
+- with own electric meter
+- Good for 1 to 2 person per unit
+- Water {waterRate}/person
+- Electricity {electricityRate} pesos/kilowatt
+- Internet/Wifi {wifiRate}/room
+- PLDT and Globe
+- Good for work from home set-up
+- No Children Allowed
+- No Pets Allowed
+- Preferred long term renters/borders.
+
+Location:
+{location}
+
+Contact Number:
+{contactNumber}
+
+PM for more details ☺️`;
+
 const DEFAULT_SETTINGS = {
   waterRate: 100,
   electricityRate: 15,
   wifiRate: 500,
   airconCleaningRate: 400,
+  shareTemplate: DEFAULT_SHARE_TEMPLATE,
+  generalShareTemplate: DEFAULT_GENERAL_TEMPLATE,
+  contactNumber: '',
+  location: '',
+  media: [], // Legacy - keeping for backwards compatibility
+  mediaLibrary: [], // Global media library for reuse across rooms
 };
 
 /**
@@ -23,7 +71,13 @@ export function useSettings() {
   } = useFirestoreDocument(settingsService, DEFAULT_SETTINGS);
 
   // Merge default settings with firestore settings
-  const settings = { ...DEFAULT_SETTINGS, ...firestoreSettings };
+  const mergedSettings = { ...DEFAULT_SETTINGS, ...firestoreSettings };
+
+  // Ensure mediaLibrary is always an array
+  const settings = {
+    ...mergedSettings,
+    mediaLibrary: Array.isArray(mergedSettings.mediaLibrary) ? mergedSettings.mediaLibrary : [],
+  };
 
   /**
    * Update a single setting
@@ -118,6 +172,24 @@ export function useSettings() {
     return settings.wifiRate;
   }, [settings.wifiRate]);
 
+  /**
+   * Update media library
+   * @param {array} mediaLibrary - Array of media items
+   * @returns {{ success: boolean, message: string }}
+   */
+  const updateMediaLibrary = useCallback(
+    async (mediaLibrary) => {
+      try {
+        await save({ ...settings, mediaLibrary });
+        return { success: true, message: 'Media library updated!' };
+      } catch (error) {
+        console.error('Error updating media library:', error);
+        return { success: false, message: 'Failed to update media library.' };
+      }
+    },
+    [settings, save]
+  );
+
   return {
     // State
     settings,
@@ -130,6 +202,7 @@ export function useSettings() {
     saveSettings,
     resetToDefaults,
     validate,
+    updateMediaLibrary,
 
     // Calculators
     calculateWaterBill,
