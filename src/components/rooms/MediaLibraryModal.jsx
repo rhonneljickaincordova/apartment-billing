@@ -76,13 +76,13 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
       // Create new media items - handle static vs uploaded differently
       const newMediaItems = selectedItems.map((item) => {
         if (item.isStatic) {
-          // Static media - preserve the URL
+          // Static media - store the static ID for lookup (URLs change with each build)
           return {
             id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: item.name,
             type: item.type,
             mimeType: item.mimeType,
-            url: item.url, // Static URL from bundled assets
+            staticId: item.id, // Store original static ID for runtime lookup
             isStatic: true,
             uploadedAt: new Date().toISOString(),
             fromLibrary: true,

@@ -16,6 +16,15 @@ import video2 from './e4d34cc6-6882-49b4-81f0-cf9fb2510c44 (1).mp4';
  * Static media library - bundled room images and videos
  * These are available across all devices without needing uploads
  */
+/**
+ * Get static media URL by ID
+ * This ensures URLs are always current even after redeployments
+ */
+export const getStaticMediaUrl = (staticId) => {
+  const item = STATIC_ROOM_MEDIA.find((m) => m.id === staticId);
+  return item?.url || null;
+};
+
 export const STATIC_ROOM_MEDIA = [
   {
     id: 'static_img_1',

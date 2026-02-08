@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { X, Trash2, Download, Image, Video, Play, ZoomIn, Loader2, AlertCircle, FolderOpen, Package } from 'lucide-react';
 import { getMediaUrl } from '../../services/localStorageService';
 import MediaLibraryModal from './MediaLibraryModal';
-import { STATIC_ROOM_MEDIA } from '../../assets/rooms';
+import { STATIC_ROOM_MEDIA, getStaticMediaUrl } from '../../assets/rooms';
 
 /**
  * Room Media Modal Component
  * Allows selecting and managing images/videos for a specific room from the media library
  */
 function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) {
-  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null); // For lightbox view
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [error, setError] = useState('');
@@ -21,16 +21,19 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
   // Ensure mediaLibrary is always an array
   const libraryItems = Array.isArray(mediaLibrary) ? mediaLibrary : [];
 
-  // Load media URLs from IndexedDB when media changes (static media already has URLs)
+  // Load media URLs when media changes
   useEffect(() => {
     if (!isOpen || !room) return;
 
     const loadUrls = async () => {
       const urls = {};
       for (const item of media) {
-        // Static media already has URL
-        if (item.isStatic && item.url) {
-          urls[item.id] = item.url;
+        // Static media - look up current URL by staticId (handles redeployments)
+        if (item.isStatic) {
+          const staticUrl = getStaticMediaUrl(item.staticId) || item.url;
+          if (staticUrl) {
+            urls[item.id] = staticUrl;
+          }
           continue;
         }
         // Load uploaded media from IndexedDB
@@ -68,9 +71,8 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
     return item.data || item.url || null;
   };
 
+  // Direct remove - no confirmation, instant removal
   const handleRemove = async (mediaItem) => {
-    if (!confirm('Remove this media from this room?')) return;
-
     setIsProcessing(true);
     setProcessingMessage('Removing...');
     try {
@@ -138,9 +140,12 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
     try {
       // Load URLs for newly added items
       for (const item of selectedItems) {
-        // Static media already has URL
-        if (item.isStatic && item.url) {
-          setMediaUrls((prev) => ({ ...prev, [item.id]: item.url }));
+        // Static media - look up current URL
+        if (item.isStatic) {
+          const staticUrl = getStaticMediaUrl(item.staticId);
+          if (staticUrl) {
+            setMediaUrls((prev) => ({ ...prev, [item.id]: staticUrl }));
+          }
         } else {
           const url = await getMediaUrl(item);
           if (url) {
@@ -164,9 +169,6 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
     }
   };
 
-  // Always has library media because of static bundled media
-  const hasLibraryMedia = STATIC_ROOM_MEDIA.length > 0 || libraryItems.length > 0;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
@@ -177,7 +179,7 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
               {room.name} - Media
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Select images and videos from the library
+              Manage images and videos for this room
             </p>
           </div>
           <button
@@ -274,34 +276,8 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
                         </div>
                       )}
 
-                      {/* Overlay with actions */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setSelectedMedia(item)}
-                          className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white"
-                          title="View"
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(item)}
-                          className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white"
-                          title="Download"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRemove(item)}
-                          className="p-2 bg-red-500/50 hover:bg-red-500/70 rounded-full text-white"
-                          title="Remove from room"
-                          disabled={isProcessing}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
                       {/* Type indicator */}
-                      <div className="absolute top-1 left-1 p-1 bg-black/50 rounded text-white">
+                      <div className="absolute top-1 left-1 p-1 bg-black/50 rounded text-white z-10">
                         {item.type === 'image' ? (
                           <Image className="w-3 h-3" />
                         ) : (
@@ -309,16 +285,47 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
                         )}
                       </div>
 
+                      {/* Direct Remove Button - Always visible, above hover overlay */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemove(item);
+                        }}
+                        disabled={isProcessing}
+                        className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 rounded text-white transition-colors disabled:opacity-50 z-20"
+                        title="Remove from room"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
                       {/* Bundled indicator */}
                       {item.isStatic && (
-                        <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-green-500 rounded text-white text-[10px] flex items-center gap-0.5">
+                        <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-green-500 rounded text-white text-[10px] flex items-center gap-0.5 z-10">
                           <Package className="w-2.5 h-2.5" />
                         </div>
                       )}
 
+                      {/* Hover overlay with view/download */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setSelectedMedia(item)}
+                          className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white"
+                          title="View"
+                        >
+                          <ZoomIn className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDownload(item)}
+                          className="p-2 bg-white/20 hover:bg-white/30 rounded-full text-white"
+                          title="Download"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                      </div>
+
                       {/* File size (only for uploaded media) */}
                       {item.size && (
-                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/50 rounded text-white text-xs">
+                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/50 rounded text-white text-xs z-10">
                           {formatFileSize(item.size)}
                         </div>
                       )}

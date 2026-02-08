@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, Check, Download, Share2, Image, Video, Play, Loader2 } from 'lucide-react';
 import { getMediaUrl } from '../../services/localStorageService';
+import { getStaticMediaUrl } from '../../assets/rooms';
 
 /**
  * Share Preview Modal Component
@@ -12,16 +13,19 @@ function SharePreviewModal({ isOpen, onClose, room, message, onShare }) {
 
   const media = room?.media || [];
 
-  // Load media URLs when modal opens (static media already has URLs)
+  // Load media URLs when modal opens
   useEffect(() => {
     if (!isOpen || !room) return;
 
     const loadUrls = async () => {
       const urls = {};
       for (const item of media) {
-        // Static media already has URL
-        if (item.isStatic && item.url) {
-          urls[item.id] = item.url;
+        // Static media - look up current URL by staticId (handles redeployments)
+        if (item.isStatic) {
+          const staticUrl = getStaticMediaUrl(item.staticId) || item.url;
+          if (staticUrl) {
+            urls[item.id] = staticUrl;
+          }
           continue;
         }
         // Load uploaded media from IndexedDB
