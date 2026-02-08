@@ -141,6 +141,7 @@ const ApartmentBillTracker = () => {
     errors: expenseErrors,
     saveExpense: saveExpenseAction,
     editExpense,
+    duplicateExpense,
     deleteExpense: deleteExpenseAction,
     resetForm: resetExpenseForm,
     updateFormField: updateExpenseField,
@@ -724,6 +725,12 @@ const ApartmentBillTracker = () => {
     setIsExpenseFormExpanded(true);
   };
 
+  const handleDuplicateExpense = (expense) => {
+    duplicateExpense(expense);
+    setIsExpenseFormExpanded(true);
+    toast.info('Expense duplicated. Adjust the date and save.');
+  };
+
   const handleDeleteExpense = (id) => {
     const expense = expenses.find((e) => e.id === id);
     confirmDialog.showConfirm(
@@ -1087,6 +1094,7 @@ const ApartmentBillTracker = () => {
             <ExpensesTable
               expenses={filteredExpenses}
               onEdit={handleEditExpense}
+              onDuplicate={handleDuplicateExpense}
               onDelete={handleDeleteExpense}
             />
           </div>

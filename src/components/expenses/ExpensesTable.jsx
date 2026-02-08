@@ -1,4 +1,4 @@
-import { Edit2, Trash2, RefreshCw, Building2, User } from 'lucide-react';
+import { Edit2, Trash2, RefreshCw, Building2, User, Copy } from 'lucide-react';
 import { EXPENSE_CATEGORIES, RECURRING_OPTIONS, EXPENSE_TYPES } from '../../hooks/useExpenses';
 
 /**
@@ -77,7 +77,7 @@ const getExpenseTypeStyle = (type) => {
  * Expenses Table Component
  * Displays a list of expenses with actions
  */
-function ExpensesTable({ expenses, onEdit, onDelete }) {
+function ExpensesTable({ expenses, onEdit, onDuplicate, onDelete }) {
   if (expenses.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
@@ -163,6 +163,13 @@ function ExpensesTable({ expenses, onEdit, onDelete }) {
                 </td>
                 <td className="px-3 md:px-6 py-4">
                   <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => onDuplicate(expense)}
+                      className="text-purple-500 hover:text-purple-700 p-1"
+                      title="Duplicate expense"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => onEdit(expense)}
                       className="text-blue-500 hover:text-blue-700 p-1"

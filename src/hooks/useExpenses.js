@@ -141,6 +141,25 @@ export function useExpenses() {
   }, []);
 
   /**
+   * Duplicate an expense (copy all data except id, with today's date)
+   * @param {object} expense - Expense to duplicate
+   */
+  const duplicateExpense = useCallback((expense) => {
+    setExpenseForm({
+      id: null,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
+      date: getToday(), // Default to today, user can adjust
+      notes: expense.notes || '',
+      recurringFrequency: expense.recurringFrequency || 'none',
+      expenseType: expense.expenseType || 'apartment',
+    });
+    setIsEditing(false); // It's a new expense
+    setErrors({});
+  }, []);
+
+  /**
    * Delete an expense by ID
    * @param {string} id - Expense ID to delete
    * @returns {{ success: boolean, message: string }}
@@ -304,6 +323,7 @@ export function useExpenses() {
     // Actions
     saveExpense,
     editExpense,
+    duplicateExpense,
     deleteExpense,
     resetForm,
     updateFormField,
