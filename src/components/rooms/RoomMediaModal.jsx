@@ -30,7 +30,15 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
       for (const item of media) {
         // Static media - look up current URL by staticId (handles redeployments)
         if (item.isStatic) {
-          const staticUrl = getStaticMediaUrl(item.staticId) || item.url;
+          // Try staticId first (new format)
+          let staticUrl = item.staticId ? getStaticMediaUrl(item.staticId) : null;
+
+          // Fallback: match by name for old data without staticId
+          if (!staticUrl && item.name) {
+            const matched = STATIC_ROOM_MEDIA.find((m) => m.name === item.name);
+            staticUrl = matched?.url;
+          }
+
           if (staticUrl) {
             urls[item.id] = staticUrl;
           }
@@ -142,7 +150,12 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
       for (const item of selectedItems) {
         // Static media - look up current URL
         if (item.isStatic) {
-          const staticUrl = getStaticMediaUrl(item.staticId);
+          let staticUrl = item.staticId ? getStaticMediaUrl(item.staticId) : null;
+          // Fallback by name
+          if (!staticUrl && item.name) {
+            const matched = STATIC_ROOM_MEDIA.find((m) => m.name === item.name);
+            staticUrl = matched?.url;
+          }
           if (staticUrl) {
             setMediaUrls((prev) => ({ ...prev, [item.id]: staticUrl }));
           }

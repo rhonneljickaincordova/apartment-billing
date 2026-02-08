@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, Check, Download, Share2, Image, Video, Play, Loader2 } from 'lucide-react';
 import { getMediaUrl } from '../../services/localStorageService';
-import { getStaticMediaUrl } from '../../assets/rooms';
+import { STATIC_ROOM_MEDIA, getStaticMediaUrl } from '../../assets/rooms';
 
 /**
  * Share Preview Modal Component
@@ -22,7 +22,15 @@ function SharePreviewModal({ isOpen, onClose, room, message, onShare }) {
       for (const item of media) {
         // Static media - look up current URL by staticId (handles redeployments)
         if (item.isStatic) {
-          const staticUrl = getStaticMediaUrl(item.staticId) || item.url;
+          // Try staticId first (new format)
+          let staticUrl = item.staticId ? getStaticMediaUrl(item.staticId) : null;
+
+          // Fallback: match by name for old data without staticId
+          if (!staticUrl && item.name) {
+            const matched = STATIC_ROOM_MEDIA.find((m) => m.name === item.name);
+            staticUrl = matched?.url;
+          }
+
           if (staticUrl) {
             urls[item.id] = staticUrl;
           }
