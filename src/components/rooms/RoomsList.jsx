@@ -1,7 +1,31 @@
-import { useState } from 'react';
-import { Edit2, Trash2, CheckCircle, UserCheck, UserX, Check, Megaphone, Image, Eye } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Edit2, Trash2, CheckCircle, UserCheck, UserX, Check, Megaphone, Image, Eye, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import RoomMediaModal from './RoomMediaModal';
 import SharePreviewModal from './SharePreviewModal';
+
+/**
+ * Sortable Header Component
+ */
+function SortableHeader({ field, label, sortField, sortDirection, onSort, className = '' }) {
+  const isActive = sortField === field;
+
+  const getSortIcon = () => {
+    if (!isActive) return <ArrowUpDown className="w-3 h-3 opacity-50" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
+  };
+
+  return (
+    <th className={`px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase ${className}`}>
+      <button
+        onClick={() => onSort(field)}
+        className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-100 transition-colors"
+      >
+        {label}
+        {getSortIcon()}
+      </button>
+    </th>
+  );
+}
 
 const DEFAULT_SHARE_TEMPLATE = `🏠 ROOM FOR RENT
 
@@ -132,12 +156,52 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
   const [isGeneralCopied, setIsGeneralCopied] = useState(false);
   const [selectedRoomIdForMedia, setSelectedRoomIdForMedia] = useState(null);
   const [sharePreviewRoomId, setSharePreviewRoomId] = useState(null);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   // Get the current room data from the rooms array (ensures fresh data after updates)
   const selectedRoomForMedia = selectedRoomIdForMedia ? rooms.find(r => r.id === selectedRoomIdForMedia) : null;
   const sharePreviewRoom = sharePreviewRoomId ? rooms.find(r => r.id === sharePreviewRoomId) : null;
 
   const vacantRooms = rooms.filter((room) => room.status === 'vacant');
+
+  // Sort handler
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sorted rooms
+  const sortedRooms = useMemo(() => {
+    return [...rooms].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      // Handle null/undefined
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+
+      // Handle numeric fields
+      if (sortField === 'rent' || sortField === 'persons') {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      }
+
+      // String comparison for text fields
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [rooms, sortField, sortDirection]);
 
   const handleShare = async (room) => {
     const result = await shareToFacebook(room, shareTemplate);
@@ -239,25 +303,41 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Room
-              </th>
-              <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Persons
-              </th>
-              <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Rent
-              </th>
-              <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Status
-              </th>
+              <SortableHeader
+                field="name"
+                label="Room"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="persons"
+                label="Persons"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="rent"
+                label="Rent"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="status"
+                label="Status"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
               <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {rooms.map((room) => (
+            {sortedRooms.map((room) => (
               <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="px-4 md:px-6 py-4 font-medium text-gray-900 dark:text-white">
                   {room.name}
