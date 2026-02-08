@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react';
-import { X, Image, Video, Play, Check, Loader2 } from 'lucide-react';
+import { X, Image, Video, Play, Check, Loader2, Package } from 'lucide-react';
 import { getMediaUrl } from '../../services/localStorageService';
+import { STATIC_ROOM_MEDIA } from '../../assets/rooms';
 
 /**
  * Media Library Modal Component
- * Shows global media library from settings for reuse across rooms
+ * Shows static bundled media + global media library from settings for reuse across rooms
  */
 function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }) {
   const [selectedItems, setSelectedItems] = useState([]);
   const [mediaUrls, setMediaUrls] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Load media URLs
+  // Combine static media with uploaded media library
+  const allMedia = [...STATIC_ROOM_MEDIA, ...mediaLibrary];
+
+  // Load media URLs (static media already has URLs, only need to load uploaded ones)
   useEffect(() => {
     if (!isOpen) return;
 
     const loadUrls = async () => {
       setLoading(true);
       const urls = {};
+
+      // Static media already has URLs
+      for (const item of STATIC_ROOM_MEDIA) {
+        urls[item.id] = item.url;
+      }
+
+      // Load uploaded media from IndexedDB
       for (const item of mediaLibrary) {
         try {
           const url = await getMediaUrl(item);
@@ -35,6 +46,7 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
     loadUrls();
 
     return () => {
+      // Only revoke blob URLs (not static asset URLs)
       Object.values(mediaUrls).forEach((url) => {
         if (url && url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
@@ -61,17 +73,34 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
 
   const handleAddSelected = () => {
     if (selectedItems.length > 0) {
-      // Create new media items with new IDs but same localId (pointing to same IndexedDB entry)
-      const newMediaItems = selectedItems.map((item) => ({
-        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: item.name,
-        type: item.type,
-        mimeType: item.mimeType,
-        size: item.size,
-        localId: item.localId, // Same reference to IndexedDB
-        uploadedAt: new Date().toISOString(),
-        fromLibrary: true, // Track origin
-      }));
+      // Create new media items - handle static vs uploaded differently
+      const newMediaItems = selectedItems.map((item) => {
+        if (item.isStatic) {
+          // Static media - preserve the URL
+          return {
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: item.name,
+            type: item.type,
+            mimeType: item.mimeType,
+            url: item.url, // Static URL from bundled assets
+            isStatic: true,
+            uploadedAt: new Date().toISOString(),
+            fromLibrary: true,
+          };
+        } else {
+          // Uploaded media - use localId reference to IndexedDB
+          return {
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: item.name,
+            type: item.type,
+            mimeType: item.mimeType,
+            size: item.size,
+            localId: item.localId,
+            uploadedAt: new Date().toISOString(),
+            fromLibrary: true,
+          };
+        }
+      });
       onSelectMedia(newMediaItems);
       setSelectedItems([]);
       onClose();
@@ -105,14 +134,14 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
-          ) : mediaLibrary.length > 0 ? (
+          ) : allMedia.length > 0 ? (
             <>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {mediaLibrary.length} file{mediaLibrary.length !== 1 ? 's' : ''} available in library
+                {STATIC_ROOM_MEDIA.length} bundled + {mediaLibrary.length} uploaded = {allMedia.length} file{allMedia.length !== 1 ? 's' : ''} available
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {mediaLibrary.map((item) => {
+                {allMedia.map((item) => {
                   const displayUrl = getDisplayUrl(item);
                   const isSelected = selectedItems.find((m) => m.id === item.id);
 
@@ -162,6 +191,14 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
                           <Video className="w-3 h-3" />
                         )}
                       </div>
+
+                      {/* Bundled indicator */}
+                      {item.isStatic && (
+                        <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-green-500 rounded text-white text-[10px] flex items-center gap-0.5">
+                          <Package className="w-2.5 h-2.5" />
+                          Bundled
+                        </div>
+                      )}
 
                       {/* File name */}
                       <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 text-white text-xs truncate">

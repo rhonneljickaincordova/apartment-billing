@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Download, Image, Video, Play, ZoomIn, Loader2, AlertCircle, FolderOpen } from 'lucide-react';
+import { X, Trash2, Download, Image, Video, Play, ZoomIn, Loader2, AlertCircle, FolderOpen, Package } from 'lucide-react';
 import { getMediaUrl } from '../../services/localStorageService';
 import MediaLibraryModal from './MediaLibraryModal';
+import { STATIC_ROOM_MEDIA } from '../../assets/rooms';
 
 /**
  * Room Media Modal Component
@@ -20,13 +21,19 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
   // Ensure mediaLibrary is always an array
   const libraryItems = Array.isArray(mediaLibrary) ? mediaLibrary : [];
 
-  // Load media URLs from IndexedDB when media changes
+  // Load media URLs from IndexedDB when media changes (static media already has URLs)
   useEffect(() => {
     if (!isOpen || !room) return;
 
     const loadUrls = async () => {
       const urls = {};
       for (const item of media) {
+        // Static media already has URL
+        if (item.isStatic && item.url) {
+          urls[item.id] = item.url;
+          continue;
+        }
+        // Load uploaded media from IndexedDB
         try {
           const url = await getMediaUrl(item);
           if (url) {
@@ -41,7 +48,7 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
 
     loadUrls();
 
-    // Cleanup blob URLs when modal closes
+    // Cleanup blob URLs when modal closes (not static URLs)
     return () => {
       Object.values(mediaUrls).forEach((url) => {
         if (url && url.startsWith('blob:')) {
@@ -131,9 +138,14 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
     try {
       // Load URLs for newly added items
       for (const item of selectedItems) {
-        const url = await getMediaUrl(item);
-        if (url) {
-          setMediaUrls((prev) => ({ ...prev, [item.id]: url }));
+        // Static media already has URL
+        if (item.isStatic && item.url) {
+          setMediaUrls((prev) => ({ ...prev, [item.id]: item.url }));
+        } else {
+          const url = await getMediaUrl(item);
+          if (url) {
+            setMediaUrls((prev) => ({ ...prev, [item.id]: url }));
+          }
         }
       }
 
@@ -152,7 +164,8 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
     }
   };
 
-  const hasLibraryMedia = libraryItems.length > 0;
+  // Always has library media because of static bundled media
+  const hasLibraryMedia = STATIC_ROOM_MEDIA.length > 0 || libraryItems.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -207,9 +220,9 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
           <div className="mb-4">
             <button
               onClick={() => setShowLibrary(true)}
-              disabled={isProcessing || !hasLibraryMedia}
+              disabled={isProcessing}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                isProcessing || !hasLibraryMedia
+                isProcessing
                   ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed text-gray-500 dark:text-gray-400'
                   : 'bg-purple-500 hover:bg-purple-600 text-white'
               }`}
@@ -217,11 +230,9 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
               <FolderOpen className="w-4 h-4" />
               Add from Library
             </button>
-            {!hasLibraryMedia && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 ml-3">
-                No media in library. Go to Settings → Media Library to upload.
-              </span>
-            )}
+            <span className="text-xs text-gray-500 dark:text-gray-400 ml-3">
+              {STATIC_ROOM_MEDIA.length} bundled + {libraryItems.length} uploaded available
+            </span>
           </div>
 
           {/* Media Grid */}
@@ -298,10 +309,19 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
                         )}
                       </div>
 
-                      {/* File size */}
-                      <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/50 rounded text-white text-xs">
-                        {formatFileSize(item.size)}
-                      </div>
+                      {/* Bundled indicator */}
+                      {item.isStatic && (
+                        <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-green-500 rounded text-white text-[10px] flex items-center gap-0.5">
+                          <Package className="w-2.5 h-2.5" />
+                        </div>
+                      )}
+
+                      {/* File size (only for uploaded media) */}
+                      {item.size && (
+                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/50 rounded text-white text-xs">
+                          {formatFileSize(item.size)}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -312,9 +332,7 @@ function RoomMediaModal({ isOpen, onClose, room, onUpdateMedia, mediaLibrary }) 
               <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 dark:text-gray-400">No media for this room</p>
               <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                {hasLibraryMedia
-                  ? 'Click "Add from Library" to select images/videos'
-                  : 'Go to Settings → Media Library to upload media first'}
+                Click "Add from Library" to select images/videos
               </p>
             </div>
           )}

@@ -12,13 +12,19 @@ function SharePreviewModal({ isOpen, onClose, room, message, onShare }) {
 
   const media = room?.media || [];
 
-  // Load media URLs from IndexedDB when modal opens
+  // Load media URLs when modal opens (static media already has URLs)
   useEffect(() => {
     if (!isOpen || !room) return;
 
     const loadUrls = async () => {
       const urls = {};
       for (const item of media) {
+        // Static media already has URL
+        if (item.isStatic && item.url) {
+          urls[item.id] = item.url;
+          continue;
+        }
+        // Load uploaded media from IndexedDB
         try {
           const url = await getMediaUrl(item);
           if (url) {
@@ -34,7 +40,7 @@ function SharePreviewModal({ isOpen, onClose, room, message, onShare }) {
     loadUrls();
 
     return () => {
-      // Cleanup blob URLs
+      // Cleanup blob URLs (not static URLs)
       Object.values(mediaUrls).forEach((url) => {
         if (url && url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
