@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Edit2, Trash2, CheckCircle, UserCheck, UserX, Check, Megaphone, Image, Eye, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import RoomMediaModal from './RoomMediaModal';
 import SharePreviewModal from './SharePreviewModal';
+import GeneralSharePreviewModal from './GeneralSharePreviewModal';
 
 /**
  * Sortable Header Component
@@ -156,6 +157,7 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
   const [isGeneralCopied, setIsGeneralCopied] = useState(false);
   const [selectedRoomIdForMedia, setSelectedRoomIdForMedia] = useState(null);
   const [sharePreviewRoomId, setSharePreviewRoomId] = useState(null);
+  const [showGeneralSharePreview, setShowGeneralSharePreview] = useState(false);
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
 
@@ -219,14 +221,21 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
     }
   };
 
-  const handleShareAllVacant = async () => {
+  // Get the general share message
+  const generalShareMessage = generateGeneralShareMessage(vacantRooms, settings || {});
+
+  // Show preview for share all vacant
+  const handleShowGeneralSharePreview = () => {
     if (vacantRooms.length === 0) {
       setShareMessage('No vacant rooms to share');
       setTimeout(() => setShareMessage(''), 2000);
       return;
     }
+    setShowGeneralSharePreview(true);
+  };
 
-    const message = generateGeneralShareMessage(vacantRooms, settings || {});
+  const handleShareAllVacant = async () => {
+    const message = generalShareMessage;
 
     // Try Web Share API first (works on mobile)
     if (navigator.share) {
@@ -277,7 +286,7 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
               {vacantRooms.length} vacant room{vacantRooms.length !== 1 ? 's' : ''} available
             </span>
             <button
-              onClick={handleShareAllVacant}
+              onClick={handleShowGeneralSharePreview}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 isGeneralCopied
                   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
@@ -455,6 +464,15 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
         room={sharePreviewRoom}
         message={sharePreviewRoom ? generateShareMessage(sharePreviewRoom, shareTemplate) : ''}
         onShare={() => handleShare(sharePreviewRoom)}
+      />
+
+      {/* General Share Preview Modal */}
+      <GeneralSharePreviewModal
+        isOpen={showGeneralSharePreview}
+        onClose={() => setShowGeneralSharePreview(false)}
+        message={generalShareMessage}
+        vacantCount={vacantRooms.length}
+        onShare={handleShareAllVacant}
       />
     </>
   );
