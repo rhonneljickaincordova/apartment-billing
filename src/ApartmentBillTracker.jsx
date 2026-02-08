@@ -10,7 +10,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
 import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, PaymentHistoryModal } from './components/bills';
-import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
+import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, FinancialBreakdown, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import MediaLibrarySection from './components/settings/MediaLibrarySection';
 import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
@@ -928,13 +928,21 @@ const ApartmentBillTracker = () => {
               />
             </div>
 
-            {/* Recent Activity */}
-            <RecentActivity
-              bills={dashboardFilteredBills}
-              expenses={dashboardFilteredExpenses}
-              getRoomById={getRoomById}
-              getBillTotal={getBillTotal}
-            />
+            {/* Recent Activity & Financial Breakdown */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <RecentActivity
+                bills={dashboardFilteredBills}
+                expenses={dashboardFilteredExpenses}
+                getRoomById={getRoomById}
+                getBillTotal={getBillTotal}
+              />
+              <FinancialBreakdown
+                bills={dashboardFilteredBills}
+                expenses={dashboardFilteredExpenses}
+                getBillTotal={getBillTotal}
+                getRoomById={getRoomById}
+              />
+            </div>
 
             {/* Analytics Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -15,6 +15,8 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Wallet,
+  RotateCcw,
 } from 'lucide-react';
 
 /**
@@ -198,6 +200,12 @@ function BillsTable({
                 onSort={onSort}
               />
               <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                <div className="flex items-center gap-1">
+                  <Wallet className="w-4 h-4" aria-hidden="true" />
+                  Deposit/Cash
+                </div>
+              </th>
+              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Actions
               </th>
             </tr>
@@ -297,6 +305,57 @@ function BillsTable({
                     ₱{total.toFixed(2)}
                   </td>
                   <td className="px-3 md:px-6 py-4">
+                    {bill.depositApplied && bill.depositAmount > 0 ? (
+                      (() => {
+                        const depositUsed = bill.depositAmount || 0;
+                        const amountPaid = bill.amountPaid || 0;
+                        const refundAmount = depositUsed - total;
+                        const cashPaid = Math.max(0, amountPaid - depositUsed);
+
+                        if (refundAmount > 0) {
+                          // Deposit exceeded bill total - show refund
+                          return (
+                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <RotateCcw className="w-4 h-4" aria-hidden="true" />
+                              <span className="font-medium">₱{refundAmount.toFixed(2)}</span>
+                            </div>
+                          );
+                        }
+
+                        if (cashPaid > 0) {
+                          // Deposit applied + additional cash paid
+                          // Get payment method from payment history
+                          const paymentHistory = bill.paymentHistory || [];
+                          const lastPayment = paymentHistory[paymentHistory.length - 1];
+                          const paymentMethod = lastPayment?.paymentMethods?.[0]?.method || 'Cash';
+
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                                <Wallet className="w-3 h-3" aria-hidden="true" />
+                                <span className="text-xs">Deposit: ₱{depositUsed.toFixed(2)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <DollarSign className="w-3 h-3" aria-hidden="true" />
+                                <span className="text-xs font-medium">{paymentMethod}: ₱{cashPaid.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Deposit fully covered the bill
+                        return (
+                          <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                            <Wallet className="w-4 h-4" aria-hidden="true" />
+                            <span className="text-xs">Deposit: ₱{depositUsed.toFixed(2)}</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-3 md:px-6 py-4">
                     <div className="flex gap-2">
                       <button
                         onClick={() => onEdit(bill)}
@@ -321,7 +380,7 @@ function BillsTable({
             })}
             {bills.length === 0 && (
               <tr>
-                <td colSpan="12" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan="13" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                   No bills found.
                 </td>
               </tr>

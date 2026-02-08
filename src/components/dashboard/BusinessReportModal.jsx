@@ -63,10 +63,40 @@ function BusinessReportModal({
 
   // Financial calculations
   const totalRevenue = bills.reduce((sum, bill) => sum + (getBillTotal(bill, bill.rentExcluded || false) || 0), 0);
-  const collectedRevenue = bills.reduce((sum, bill) => {
-    if (bill.paid) return sum + (getBillTotal(bill, bill.rentExcluded || false) || 0);
-    return sum + (bill.amountPaid || 0);
-  }, 0);
+
+  // Calculate cash collected and deposits applied separately (same logic as FinancialSummary)
+  let cashCollected = 0;
+  let depositsApplied = 0;
+  let refundsGiven = 0;
+
+  bills.forEach((bill) => {
+    const amountPaid = bill.amountPaid || 0;
+
+    if (bill.depositApplied && bill.depositAmount > 0) {
+      // Bill has deposit applied
+      const depositUsed = bill.depositAmount;
+      const billTotal = getBillTotal(bill, bill.rentExcluded || false);
+
+      // Deposit portion (capped at bill total)
+      const depositPortion = Math.min(depositUsed, billTotal);
+      depositsApplied += depositPortion;
+
+      // Cash portion = total paid minus deposit
+      const cashPortion = Math.max(0, amountPaid - depositUsed);
+      cashCollected += cashPortion;
+
+      // Refund = deposit exceeds bill total
+      if (depositUsed > billTotal) {
+        refundsGiven += depositUsed - billTotal;
+      }
+    } else {
+      // No deposit - all payments are cash
+      cashCollected += amountPaid;
+    }
+  });
+
+  // Total settled (for display purposes)
+  const collectedRevenue = cashCollected + depositsApplied;
 
   // Separate expenses by type
   const apartmentExpenses = expenses.filter((exp) => (exp.expenseType || 'apartment') === 'apartment');
@@ -75,8 +105,8 @@ function BusinessReportModal({
   const totalPersonalExpenses = personalExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
   const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
-  // Net profit uses only apartment expenses (business expenses)
-  const netProfit = collectedRevenue - totalApartmentExpenses;
+  // Net profit uses only actual cash collected - apartment expenses - refunds
+  const netProfit = cashCollected - totalApartmentExpenses - refundsGiven;
   const profitMargin = collectedRevenue > 0 ? ((netProfit / collectedRevenue) * 100).toFixed(1) : 0;
 
   // Bill status breakdown
@@ -132,8 +162,8 @@ function BusinessReportModal({
 
   // === NEW BUSINESS METRICS ===
 
-  // 1. Cash Flow Summary - Collected revenue minus expenses
-  const cashFlow = collectedRevenue - totalApartmentExpenses;
+  // 1. Cash Flow Summary - Actual cash collected minus expenses minus refunds
+  const cashFlow = cashCollected - totalApartmentExpenses - refundsGiven;
 
   // 2. Monthly Target vs Actual
   // Target = sum of rent from all occupied rooms

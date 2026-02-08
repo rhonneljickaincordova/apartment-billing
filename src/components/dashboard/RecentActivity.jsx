@@ -89,7 +89,7 @@ function RecentActivity({ bills, expenses, getRoomById, getBillTotal }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 md:p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 md:p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <Activity className="w-5 h-5 text-blue-500" />
@@ -101,12 +101,14 @@ function RecentActivity({ bills, expenses, getRoomById, getBillTotal }) {
       </div>
 
       {sortedActivities.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No recent activity</p>
+        <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+          <div className="text-center">
+            <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No recent activity</p>
+          </div>
         </div>
       ) : (
-        <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+        <div className="flex-1 space-y-3 overflow-y-auto pr-1">
           {sortedActivities.map((activity) => {
             const Icon = activity.icon;
             return (

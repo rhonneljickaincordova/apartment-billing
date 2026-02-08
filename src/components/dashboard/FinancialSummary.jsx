@@ -10,20 +10,40 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     // Calculate gross revenue (all bills - both paid and unpaid)
     const grossRevenue = bills.reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
 
-    // Separate paid bills into cash payments vs deposit settlements
-    const paidBills = bills.filter((bill) => bill.paid);
+    // Calculate cash collected and deposits applied separately
+    // For bills with deposits: cash = amountPaid - depositAmount, deposit = depositAmount
+    // For bills without deposits: cash = amountPaid, deposit = 0
+    let cashCollected = 0;
+    let depositsApplied = 0;
+    let refundsGiven = 0;
 
-    // Cash Collected: Actual money received (not deposit settlements)
-    const cashCollected = paidBills
-      .filter((bill) => !(bill.depositApplied && bill.depositAmount > 0))
-      .reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
+    bills.forEach((bill) => {
+      const amountPaid = bill.amountPaid || 0;
 
-    // Deposits Applied: Bills settled via deposit (no actual cash received)
-    const depositsApplied = paidBills
-      .filter((bill) => bill.depositApplied && bill.depositAmount > 0)
-      .reduce((sum, bill) => sum + getBillTotal(bill, bill.rentExcluded || false), 0);
+      if (bill.depositApplied && bill.depositAmount > 0) {
+        // Bill has deposit applied
+        const depositUsed = bill.depositAmount;
+        const billTotal = getBillTotal(bill, bill.rentExcluded || false);
 
-    // Total Settled: Sum of both (for reference)
+        // Deposit portion (capped at bill total to avoid double counting)
+        const depositPortion = Math.min(depositUsed, billTotal);
+        depositsApplied += depositPortion;
+
+        // Cash portion = total paid minus deposit
+        const cashPortion = Math.max(0, amountPaid - depositUsed);
+        cashCollected += cashPortion;
+
+        // Refund = deposit exceeds bill total (money returned to tenant)
+        if (depositUsed > billTotal) {
+          refundsGiven += depositUsed - billTotal;
+        }
+      } else {
+        // No deposit - all payments are cash
+        cashCollected += amountPaid;
+      }
+    });
+
+    // Total Settled: Sum of cash + deposit portions
     const collectedRevenue = cashCollected + depositsApplied;
 
     // Separate expenses by type
@@ -34,24 +54,28 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     const totalPersonalExpenses = personalExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
-    // Calculate profit using only actual CASH collected (exclude deposit settlements)
-    // This gives accurate cash flow picture
-    const profit = cashCollected - totalApartmentExpenses;
+    // Main Net Profit = Gross Revenue - Total Expenses (apartment + personal)
+    const profit = grossRevenue - totalExpenses;
 
-    // Calculate projected profit (gross - apartment expenses)
-    const projectedProfit = grossRevenue - totalApartmentExpenses;
+    // Apartment-only profit (excluding personal expenses)
+    const apartmentOnlyProfit = grossRevenue - totalApartmentExpenses;
+
+    // Calculate projected profit (gross - apartment expenses - refunds)
+    const projectedProfit = grossRevenue - totalApartmentExpenses - refundsGiven;
 
     return {
       grossRevenue,
       collectedRevenue,
       cashCollected,
       depositsApplied,
+      refundsGiven,
       totalExpenses,
       totalApartmentExpenses,
       totalPersonalExpenses,
       apartmentExpenseCount: apartmentExpenses.length,
       personalExpenseCount: personalExpenses.length,
       profit,
+      apartmentOnlyProfit,
       projectedProfit,
       billCount: bills.length,
       expenseCount: expenses.length,
@@ -123,72 +147,73 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
               Net Profit
             </p>
             <p className="text-lg md:text-2xl font-bold truncate">{formatCurrency(financialData.profit)}</p>
+            {financialData.totalPersonalExpenses > 0 && (
+              <p className={`text-[10px] md:text-xs mt-0.5 ${financialData.profit >= 0 ? 'text-green-100/80' : 'text-orange-100/80'}`}>
+                Without Personal: {formatCurrency(financialData.apartmentOnlyProfit)}
+              </p>
+            )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className={`text-xs md:text-sm ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
-              Cash only
+            <p className={`text-[10px] md:text-xs ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
+              Revenue - Expenses
             </p>
           </div>
         </div>
       </div>
 
-      {/* Revenue Breakdown - Cash vs Deposits */}
+      {/* Profit Calculation Breakdown */}
       <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
-        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mb-2">Revenue Breakdown</p>
-        <div className="grid grid-cols-3 gap-2 text-sm mb-3">
-          <div className="text-center p-2 md:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-green-600 dark:text-green-400 text-[10px] md:text-xs mb-1">Cash Collected</p>
-            <p className="font-bold text-xs md:text-sm text-green-700 dark:text-green-300 truncate">
-              {formatCurrency(financialData.cashCollected)}
-            </p>
+        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mb-2">Profit Calculation</p>
+        <div className="space-y-2 text-xs">
+          {/* Revenue */}
+          <div className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <span className="text-blue-700 dark:text-blue-300">Gross Revenue</span>
+            <span className="font-bold text-blue-700 dark:text-blue-300">
+              {formatCurrency(financialData.grossRevenue)}
+            </span>
           </div>
-          <div className="text-center p-2 md:p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-            <p className="text-purple-600 dark:text-purple-400 text-[10px] md:text-xs mb-1">Deposits Applied</p>
-            <p className="font-bold text-xs md:text-sm text-purple-700 dark:text-purple-300 truncate">
-              {formatCurrency(financialData.depositsApplied)}
-            </p>
+          {/* Expenses Breakdown */}
+          <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <div className="flex flex-col">
+              <span className="text-red-700 dark:text-red-300">(-) Total Expenses</span>
+              <span className="text-[10px] text-red-500 dark:text-red-400">
+                Apt: {formatCurrency(financialData.totalApartmentExpenses)} + Personal: {formatCurrency(financialData.totalPersonalExpenses)}
+              </span>
+            </div>
+            <span className="font-bold text-red-700 dark:text-red-300">
+              {formatCurrency(financialData.totalExpenses)}
+            </span>
           </div>
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Total Settled</p>
-            <p className="font-bold text-xs md:text-sm text-gray-800 dark:text-white truncate">
-              {formatCurrency(financialData.collectedRevenue)}
-            </p>
+          {/* Net Profit Result */}
+          <div className={`flex justify-between items-center p-2 rounded-lg ${
+            financialData.profit >= 0
+              ? 'bg-green-50 dark:bg-green-900/20'
+              : 'bg-orange-50 dark:bg-orange-900/20'
+          }`}>
+            <span className={financialData.profit >= 0 ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}>
+              = Net Profit
+            </span>
+            <span className={`font-bold ${financialData.profit >= 0 ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+              {formatCurrency(financialData.profit)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Additional Details */}
+      {/* Profit Margin */}
       <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-4 text-sm">
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Pending</p>
-            <p className="font-bold text-xs md:text-sm text-amber-600 dark:text-amber-400 truncate">
-              {formatCurrency(financialData.grossRevenue - financialData.collectedRevenue)}
-            </p>
-          </div>
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Projected Profit</p>
-            <p className={`font-bold text-xs md:text-sm truncate ${
-              financialData.projectedProfit >= 0
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(financialData.projectedProfit)}
-            </p>
-          </div>
-          <div className="text-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg col-span-2 md:col-span-1">
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs mb-1">Cash Margin</p>
-            <p className={`font-bold text-xs md:text-sm ${
-              financialData.cashCollected > 0 && (financialData.profit / financialData.cashCollected) >= 0
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-red-600 dark:text-red-400'
-            }`}>
-              {financialData.cashCollected > 0
-                ? `${((financialData.profit / financialData.cashCollected) * 100).toFixed(1)}%`
-                : '0%'
-              }
-            </p>
-          </div>
+        <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <span className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs">Profit Margin</span>
+          <span className={`font-bold text-xs md:text-sm ${
+            financialData.grossRevenue > 0 && (financialData.profit / financialData.grossRevenue) >= 0
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-red-600 dark:text-red-400'
+          }`}>
+            {financialData.grossRevenue > 0
+              ? `${((financialData.profit / financialData.grossRevenue) * 100).toFixed(1)}%`
+              : '0%'
+            }
+          </span>
         </div>
       </div>
     </div>

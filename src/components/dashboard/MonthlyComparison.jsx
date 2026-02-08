@@ -39,17 +39,51 @@ function MonthlyComparison({ bills, expenses, getBillTotal }) {
       return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
     });
 
+    // Helper function to calculate cash collected (separates deposits from actual cash)
+    const calculateCashCollected = (billsArray) => {
+      let cashCollected = 0;
+      let refundsGiven = 0;
+
+      billsArray.forEach((bill) => {
+        const amountPaid = bill.amountPaid || 0;
+
+        if (bill.depositApplied && bill.depositAmount > 0) {
+          // Bill has deposit applied - only count cash portion
+          const depositUsed = bill.depositAmount;
+          const billTotal = getBillTotal(bill, bill.rentExcluded || false);
+
+          // Cash portion = total paid minus deposit
+          const cashPortion = Math.max(0, amountPaid - depositUsed);
+          cashCollected += cashPortion;
+
+          // Refund = deposit exceeds bill total (money returned to tenant)
+          if (depositUsed > billTotal) {
+            refundsGiven += depositUsed - billTotal;
+          }
+        } else {
+          // No deposit - all payments are cash
+          cashCollected += amountPaid;
+        }
+      });
+
+      return { cashCollected, refundsGiven };
+    };
+
     // Calculate totals for current month
     const currentRevenue = currentMonthBills.reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
-    const currentCollected = currentMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
+    const currentApartmentExpenses = currentMonthExpenses.filter((e) => (e.expenseType || 'apartment') === 'apartment');
     const currentExpenseTotal = currentMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-    const currentProfit = currentCollected - currentExpenseTotal;
+    const currentApartmentExpenseTotal = currentApartmentExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const { cashCollected: currentCashCollected, refundsGiven: currentRefunds } = calculateCashCollected(currentMonthBills);
+    const currentProfit = currentCashCollected - currentApartmentExpenseTotal - currentRefunds;
 
     // Calculate totals for last month
     const lastRevenue = lastMonthBills.reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
-    const lastCollected = lastMonthBills.filter(b => b.paid).reduce((sum, b) => sum + getBillTotal(b, b.rentExcluded || false), 0);
+    const lastApartmentExpenses = lastMonthExpenses.filter((e) => (e.expenseType || 'apartment') === 'apartment');
     const lastExpenseTotal = lastMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-    const lastProfit = lastCollected - lastExpenseTotal;
+    const lastApartmentExpenseTotal = lastApartmentExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const { cashCollected: lastCashCollected, refundsGiven: lastRefunds } = calculateCashCollected(lastMonthBills);
+    const lastProfit = lastCashCollected - lastApartmentExpenseTotal - lastRefunds;
 
     // Calculate percentage changes
     const revenueChange = lastRevenue > 0 ? ((currentRevenue - lastRevenue) / lastRevenue) * 100 : 0;
@@ -64,13 +98,13 @@ function MonthlyComparison({ bills, expenses, getBillTotal }) {
       lastMonth: months[lastMonth],
       current: {
         revenue: currentRevenue,
-        collected: currentCollected,
+        collected: currentCashCollected,
         expenses: currentExpenseTotal,
         profit: currentProfit,
       },
       last: {
         revenue: lastRevenue,
-        collected: lastCollected,
+        collected: lastCashCollected,
         expenses: lastExpenseTotal,
         profit: lastProfit,
       },
