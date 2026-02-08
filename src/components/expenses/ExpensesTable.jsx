@@ -1,5 +1,32 @@
-import { Edit2, Trash2, RefreshCw, Building2, User, Copy } from 'lucide-react';
+import { Edit2, Trash2, RefreshCw, Building2, User, Copy, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { EXPENSE_CATEGORIES, RECURRING_OPTIONS, EXPENSE_TYPES } from '../../hooks/useExpenses';
+
+/**
+ * Sortable Header Component
+ */
+function SortableHeader({ field, label, sortField, sortDirection, onSort, className = '', align = 'left' }) {
+  const isActive = sortField === field;
+
+  const getSortIcon = () => {
+    if (!onSort) return null;
+    if (!isActive) return <ArrowUpDown className="w-3 h-3 opacity-50" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
+  };
+
+  const alignClass = align === 'right' ? 'justify-end' : 'justify-start';
+
+  return (
+    <th className={`px-3 md:px-6 py-3 text-${align} text-xs font-medium text-gray-500 dark:text-gray-300 uppercase ${className}`}>
+      <button
+        onClick={() => onSort?.(field)}
+        className={`flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-100 transition-colors ${alignClass}`}
+      >
+        {label}
+        {getSortIcon()}
+      </button>
+    </th>
+  );
+}
 
 /**
  * Get category label from value
@@ -77,7 +104,15 @@ const getExpenseTypeStyle = (type) => {
  * Expenses Table Component
  * Displays a list of expenses with actions
  */
-function ExpensesTable({ expenses, onEdit, onDuplicate, onDelete }) {
+function ExpensesTable({
+  expenses,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  sortField = 'date',
+  sortDirection = 'desc',
+  onSort,
+}) {
   if (expenses.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center text-gray-500 dark:text-gray-400">
@@ -92,24 +127,49 @@ function ExpensesTable({ expenses, onEdit, onDuplicate, onDelete }) {
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Type
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Category
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Description
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Date
-              </th>
-              <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Frequency
-              </th>
-              <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
-                Amount
-              </th>
+              <SortableHeader
+                field="expenseType"
+                label="Type"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="category"
+                label="Category"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="description"
+                label="Description"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="date"
+                label="Date"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="recurringFrequency"
+                label="Frequency"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                field="amount"
+                label="Amount"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                align="right"
+              />
               <th className="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                 Actions
               </th>

@@ -42,6 +42,10 @@ const ApartmentBillTracker = () => {
     category: 'all',
   });
 
+  // Expense sorting state
+  const [expenseSortField, setExpenseSortField] = useState('date');
+  const [expenseSortDirection, setExpenseSortDirection] = useState('desc');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -308,9 +312,19 @@ const ApartmentBillTracker = () => {
     setExpenseFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Filtered expenses based on expense filters
+  // Expense sort handler
+  const handleExpenseSort = (field) => {
+    if (expenseSortField === field) {
+      setExpenseSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setExpenseSortField(field);
+      setExpenseSortDirection('asc');
+    }
+  };
+
+  // Filtered and sorted expenses
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((expense) => {
+    const filtered = expenses.filter((expense) => {
       // Type filter
       if (expenseFilters.expenseType !== 'all') {
         const expType = expense.expenseType || 'apartment';
@@ -328,7 +342,39 @@ const ApartmentBillTracker = () => {
 
       return true;
     });
-  }, [expenses, expenseFilters]);
+
+    // Sort the filtered results
+    return [...filtered].sort((a, b) => {
+      let aVal = a[expenseSortField];
+      let bVal = b[expenseSortField];
+
+      // Handle null/undefined
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+
+      // Handle numeric fields
+      if (expenseSortField === 'amount') {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      }
+
+      // Handle date field
+      if (expenseSortField === 'date') {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+
+      // String comparison for text fields
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+
+      if (aVal < bVal) return expenseSortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return expenseSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [expenses, expenseFilters, expenseSortField, expenseSortDirection]);
 
   const handleClearFilters = () => {
     setBillFilters({
@@ -1096,6 +1142,9 @@ const ApartmentBillTracker = () => {
               onEdit={handleEditExpense}
               onDuplicate={handleDuplicateExpense}
               onDelete={handleDeleteExpense}
+              sortField={expenseSortField}
+              sortDirection={expenseSortDirection}
+              onSort={handleExpenseSort}
             />
           </div>
         )}
