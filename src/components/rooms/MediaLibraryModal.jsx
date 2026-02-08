@@ -176,9 +176,9 @@ function MediaLibraryModal({ isOpen, onClose, mediaLibrary = [], onSelectMedia }
                         </div>
                       )}
 
-                      {/* Selection indicator */}
+                      {/* Selection indicator - bottom right, above filename */}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className="absolute bottom-8 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-10">
                           <Check className="w-4 h-4 text-white" />
                         </div>
                       )}
