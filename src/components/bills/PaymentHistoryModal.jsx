@@ -538,7 +538,7 @@ function PaymentHistoryModal({
                             Editing Payment - {formatDate(payment.date)}
                           </span>
                           <span className="font-bold text-green-600 dark:text-green-400">
-                            ₱{(payment.amount || 0).toFixed(2)}
+                            ₱{(Number(payment.amount) || 0).toFixed(2)}
                           </span>
                         </div>
 
@@ -657,7 +657,7 @@ function PaymentHistoryModal({
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-green-600 dark:text-green-400">
-                              ₱{(payment.amount || 0).toFixed(2)}
+                              ₱{(Number(payment.amount) || 0).toFixed(2)}
                             </span>
                             {onUpdatePayment && (
                               <button
@@ -682,7 +682,7 @@ function PaymentHistoryModal({
                                     {method.method}
                                   </span>
                                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    ₱{(method.amount || 0).toFixed(2)}
+                                    ₱{(Number(method.amount) || 0).toFixed(2)}
                                   </span>
                                 </div>
 

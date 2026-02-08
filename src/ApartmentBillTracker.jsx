@@ -255,6 +255,10 @@ const ApartmentBillTracker = () => {
           aValue = a.airconCleaningBill || 0;
           bValue = b.airconCleaningBill || 0;
           break;
+        case 'paidDate':
+          aValue = a.paidDate || '';
+          bValue = b.paidDate || '';
+          break;
         default:
           aValue = a.dueDate;
           bValue = b.dueDate;

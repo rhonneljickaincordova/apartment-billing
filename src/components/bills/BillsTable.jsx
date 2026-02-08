@@ -3,6 +3,7 @@ import {
   Trash2,
   Printer,
   Calendar,
+  CalendarCheck,
   Zap,
   Droplet,
   Wifi,
@@ -143,6 +144,14 @@ function BillsTable({
                 onSort={onSort}
               />
               <SortableHeader
+                field="paidDate"
+                label="Paid Date"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+                icon={CalendarCheck}
+              />
+              <SortableHeader
                 field="rentBill"
                 label="Rent"
                 sortField={sortField}
@@ -244,6 +253,16 @@ function BillsTable({
                     </div>
                   </td>
                   <td className="px-3 md:px-6 py-4 text-gray-700 dark:text-gray-300">
+                    {bill.paidDate ? (
+                      <div className="flex items-center gap-1">
+                        <CalendarCheck className="w-4 h-4 text-green-500" aria-hidden="true" />
+                        {bill.paidDate}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-3 md:px-6 py-4 text-gray-700 dark:text-gray-300">
                     ₱{(bill.rentBill || 0).toFixed(2)}
                   </td>
                   <td className="px-3 md:px-6 py-4 text-gray-700 dark:text-gray-300">
@@ -302,7 +321,7 @@ function BillsTable({
             })}
             {bills.length === 0 && (
               <tr>
-                <td colSpan="11" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan="12" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                   No bills found.
                 </td>
               </tr>
