@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Droplet, Zap, Wifi, Wind, Download, Droplets, Settings, Share2, RotateCcw, Info, MapPin, Phone, Eye, X, Image } from 'lucide-react';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from '../aircon';
 import MediaGallery from './MediaGallery';
@@ -128,6 +128,19 @@ function SettingsForm({
   // Local state for templates to prevent cursor jumping
   const [localShareTemplate, setLocalShareTemplate] = useState(settings.shareTemplate || DEFAULT_SHARE_TEMPLATE);
   const [localGeneralTemplate, setLocalGeneralTemplate] = useState(settings.generalShareTemplate || DEFAULT_GENERAL_TEMPLATE);
+
+  // Sync local state when settings load from Firestore
+  useEffect(() => {
+    if (settings.shareTemplate) {
+      setLocalShareTemplate(settings.shareTemplate);
+    }
+  }, [settings.shareTemplate]);
+
+  useEffect(() => {
+    if (settings.generalShareTemplate) {
+      setLocalGeneralTemplate(settings.generalShareTemplate);
+    }
+  }, [settings.generalShareTemplate]);
 
   // Get vacant rooms for preview
   const vacantRooms = rooms?.filter((room) => room.status === 'vacant') || [];
