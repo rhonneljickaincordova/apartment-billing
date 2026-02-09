@@ -6,11 +6,16 @@ import MediaGallery from './MediaGallery';
 /**
  * Generate preview for single room template
  */
-function generateRoomPreview(template, sampleRoom = { name: 'Room 101', rent: 5500, persons: 2 }) {
+function generateRoomPreview(template, sampleRoom = { name: 'Room 101', rent: 5500, persons: 2 }, settings = {}) {
   return template
     .replace(/{roomName}/g, sampleRoom.name)
     .replace(/{rent}/g, (sampleRoom.rent || 0).toLocaleString())
-    .replace(/{persons}/g, sampleRoom.persons || 1);
+    .replace(/{persons}/g, sampleRoom.persons || 1)
+    .replace(/{waterRate}/g, settings.waterRate || 100)
+    .replace(/{electricityRate}/g, settings.electricityRate || 15)
+    .replace(/{wifiRate}/g, settings.wifiRate || 500)
+    .replace(/{location}/g, settings.location || 'Contact for location')
+    .replace(/{contactNumber}/g, settings.contactNumber || 'Contact for details');
 }
 
 /**
@@ -288,6 +293,11 @@ function SettingsForm({
                       <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{roomName}'}</code>
                       <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{rent}'}</code>
                       <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{persons}'}</code>
+                      <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{waterRate}'}</code>
+                      <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{electricityRate}'}</code>
+                      <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{wifiRate}'}</code>
+                      <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{location}'}</code>
+                      <code className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{'{contactNumber}'}</code>
                     </div>
                   </div>
                 </div>
@@ -314,7 +324,7 @@ function SettingsForm({
                     </button>
                   </div>
                   <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">
-                    {generateRoomPreview(localShareTemplate)}
+                    {generateRoomPreview(localShareTemplate, undefined, settings)}
                   </pre>
 
                   {/* Media Preview */}

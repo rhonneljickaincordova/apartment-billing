@@ -73,13 +73,18 @@ PM for more details ☺️`;
 /**
  * Generate share message for a vacant room using template
  */
-function generateShareMessage(room, template) {
+function generateShareMessage(room, template, settings = {}) {
   const messageTemplate = template || DEFAULT_SHARE_TEMPLATE;
 
   return messageTemplate
     .replace(/{roomName}/g, room.name || 'Room')
     .replace(/{rent}/g, (room.rent || 0).toLocaleString())
-    .replace(/{persons}/g, room.persons || 1);
+    .replace(/{persons}/g, room.persons || 1)
+    .replace(/{waterRate}/g, settings.waterRate || 100)
+    .replace(/{electricityRate}/g, settings.electricityRate || 15)
+    .replace(/{wifiRate}/g, settings.wifiRate || 500)
+    .replace(/{location}/g, settings.location || 'Contact for location')
+    .replace(/{contactNumber}/g, settings.contactNumber || 'Contact for details');
 }
 
 /**
@@ -116,8 +121,8 @@ function generateGeneralShareMessage(vacantRooms, settings) {
 /**
  * Share to Facebook using share dialog
  */
-async function shareToFacebook(room, template) {
-  const message = generateShareMessage(room, template);
+async function shareToFacebook(room, template, settings = {}) {
+  const message = generateShareMessage(room, template, settings);
 
   // Try Web Share API first (works on mobile, includes FB option)
   if (navigator.share) {
@@ -206,7 +211,7 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
   }, [rooms, sortField, sortDirection]);
 
   const handleShare = async (room) => {
-    const result = await shareToFacebook(room, shareTemplate);
+    const result = await shareToFacebook(room, shareTemplate, settings);
 
     if (result.success && result.method === 'clipboard') {
       setCopiedRoomId(room.id);
@@ -462,7 +467,7 @@ function RoomsList({ rooms, onEdit, onDelete, onToggleStatus, shareTemplate, set
         isOpen={!!sharePreviewRoom}
         onClose={() => setSharePreviewRoomId(null)}
         room={sharePreviewRoom}
-        message={sharePreviewRoom ? generateShareMessage(sharePreviewRoom, shareTemplate) : ''}
+        message={sharePreviewRoom ? generateShareMessage(sharePreviewRoom, shareTemplate, settings) : ''}
         onShare={() => handleShare(sharePreviewRoom)}
       />
 
