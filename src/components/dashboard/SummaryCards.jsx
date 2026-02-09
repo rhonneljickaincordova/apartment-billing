@@ -109,8 +109,8 @@ function SummaryCards({
                     >
                       <span>{typeof item === 'object' ? item.label : item}</span>
                       {card.showAmount && typeof item === 'object' && (
-                        <span className="text-xs font-medium text-green-600 dark:text-green-400 ml-2">
-                          ₱{item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={`text-xs font-medium ml-2 ${item.amount < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {item.amount < 0 ? '-' : ''}₱{Math.abs(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       )}
                     </div>

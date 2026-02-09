@@ -912,7 +912,20 @@ const ApartmentBillTracker = () => {
               paidRoomsList={[...new Set(dashboardFilteredBills.filter((b) => b.paid).map((b) => b.roomId))]
                 .map((roomId) => {
                   const roomBills = dashboardFilteredBills.filter((b) => b.paid && b.roomId === roomId);
-                  const totalCollected = roomBills.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+                  // Calculate actual cash collected (excluding deposits) and refunds
+                  const totalCollected = roomBills.reduce((sum, b) => {
+                    const amountPaid = b.amountPaid || 0;
+                    if (b.depositApplied && b.depositAmount > 0) {
+                      const billTotal = getBillTotal(b, b.rentExcluded || false);
+                      const depositUsed = b.depositAmount;
+                      // Cash portion = total paid minus deposit
+                      const cashPortion = Math.max(0, amountPaid - depositUsed);
+                      // Refund = when deposit exceeds bill total (negative amount)
+                      const refund = depositUsed > billTotal ? depositUsed - billTotal : 0;
+                      return sum + cashPortion - refund;
+                    }
+                    return sum + amountPaid;
+                  }, 0);
                   return { id: roomId, name: getRoomById(roomId)?.name || 'Unknown', totalCollected };
                 })}
               totalBilledRooms={new Set(dashboardFilteredBills.map((b) => b.roomId)).size}

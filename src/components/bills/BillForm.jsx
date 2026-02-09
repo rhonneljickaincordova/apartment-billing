@@ -26,13 +26,25 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
   const hasPenalty = tenant && tenant.earlyTerminationPenalty > 0;
   const penaltyAmount = tenant?.earlyTerminationPenalty || 0;
 
-  const handleApplyDeposit = (checked) => {
-    onUpdateField('applyDeposit', checked);
-    if (checked && hasDeposit) {
-      onUpdateField('depositAmount', depositAmount);
-    } else {
+  const handleDepositOption = (option) => {
+    if (option === 'none') {
+      onUpdateField('applyDeposit', false);
       onUpdateField('depositAmount', 0);
+    } else if (option === 'half') {
+      onUpdateField('applyDeposit', true);
+      onUpdateField('depositAmount', depositAmount * 0.5);
+    } else if (option === 'full') {
+      onUpdateField('applyDeposit', true);
+      onUpdateField('depositAmount', depositAmount);
     }
+  };
+
+  // Determine current deposit option based on form state
+  const getDepositOption = () => {
+    if (!form.applyDeposit || !form.depositAmount) return 'none';
+    if (form.depositAmount === depositAmount * 0.5) return 'half';
+    if (form.depositAmount === depositAmount) return 'full';
+    return 'none';
   };
 
   const handleApplyPenalty = (checked) => {
@@ -217,22 +229,25 @@ function BillForm({ form, errors, isEditing, rooms, tenants, onSave, onCancel, o
             </div>
             {hasDeposit ? (
               <>
-                <div className="flex items-center gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                  <input
-                    type="checkbox"
-                    id="applyDeposit"
-                    checked={form.applyDeposit || false}
-                    onChange={(e) => handleApplyDeposit(e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <label htmlFor="applyDeposit" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
+                  <label htmlFor="depositOption" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Apply deposit to this bill (typically used for move-out/final bill)
                   </label>
+                  <select
+                    id="depositOption"
+                    value={getDepositOption()}
+                    onChange={(e) => handleDepositOption(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="none">Don&apos;t apply deposit</option>
+                    <option value="half">Apply 50% of deposit (₱{(depositAmount * 0.5).toFixed(2)})</option>
+                    <option value="full">Apply 100% of deposit (₱{depositAmount.toFixed(2)})</option>
+                  </select>
                 </div>
-                {form.applyDeposit && (
+                {form.applyDeposit && form.depositAmount > 0 && (
                   <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-700 dark:text-green-300">
-                      ✓ Deposit of ₱{depositAmount.toFixed(2)} will be applied as payment (rent excluded)
+                      ✓ Deposit of ₱{form.depositAmount.toFixed(2)} will be applied as payment (rent excluded)
                     </p>
                   </div>
                 )}
