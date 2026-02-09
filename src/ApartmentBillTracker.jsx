@@ -910,7 +910,11 @@ const ApartmentBillTracker = () => {
                 .filter((b) => !b.paid && new Date(b.dueDate) < new Date())
                 .map((b) => ({ ...b, roomName: getRoomById(b.roomId)?.name || 'Unknown' }))}
               paidRoomsList={[...new Set(dashboardFilteredBills.filter((b) => b.paid).map((b) => b.roomId))]
-                .map((roomId) => ({ id: roomId, name: getRoomById(roomId)?.name || 'Unknown' }))}
+                .map((roomId) => {
+                  const roomBills = dashboardFilteredBills.filter((b) => b.paid && b.roomId === roomId);
+                  const totalCollected = roomBills.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+                  return { id: roomId, name: getRoomById(roomId)?.name || 'Unknown', totalCollected };
+                })}
               totalBilledRooms={new Set(dashboardFilteredBills.map((b) => b.roomId)).size}
             />
 

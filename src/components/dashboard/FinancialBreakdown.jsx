@@ -102,6 +102,9 @@ function FinancialBreakdown({ bills, expenses, getBillTotal, getRoomById }) {
     // Apartment-only profit (excluding personal expenses)
     const apartmentOnlyProfit = grossRevenue - totalApartmentExpenses;
 
+    // Cash on Hand = Cash Collected - Apartment Expenses - Refunds
+    const cashOnHand = cashCollected - totalApartmentExpenses - refundsGiven;
+
     return {
       revenueBreakdown,
       grossRevenue,
@@ -114,6 +117,7 @@ function FinancialBreakdown({ bills, expenses, getBillTotal, getRoomById }) {
       refundsGiven,
       netProfit,
       apartmentOnlyProfit,
+      cashOnHand,
       billCount: bills.length,
       paidBillCount,
       apartmentExpenseCount: apartmentExpenses.length,
@@ -293,6 +297,12 @@ function FinancialBreakdown({ bills, expenses, getBillTotal, getRoomById }) {
                 </span>
               </div>
             )}
+            <div className="flex justify-between pt-1 border-t border-dashed border-gray-200 dark:border-gray-700">
+              <span className="text-gray-500 dark:text-gray-500 italic">Cash on Hand</span>
+              <span className={`italic ${breakdownData.cashOnHand >= 0 ? 'text-emerald-500 dark:text-emerald-500' : 'text-red-500 dark:text-red-500'}`}>
+                {formatCurrency(breakdownData.cashOnHand)}
+              </span>
+            </div>
           </div>
         </div>
 

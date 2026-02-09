@@ -63,8 +63,12 @@ function SummaryCards({
       icon: CheckCircle,
       bgColor: allPaid ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-teal-500 to-cyan-600',
       iconBg: allPaid ? 'bg-green-400/30' : 'bg-teal-400/30',
-      tooltipItems: paidRoomsList.map(r => r.name),
+      tooltipItems: paidRoomsList.map(r => ({
+        label: r.name,
+        amount: r.totalCollected,
+      })),
       tooltipTitle: 'Rooms That Paid',
+      showAmount: true,
     },
   ];
 
@@ -101,12 +105,25 @@ function SummaryCards({
                   {card.tooltipItems.map((item, idx) => (
                     <div
                       key={idx}
-                      className="text-sm py-1 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      className="text-sm py-1 border-b border-gray-100 dark:border-gray-700 last:border-0 flex justify-between items-center"
                     >
-                      {item}
+                      <span>{typeof item === 'object' ? item.label : item}</span>
+                      {card.showAmount && typeof item === 'object' && (
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400 ml-2">
+                          ₱{item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
+                {card.showAmount && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2 flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Collected</span>
+                    <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                      ₱{card.tooltipItems.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

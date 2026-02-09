@@ -60,8 +60,8 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
     // Apartment-only profit (excluding personal expenses)
     const apartmentOnlyProfit = grossRevenue - totalApartmentExpenses;
 
-    // Calculate projected profit (gross - apartment expenses - refunds)
-    const projectedProfit = grossRevenue - totalApartmentExpenses - refundsGiven;
+    // Cash on Hand = Cash Collected - Apartment Expenses - Refunds (actual cash you're holding)
+    const cashOnHand = cashCollected - totalApartmentExpenses - refundsGiven;
 
     return {
       grossRevenue,
@@ -76,7 +76,7 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
       personalExpenseCount: personalExpenses.length,
       profit,
       apartmentOnlyProfit,
-      projectedProfit,
+      cashOnHand,
       billCount: bills.length,
       expenseCount: expenses.length,
     };
@@ -152,6 +152,9 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
                 Without Personal: {formatCurrency(financialData.apartmentOnlyProfit)}
               </p>
             )}
+            <p className={`text-[10px] md:text-xs mt-0.5 ${financialData.profit >= 0 ? 'text-green-100/80' : 'text-orange-100/80'}`}>
+              Cash on Hand: {formatCurrency(financialData.cashOnHand)}
+            </p>
           </div>
           <div className="text-right flex-shrink-0">
             <p className={`text-[10px] md:text-xs ${financialData.profit >= 0 ? 'text-green-100' : 'text-orange-100'}`}>
@@ -200,20 +203,42 @@ function FinancialSummary({ bills, expenses, getBillTotal }) {
         </div>
       </div>
 
-      {/* Profit Margin */}
+      {/* Cash on Hand */}
       <div className="border-t dark:border-gray-700 pt-3 md:pt-4">
-        <div className="flex justify-between items-center p-2 md:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span className="text-gray-500 dark:text-gray-400 text-[10px] md:text-xs">Profit Margin</span>
-          <span className={`font-bold text-xs md:text-sm ${
-            financialData.grossRevenue > 0 && (financialData.profit / financialData.grossRevenue) >= 0
-              ? 'text-emerald-600 dark:text-emerald-400'
-              : 'text-red-600 dark:text-red-400'
+        <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mb-2">Cash on Hand</p>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <span className="text-green-700 dark:text-green-300">Cash Collected</span>
+            <span className="font-bold text-green-700 dark:text-green-300">
+              {formatCurrency(financialData.cashCollected)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <span className="text-red-700 dark:text-red-300">(-) Apartment Expenses</span>
+            <span className="font-bold text-red-700 dark:text-red-300">
+              {formatCurrency(financialData.totalApartmentExpenses)}
+            </span>
+          </div>
+          {financialData.refundsGiven > 0 && (
+            <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <span className="text-orange-700 dark:text-orange-300">(-) Refunds Given</span>
+              <span className="font-bold text-orange-700 dark:text-orange-300">
+                {formatCurrency(financialData.refundsGiven)}
+              </span>
+            </div>
+          )}
+          <div className={`flex justify-between items-center p-2 rounded-lg ${
+            financialData.cashOnHand >= 0
+              ? 'bg-emerald-50 dark:bg-emerald-900/20'
+              : 'bg-red-50 dark:bg-red-900/20'
           }`}>
-            {financialData.grossRevenue > 0
-              ? `${((financialData.profit / financialData.grossRevenue) * 100).toFixed(1)}%`
-              : '0%'
-            }
-          </span>
+            <span className={`font-medium ${financialData.cashOnHand >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
+              = Cash on Hand
+            </span>
+            <span className={`font-bold ${financialData.cashOnHand >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
+              {formatCurrency(financialData.cashOnHand)}
+            </span>
+          </div>
         </div>
       </div>
     </div>
