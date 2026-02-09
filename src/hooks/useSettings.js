@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { validateSettings } from '../utils/validation';
 import { settingsService } from '../services/firestore';
 import { useFirestoreDocument } from './useFirestore';
@@ -79,6 +79,10 @@ export function useSettings() {
     mediaLibrary: Array.isArray(mergedSettings.mediaLibrary) ? mergedSettings.mediaLibrary : [],
   };
 
+  // Keep a ref to always have latest settings (avoids stale closure issues)
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   /**
    * Update a single setting
    * @param {string} key - Setting key
@@ -86,10 +90,11 @@ export function useSettings() {
    */
   const updateSetting = useCallback(
     async (key, value) => {
-      const newSettings = { ...settings, [key]: value };
+      // Use ref to get latest settings and avoid stale closure
+      const newSettings = { ...settingsRef.current, [key]: value };
       await save(newSettings);
     },
-    [settings, save]
+    [save]
   );
 
   /**
@@ -98,9 +103,9 @@ export function useSettings() {
    */
   const updateSettings = useCallback(
     async (newSettings) => {
-      await save({ ...settings, ...newSettings });
+      await save({ ...settingsRef.current, ...newSettings });
     },
-    [settings, save]
+    [save]
   );
 
   /**
@@ -116,20 +121,21 @@ export function useSettings() {
    * @returns {{ success: boolean, message: string }}
    */
   const saveSettings = useCallback(async () => {
-    const validation = validateSettings(settings);
+    const currentSettings = settingsRef.current;
+    const validation = validateSettings(currentSettings);
 
     if (!validation.isValid) {
       return { success: false, message: 'Please enter valid rate values.', errors: validation.errors };
     }
 
     try {
-      await save(settings);
+      await save(currentSettings);
       return { success: true, message: 'Settings saved successfully!' };
     } catch (error) {
       console.error('Error saving settings:', error);
       return { success: false, message: 'Failed to save settings.' };
     }
-  }, [settings, save]);
+  }, [save]);
 
   /**
    * Reset settings to defaults
@@ -180,14 +186,14 @@ export function useSettings() {
   const updateMediaLibrary = useCallback(
     async (mediaLibrary) => {
       try {
-        await save({ ...settings, mediaLibrary });
+        await save({ ...settingsRef.current, mediaLibrary });
         return { success: true, message: 'Media library updated!' };
       } catch (error) {
         console.error('Error updating media library:', error);
         return { success: false, message: 'Failed to update media library.' };
       }
     },
-    [settings, save]
+    [save]
   );
 
   return {
