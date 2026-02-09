@@ -145,24 +145,24 @@ function SettingsForm({
   // Get vacant rooms for preview
   const vacantRooms = rooms?.filter((room) => room.status === 'vacant') || [];
 
-  const handleResetTemplate = () => {
+  const handleResetTemplate = async () => {
     setLocalShareTemplate(DEFAULT_SHARE_TEMPLATE);
-    onUpdateSetting('shareTemplate', DEFAULT_SHARE_TEMPLATE);
+    await onUpdateSetting('shareTemplate', DEFAULT_SHARE_TEMPLATE);
   };
 
-  const handleResetGeneralTemplate = () => {
+  const handleResetGeneralTemplate = async () => {
     setLocalGeneralTemplate(DEFAULT_GENERAL_TEMPLATE);
-    onUpdateSetting('generalShareTemplate', DEFAULT_GENERAL_TEMPLATE);
+    await onUpdateSetting('generalShareTemplate', DEFAULT_GENERAL_TEMPLATE);
   };
 
-  const handleSaveShareTemplate = () => {
-    onUpdateSetting('shareTemplate', localShareTemplate);
-    onSave();
+  const handleSaveShareTemplate = async () => {
+    await onUpdateSetting('shareTemplate', localShareTemplate);
+    // Note: onUpdateSetting already saves to Firestore, no need to call onSave()
   };
 
-  const handleSaveGeneralTemplate = () => {
-    onUpdateSetting('generalShareTemplate', localGeneralTemplate);
-    onSave();
+  const handleSaveGeneralTemplate = async () => {
+    await onUpdateSetting('generalShareTemplate', localGeneralTemplate);
+    // Note: onUpdateSetting already saves to Firestore, no need to call onSave()
   };
 
   return (
