@@ -211,7 +211,7 @@ function PersonalTracker() {
     <div className="space-y-4">
       {/* Sub-navigation */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide -mx-2 px-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -220,14 +220,14 @@ function PersonalTracker() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                   isActive
                     ? 'bg-blue-500 text-white'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="text-xs sm:text-sm">{tab.label}</span>
               </button>
             );
           })}

@@ -139,16 +139,17 @@ function PersonalTransactionList({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
           Transactions
         </h2>
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
         >
           <Plus className="w-4 h-4" />
-          Add Transaction
+          <span className="hidden xs:inline">Add</span>
+          <span className="hidden sm:inline">Transaction</span>
         </button>
       </div>
 
@@ -249,26 +250,26 @@ function PersonalTransactionList({
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-          <p className="text-xs text-green-600 dark:text-green-400">Income</p>
-          <p className="text-lg font-semibold text-green-700 dark:text-green-300">
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 sm:p-3 text-center">
+          <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">Income</p>
+          <p className="text-sm sm:text-lg font-semibold text-green-700 dark:text-green-300 truncate">
             {formatCurrency(totals.income)}
           </p>
         </div>
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
-          <p className="text-xs text-red-600 dark:text-red-400">Expenses</p>
-          <p className="text-lg font-semibold text-red-700 dark:text-red-300">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 sm:p-3 text-center">
+          <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400">Expenses</p>
+          <p className="text-sm sm:text-lg font-semibold text-red-700 dark:text-red-300 truncate">
             {formatCurrency(totals.expenses)}
           </p>
         </div>
-        <div className={`rounded-lg p-3 text-center ${
+        <div className={`rounded-lg p-2 sm:p-3 text-center ${
           totals.net >= 0 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'
         }`}>
-          <p className={`text-xs ${totals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+          <p className={`text-[10px] sm:text-xs ${totals.net >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
             Net
           </p>
-          <p className={`text-lg font-semibold ${totals.net >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>
+          <p className={`text-sm sm:text-lg font-semibold truncate ${totals.net >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>
             {totals.net < 0 && '-'}{formatCurrency(Math.abs(totals.net))}
           </p>
         </div>
@@ -285,66 +286,72 @@ function PersonalTransactionList({
               return (
                 <div
                   key={tx.id}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`p-2 rounded-lg flex-shrink-0 ${
-                        tx.type === 'income'
-                          ? 'bg-green-100 dark:bg-green-900/30'
-                          : 'bg-red-100 dark:bg-red-900/30'
-                      }`}>
-                        {tx.type === 'income' ? (
-                          <ArrowUpRight className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <ArrowDownRight className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">
-                          {tx.description || category?.name || 'Transaction'}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {tx.date}
-                          </span>
-                          {category && (
-                            <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                              {category.name}
-                            </span>
-                          )}
-                          {paymentMethod && (
-                            <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                              {paymentMethod.name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex items-start sm:items-center gap-3">
+                    {/* Icon */}
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                      tx.type === 'income'
+                        ? 'bg-green-100 dark:bg-green-900/30'
+                        : 'bg-red-100 dark:bg-red-900/30'
+                    }`}>
+                      {tx.type === 'income' ? (
+                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className={`text-lg font-semibold ${
-                        tx.type === 'income'
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </span>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
+                            {tx.description || category?.name || 'Transaction'}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {tx.date}
+                            </span>
+                            {category && (
+                              <span className="bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded truncate max-w-[80px] sm:max-w-none">
+                                {category.name}
+                              </span>
+                            )}
+                            {paymentMethod && (
+                              <span className="hidden sm:inline bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                {paymentMethod.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onEdit(tx)}
-                          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tx.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {/* Amount and Actions */}
+                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 flex-shrink-0">
+                          <span className={`text-sm sm:text-lg font-semibold whitespace-nowrap ${
+                            tx.type === 'income'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                          </span>
+
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => onEdit(tx)}
+                              className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(tx.id)}
+                              className="p-1.5 sm:p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

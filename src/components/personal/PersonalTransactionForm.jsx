@@ -123,10 +123,10 @@ function PersonalTransactionForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isEditing ? 'Edit Transaction' : 'Add Transaction'}
           </h2>
@@ -145,9 +145,9 @@ function PersonalTransactionForm({
             <button
               type="button"
               onClick={() => handleTypeChange('expense')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium transition-colors ${
                 form.type === 'expense'
-                  ? 'bg-red-500 text-white'
+                  ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
@@ -157,9 +157,9 @@ function PersonalTransactionForm({
             <button
               type="button"
               onClick={() => handleTypeChange('income')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-medium transition-colors ${
                 form.type === 'income'
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
@@ -170,17 +170,18 @@ function PersonalTransactionForm({
 
           {/* Amount */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Amount *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">₱</span>
               <input
                 type="number"
+                inputMode="decimal"
                 value={form.amount}
                 onChange={(e) => updateField('amount', e.target.value)}
                 placeholder="0.00"
-                className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                className={`w-full pl-10 pr-4 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                   errors.amount ? 'border-red-500' : ''
                 }`}
               />
@@ -192,7 +193,7 @@ function PersonalTransactionForm({
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Category *
             </label>
             <SearchableSelect
@@ -214,7 +215,7 @@ function PersonalTransactionForm({
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Payment Method
             </label>
             <SearchableSelect
@@ -231,14 +232,14 @@ function PersonalTransactionForm({
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Date *
             </label>
             <input
               type="date"
               value={form.date}
               onChange={(e) => updateField('date', e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+              className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                 errors.date ? 'border-red-500' : ''
               }`}
             />
@@ -249,7 +250,7 @@ function PersonalTransactionForm({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Description
             </label>
             <input
@@ -257,13 +258,13 @@ function PersonalTransactionForm({
               value={form.description}
               onChange={(e) => updateField('description', e.target.value)}
               placeholder="Enter description..."
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Tags
             </label>
             <div className="flex gap-2">
@@ -273,30 +274,30 @@ function PersonalTransactionForm({
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add a tag..."
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
               <button
                 type="button"
                 onClick={addTag}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-5 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
               >
                 Add
               </button>
             </div>
             {form.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {form.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-lg"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-xl"
                   >
                     {tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="hover:text-blue-900 dark:hover:text-blue-100"
+                      className="hover:text-blue-900 dark:hover:text-blue-100 p-0.5"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 ))}
@@ -306,18 +307,18 @@ function PersonalTransactionForm({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 p-4 border-t dark:border-gray-700">
+        <div className="flex gap-2 p-4 border-t dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 border dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex-1 px-4 py-3 border dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
           >
             <Save className="w-4 h-4" />
             {isEditing ? 'Update' : 'Save'}
