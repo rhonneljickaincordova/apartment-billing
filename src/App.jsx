@@ -2,6 +2,7 @@ import { useAuth } from './context/AuthContext';
 import { LoginScreen } from './components/auth';
 import { AppSelectionScreen } from './components/app-selection';
 import ApartmentBillTracker from './ApartmentBillTracker';
+import PersonalFinanceTracker from './PersonalFinanceTracker';
 
 function App() {
   const { isAuthenticated, loading, selectedApp, goBackToAppSelection } = useAuth();
@@ -33,7 +34,7 @@ function App() {
     case 'apartment':
       return <ApartmentBillTracker />;
     case 'personal':
-      return <ComingSoonScreen appName="Personal Finance" onBack={goBackToAppSelection} />;
+      return <PersonalFinanceTracker />;
     case 'investments':
       return <ComingSoonScreen appName="Investments" onBack={goBackToAppSelection} />;
     default:

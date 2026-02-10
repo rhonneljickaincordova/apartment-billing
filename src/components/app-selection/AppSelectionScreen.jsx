@@ -20,7 +20,7 @@ function AppSelectionScreen() {
       description: 'Track personal finances',
       icon: User,
       color: 'green',
-      available: false,
+      available: true,
     },
     {
       id: 'investments',
