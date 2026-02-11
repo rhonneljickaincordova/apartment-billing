@@ -2,22 +2,18 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  PiggyBank,
   Plus,
   ArrowUpRight,
-  ArrowDownRight,
-  Target
+  ArrowDownRight
 } from 'lucide-react';
 
 /**
  * Personal Dashboard Component
  * Shows financial overview with summary cards, charts, and recent activity
  */
-function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransaction }) {
+function PersonalDashboard({ dashboard, onAddTransaction }) {
   const {
     monthlySummary,
-    budgetSummary,
-    goalsSummary,
     categoryBreakdown,
     recentTransactions,
     monthlyTrend,
@@ -57,13 +53,6 @@ function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransacti
         : 'bg-gradient-to-br from-orange-500 to-red-600',
       iconBg: 'bg-blue-400/30',
     },
-    {
-      title: 'Total Savings',
-      value: goalsSummary.totalSaved,
-      icon: PiggyBank,
-      bgColor: 'bg-gradient-to-br from-purple-500 to-violet-600',
-      iconBg: 'bg-purple-400/30',
-    },
   ];
 
   // Color mapping for categories
@@ -97,7 +86,7 @@ function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransacti
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         {summaryCards.map((card, index) => {
           const Icon = card.icon;
           return (
@@ -121,174 +110,89 @@ function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransacti
         })}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Category Breakdown */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Expense by Category
-          </h3>
-          {categoryBreakdown.length > 0 ? (
-            <div className="space-y-3">
-              {categoryBreakdown.slice(0, 6).map((cat, index) => (
-                <div key={cat.categoryId} className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${colorMap[cat.color] || 'bg-gray-500'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                        {cat.name}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatCurrency(cat.amount)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${colorMap[cat.color] || 'bg-gray-500'}`}
-                        style={{ width: `${cat.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
-                    {cat.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No expenses this month
-            </p>
-          )}
-        </div>
-
-        {/* Budget Overview */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Budget Overview
-          </h3>
-          {budgets.length > 0 ? (
-            <div className="space-y-4">
-              {budgets.slice(0, 4).map((budget) => (
-                <div key={budget.id}>
+      {/* Category Breakdown */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Expense by Category
+        </h3>
+        {categoryBreakdown.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {categoryBreakdown.slice(0, 8).map((cat) => (
+              <div key={cat.categoryId} className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${colorMap[cat.color] || 'bg-gray-500'}`} />
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {budget.categoryName}
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {cat.name}
                     </span>
-                    <span className={`text-xs font-medium ${
-                      budget.isOverBudget ? 'text-red-500' : 'text-green-500'
-                    }`}>
-                      {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {formatCurrency(cat.amount)}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full ${
-                        budget.isOverBudget ? 'bg-red-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                      className={`h-2 rounded-full ${colorMap[cat.color] || 'bg-gray-500'}`}
+                      style={{ width: `${cat.percentage}%` }}
                     />
                   </div>
                 </div>
-              ))}
-              {budgetSummary.overBudgetCount > 0 && (
-                <p className="text-xs text-red-500 mt-2">
-                  {budgetSummary.overBudgetCount} budget(s) exceeded
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No budgets set
-            </p>
-          )}
-        </div>
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                  {cat.percentage.toFixed(1)}%
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            No expenses this month
+          </p>
+        )}
       </div>
 
-      {/* Second Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Transactions */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Recent Transactions
-          </h3>
-          {recentTransactions.length > 0 ? (
-            <div className="space-y-3">
-              {recentTransactions.slice(0, 5).map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      tx.type === 'income' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
-                    }`}>
-                      {tx.type === 'income' ? (
-                        <ArrowUpRight className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <ArrowDownRight className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {tx.description || tx.categoryName}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {tx.date} • {tx.categoryName}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-sm font-semibold ${
-                    tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+      {/* Recent Transactions */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Recent Transactions
+        </h3>
+        {recentTransactions.length > 0 ? (
+          <div className="space-y-3">
+            {recentTransactions.slice(0, 5).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    tx.type === 'income' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
                   }`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No transactions yet
-            </p>
-          )}
-        </div>
-
-        {/* Savings Goals */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Savings Goals
-          </h3>
-          {goals.length > 0 ? (
-            <div className="space-y-4">
-              {goals.filter(g => !g.isCompleted).slice(0, 3).map((goal) => (
-                <div key={goal.id}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {goal.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {goal.progress.toFixed(0)}%
-                    </span>
+                    {tx.type === 'income' ? (
+                      <ArrowUpRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <ArrowDownRight className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    )}
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-purple-500"
-                      style={{ width: `${goal.progress}%` }}
-                    />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {tx.description || tx.categoryName}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {tx.date} • {tx.categoryName}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
-                  </p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No goals set
-            </p>
-          )}
-        </div>
+                <span className={`text-sm font-semibold ${
+                  tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            No transactions yet
+          </p>
+        )}
       </div>
 
       {/* Monthly Trend */}
@@ -337,7 +241,7 @@ function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransacti
 
       {/* Daily Stats */}
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow p-4 md:p-6 text-white">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-white/70 text-sm">Daily Average Spending</p>
             <p className="text-xl font-bold">{formatCurrency(dailyAverageSpending)}</p>
@@ -349,10 +253,6 @@ function PersonalDashboard({ dashboard, budgets = [], goals = [], onAddTransacti
           <div>
             <p className="text-white/70 text-sm">Savings Rate</p>
             <p className="text-xl font-bold">{monthlySummary.savingsRate.toFixed(1)}%</p>
-          </div>
-          <div>
-            <p className="text-white/70 text-sm">Active Budgets</p>
-            <p className="text-xl font-bold">{budgetSummary.budgetCount}</p>
           </div>
         </div>
       </div>

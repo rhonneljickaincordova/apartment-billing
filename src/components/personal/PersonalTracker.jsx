@@ -2,11 +2,9 @@ import { useState } from 'react';
 import {
   LayoutDashboard,
   ArrowUpDown,
-  PiggyBank,
-  Target,
+  FileText,
   CreditCard,
   Repeat,
-  FileText,
   Tag
 } from 'lucide-react';
 
@@ -14,8 +12,6 @@ import {
 import {
   usePersonalTransactions,
   usePersonalCategories,
-  usePersonalBudgets,
-  usePersonalGoals,
   usePersonalPaymentMethods,
   usePersonalRecurring,
   usePersonalDashboard,
@@ -25,8 +21,7 @@ import {
 import PersonalDashboard from './PersonalDashboard';
 import PersonalTransactionList from './PersonalTransactionList';
 import PersonalTransactionForm from './PersonalTransactionForm';
-import PersonalBudgetList from './PersonalBudgetList';
-import PersonalGoalList from './PersonalGoalList';
+import PersonalReports from './PersonalReports';
 import PersonalCategoryList from './PersonalCategoryList';
 import PersonalPaymentMethodList from './PersonalPaymentMethodList';
 import PersonalRecurringList from './PersonalRecurringList';
@@ -44,20 +39,13 @@ function PersonalTracker() {
   const transactionsHook = usePersonalTransactions();
   const categoriesHook = usePersonalCategories();
   const paymentMethodsHook = usePersonalPaymentMethods();
-  const goalsHook = usePersonalGoals();
-  const budgetsHook = usePersonalBudgets(
-    transactionsHook.transactions,
-    categoriesHook.categories
-  );
   const recurringHook = usePersonalRecurring(
     categoriesHook.categories,
     paymentMethodsHook.paymentMethods
   );
   const dashboardHook = usePersonalDashboard(
     transactionsHook.transactions,
-    categoriesHook.categories,
-    budgetsHook.budgets,
-    goalsHook.goals
+    categoriesHook.categories
   );
 
   // Check if still loading
@@ -69,8 +57,7 @@ function PersonalTracker() {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transactions', icon: ArrowUpDown },
-    { id: 'budgets', label: 'Budgets', icon: PiggyBank },
-    { id: 'goals', label: 'Goals', icon: Target },
+    { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'payments', label: 'Payment Methods', icon: CreditCard },
     { id: 'recurring', label: 'Recurring', icon: Repeat },
@@ -123,8 +110,6 @@ function PersonalTracker() {
         return (
           <PersonalDashboard
             dashboard={dashboardHook}
-            budgets={budgetsHook.budgets}
-            goals={goalsHook.goals}
             onAddTransaction={handleAddTransaction}
           />
         );
@@ -141,27 +126,11 @@ function PersonalTracker() {
           />
         );
 
-      case 'budgets':
+      case 'reports':
         return (
-          <PersonalBudgetList
-            budgets={budgetsHook.budgets}
-            categories={categoriesHook.expenseCategories}
-            onAdd={budgetsHook.addBudget}
-            onUpdate={budgetsHook.updateBudget}
-            onDelete={budgetsHook.deleteBudget}
-          />
-        );
-
-      case 'goals':
-        return (
-          <PersonalGoalList
-            goals={goalsHook.goals}
-            totalSavings={goalsHook.totalSavings}
-            onAdd={goalsHook.addGoal}
-            onUpdate={goalsHook.updateGoal}
-            onDelete={goalsHook.deleteGoal}
-            onAddFunds={goalsHook.addFunds}
-            onWithdraw={goalsHook.withdrawFunds}
+          <PersonalReports
+            transactions={transactionsHook.transactions}
+            categories={categoriesHook.categories}
           />
         );
 

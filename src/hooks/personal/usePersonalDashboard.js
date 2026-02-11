@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 /**
  * Custom hook for dashboard aggregations and summaries
  */
-export function usePersonalDashboard(transactions = [], categories = [], budgets = [], goals = []) {
+export function usePersonalDashboard(transactions = [], categories = []) {
   // Current month date range
   const currentMonthRange = useMemo(() => {
     const now = new Date();
@@ -144,40 +144,6 @@ export function usePersonalDashboard(transactions = [], categories = [], budgets
     return months;
   }, [transactions]);
 
-  // Budget summary
-  const budgetSummary = useMemo(() => {
-    const activeBudgets = budgets.filter(b => b.isActive !== false);
-    const totalBudgeted = activeBudgets.reduce((sum, b) => sum + (b.amount || 0), 0);
-    const totalSpent = activeBudgets.reduce((sum, b) => sum + (b.spent || 0), 0);
-    const overBudgetCount = activeBudgets.filter(b => b.isOverBudget).length;
-
-    return {
-      totalBudgeted,
-      totalSpent,
-      remaining: totalBudgeted - totalSpent,
-      overBudgetCount,
-      budgetCount: activeBudgets.length,
-      percentUsed: totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0,
-    };
-  }, [budgets]);
-
-  // Goals summary
-  const goalsSummary = useMemo(() => {
-    const activeGoals = goals.filter(g => !g.isCompleted);
-    const completedGoals = goals.filter(g => g.isCompleted);
-    const totalTarget = activeGoals.reduce((sum, g) => sum + (g.targetAmount || 0), 0);
-    const totalSaved = activeGoals.reduce((sum, g) => sum + (g.currentAmount || 0), 0);
-
-    return {
-      activeCount: activeGoals.length,
-      completedCount: completedGoals.length,
-      totalTarget,
-      totalSaved,
-      remaining: totalTarget - totalSaved,
-      overallProgress: totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0,
-    };
-  }, [goals]);
-
   // Daily average spending (current month)
   const dailyAverageSpending = useMemo(() => {
     const { startOfMonth } = currentMonthRange;
@@ -204,8 +170,6 @@ export function usePersonalDashboard(transactions = [], categories = [], budgets
 
     // Summaries
     monthlySummary,
-    budgetSummary,
-    goalsSummary,
 
     // Breakdowns
     categoryBreakdown,
