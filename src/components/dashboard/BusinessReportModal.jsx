@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSign, Calendar, Building, Wallet, Target, AlertTriangle, Clock, Building2 } from 'lucide-react';
+import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSign, Calendar, Building, Wallet, Target, AlertTriangle, Clock, Building2, LayoutGrid, Table } from 'lucide-react';
+import MonthlyCollectionReport from './MonthlyCollectionReport';
 
 /**
  * Format currency in PHP
@@ -46,9 +47,11 @@ function BusinessReportModal({
   expenses,
   getBillTotal,
   settings,
+  isInline = false,
 }) {
   const reportRef = useRef(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [reportView, setReportView] = useState('summary'); // 'summary' or 'collection'
 
   if (!isOpen) return null;
 
@@ -653,6 +656,467 @@ function BusinessReportModal({
     };
   };
 
+  // Inline mode - render as a regular page component
+  if (isInline) {
+    // Show Monthly Collection Report view
+    if (reportView === 'collection') {
+      return (
+        <MonthlyCollectionReport
+          rooms={rooms}
+          bills={bills}
+          getBillTotal={getBillTotal}
+          onBack={() => setReportView('summary')}
+        />
+      );
+    }
+
+    // Summary view
+    return (
+      <div className="space-y-6">
+        {/* Header with actions */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Business Report</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={isGenerating}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  {isGenerating ? 'Generating...' : 'Download Image'}
+                </button>
+                <button
+                  onClick={handlePrintPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  Print PDF
+                </button>
+              </div>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setReportView('summary')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  reportView === 'summary'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Summary Report
+              </button>
+              <button
+                onClick={() => setReportView('collection')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  reportView === 'collection'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                <Table className="w-4 h-4" />
+                Monthly Collection
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Report Content */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow" ref={reportRef}>
+          <div className="p-6">
+            {/* Report Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Business Report</h1>
+              <p className="text-gray-500 dark:text-gray-400">Generated on {formatDate(new Date().toISOString())}</p>
+            </div>
+
+            {/* Financial Summary */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white mb-6">
+              <h3 className="text-lg font-semibold mb-4 opacity-90">Financial Summary</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+                  <p className="text-sm opacity-80">Total Billed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(collectedRevenue)}</p>
+                  <p className="text-sm opacity-80">Collected</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
+                  <p className="text-sm opacity-80">Expenses</p>
+                  <p className="text-xs opacity-60 mt-1">
+                    Apt: {formatCurrency(totalApartmentExpenses)} | Pers: {formatCurrency(totalPersonalExpenses)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(netProfit)}</p>
+                  <p className="text-sm opacity-80">Net Profit</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Property & Tenant Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Property Overview */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-blue-600" />
+                  Property Overview
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">{totalRooms}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{occupiedRooms}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Occupied</p>
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-2xl font-bold ${vacantRooms > 0 ? 'text-red-600' : 'text-gray-600'}`}>{vacantRooms}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Vacant</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{occupancyRate}%</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</p>
+                </div>
+              </div>
+
+              {/* Tenant Overview */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  Tenant Overview
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">{tenants.length}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{activeTenants}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-600">{inactiveTenants}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Inactive</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bills & Collection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Bills Status */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  Bills Status
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Total Bills</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{bills.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Paid</span>
+                    <span className="font-semibold text-green-600">{paidBills}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Unpaid</span>
+                    <span className="font-semibold text-red-600">{unpaidBills}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Overdue</span>
+                    <span className="font-semibold text-orange-600">{overdueBills}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Partial Payment</span>
+                    <span className="font-semibold text-yellow-600">{partialBills}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cash Flow Summary */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-blue-600" />
+                  Cash Flow Summary
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Revenue Collected</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(collectedRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Apartment Expenses</span>
+                    <span className="font-semibold text-red-600">- {formatCurrency(totalApartmentExpenses)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 dark:text-gray-200 font-medium">Net Cash Flow</span>
+                      <span className={`text-xl font-bold ${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(cashFlow)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Target vs Actual & Overdue Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Monthly Target vs Actual */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  Monthly Target vs Actual
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Target (Occupied Rooms)</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyTarget)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Actual Collected</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(collectedRevenue)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-700 dark:text-gray-200 font-medium">Achievement</span>
+                      <span className={`font-bold ${parseFloat(targetAchievement) >= 100 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {targetAchievement}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${parseFloat(targetAchievement) >= 100 ? 'bg-green-600' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(targetAchievement, 100)}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 text-sm">
+                      <span className={`${targetVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {targetVariance >= 0 ? '+' : ''}{formatCurrency(targetVariance)} variance
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overdue Analysis */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  Overdue Analysis
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Overdue Bills</span>
+                    <span className="font-semibold text-red-600">{overdueBillsData.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Overdue Amount</span>
+                    <span className="font-bold text-red-600">{formatCurrency(overdueAmount)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-300">Upcoming Bills</span>
+                      <span className="font-semibold text-blue-600">{upcomingBillsData.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-gray-600 dark:text-gray-300">Upcoming Amount</span>
+                      <span className="font-semibold text-blue-600">{formatCurrency(upcomingAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Occupancy Impact & Payment Timeliness */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Occupancy Impact */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                  Occupancy Impact
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Potential Revenue (All Rooms)</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(potentialMonthlyRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Current Revenue (Occupied)</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(monthlyTarget)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 dark:text-gray-200 font-medium">Lost to Vacancy</span>
+                      <span className={`font-bold ${lostRevenueFromVacancy > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatCurrency(lostRevenueFromVacancy)}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      {vacancyImpactRate}% revenue impact from {vacantRooms} vacant room{vacantRooms !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Timeliness */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  Payment Timeliness
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Total Paid Bills</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{paidBillsData.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">On-Time Payments</span>
+                    <span className="font-semibold text-green-600">{onTimePaidBills.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Late Payments</span>
+                    <span className="font-semibold text-red-600">{latePaidBills.length}</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-700 dark:text-gray-200 font-medium">On-Time Rate</span>
+                      <span className={`font-bold ${parseFloat(onTimeRate) >= 80 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {onTimeRate}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${parseFloat(onTimeRate) >= 80 ? 'bg-green-600' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(onTimeRate, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profitability */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                {netProfit >= 0 ? (
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                ) : (
+                  <TrendingDown className="w-5 h-5 text-red-600" />
+                )}
+                Profitability
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(collectedRevenue)}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Revenue</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-red-600">{formatCurrency(totalApartmentExpenses)}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Apt. Expenses</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(netProfit)}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Net Profit</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-xl font-bold ${parseFloat(profitMargin) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {profitMargin}%
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Profit Margin</p>
+                </div>
+              </div>
+              {/* Expense Type Breakdown */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex flex-wrap justify-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <span className="text-gray-600 dark:text-gray-300">Apartment: {formatCurrency(totalApartmentExpenses)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                    <span className="text-gray-600 dark:text-gray-300">Personal: {formatCurrency(totalPersonalExpenses)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Top Rooms & Expense Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Top Revenue Rooms */}
+              {topRooms.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Home className="w-5 h-5 text-blue-600" />
+                    Top Revenue Rooms
+                  </h3>
+                  <div className="space-y-2">
+                    {topRooms.map((item, index) => (
+                      <div key={item.room?.id || index} className="flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-300">{item.room?.name || 'Unknown'}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(item.revenue)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Expense Categories */}
+              {topExpenseCategories.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    Expenses by Category
+                  </h3>
+                  <div className="space-y-3">
+                    {topExpenseCategories.map((item, index) => (
+                      <div key={index} className="border-b border-gray-200 dark:border-gray-600 pb-2 last:border-b-0 last:pb-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-gray-700 dark:text-gray-200 font-medium">{item.category}</span>
+                          <span className="font-semibold text-red-600">{formatCurrency(item.amount)}</span>
+                        </div>
+                        <div className="flex gap-3 text-xs">
+                          {item.apartment > 0 && (
+                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              Apt: {formatCurrency(item.apartment)}
+                            </span>
+                          )}
+                          {item.personal > 0 && (
+                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                              Pers: {formatCurrency(item.personal)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Modal mode - original modal rendering
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">

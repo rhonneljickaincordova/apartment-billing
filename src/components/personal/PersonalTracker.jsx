@@ -5,7 +5,9 @@ import {
   FileText,
   CreditCard,
   Repeat,
-  Tag
+  Tag,
+  PiggyBank,
+  Target
 } from 'lucide-react';
 
 // Import hooks
@@ -15,6 +17,8 @@ import {
   usePersonalPaymentMethods,
   usePersonalRecurring,
   usePersonalDashboard,
+  usePersonalBudgets,
+  usePersonalGoals,
 } from '../../hooks/personal';
 
 // Import components
@@ -25,6 +29,8 @@ import PersonalReports from './PersonalReports';
 import PersonalCategoryList from './PersonalCategoryList';
 import PersonalPaymentMethodList from './PersonalPaymentMethodList';
 import PersonalRecurringList from './PersonalRecurringList';
+import PersonalBudgetList from './PersonalBudgetList';
+import PersonalGoalList from './PersonalGoalList';
 
 /**
  * Personal Finance Tracker - Main Container
@@ -47,19 +53,28 @@ function PersonalTracker() {
     transactionsHook.transactions,
     categoriesHook.categories
   );
+  const budgetsHook = usePersonalBudgets(
+    transactionsHook.transactions,
+    categoriesHook.categories
+  );
+  const goalsHook = usePersonalGoals();
 
   // Check if still loading
   const isLoading = transactionsHook.loading ||
                     categoriesHook.loading ||
-                    paymentMethodsHook.loading;
+                    paymentMethodsHook.loading ||
+                    budgetsHook.loading ||
+                    goalsHook.loading;
 
   // Navigation tabs
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transactions', icon: ArrowUpDown },
+    { id: 'budgets', label: 'Budgets', icon: PiggyBank },
+    { id: 'goals', label: 'Goals', icon: Target },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'categories', label: 'Categories', icon: Tag },
-    { id: 'payments', label: 'Payment Methods', icon: CreditCard },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'recurring', label: 'Recurring', icon: Repeat },
   ];
 
@@ -123,6 +138,30 @@ function PersonalTracker() {
             onAdd={handleAddTransaction}
             onEdit={handleEditTransaction}
             onDelete={transactionsHook.deleteTransaction}
+          />
+        );
+
+      case 'budgets':
+        return (
+          <PersonalBudgetList
+            budgets={budgetsHook.budgets}
+            categories={categoriesHook.categories}
+            onAdd={budgetsHook.addBudget}
+            onUpdate={budgetsHook.updateBudget}
+            onDelete={budgetsHook.deleteBudget}
+          />
+        );
+
+      case 'goals':
+        return (
+          <PersonalGoalList
+            goals={goalsHook.goals}
+            totalSavings={goalsHook.totalSavings}
+            onAdd={goalsHook.addGoal}
+            onUpdate={goalsHook.updateGoal}
+            onDelete={goalsHook.deleteGoal}
+            onAddFunds={goalsHook.addFunds}
+            onWithdraw={goalsHook.withdrawFunds}
           />
         );
 

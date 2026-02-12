@@ -156,7 +156,6 @@ const ApartmentBillTracker = () => {
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
   const [paymentHistoryData, setPaymentHistoryData] = useState(null);
-  const [showBusinessReport, setShowBusinessReport] = useState(false);
   const [pendingBillRoomId, setPendingBillRoomId] = useState(null);
   const [isTenantFormExpanded, setIsTenantFormExpanded] = useState(false);
   const [isExpenseFormExpanded, setIsExpenseFormExpanded] = useState(false);
@@ -841,15 +840,6 @@ const ApartmentBillTracker = () => {
                 className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700"
               />
             )}
-            <button
-              onClick={() => setShowBusinessReport(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="hidden md:inline">Report</span>
-            </button>
             <NotificationBell
               overdueBills={getOverdueBills()}
               overdueCleanings={getOverdueSchedules()}
@@ -868,7 +858,7 @@ const ApartmentBillTracker = () => {
 
         {/* Tabs */}
         <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 scrollbar-thin">
-          {['dashboard', 'bills', 'tenants', 'expenses', 'rooms', 'settings'].map((tab) => (
+          {['dashboard', 'bills', 'tenants', 'expenses', 'reports', 'rooms', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1174,6 +1164,21 @@ const ApartmentBillTracker = () => {
           </div>
         )}
 
+        {/* Reports Tab */}
+        {activeTab === 'reports' && (
+          <BusinessReportModal
+            isOpen={true}
+            onClose={() => setActiveTab('dashboard')}
+            rooms={rooms}
+            tenants={tenants}
+            bills={bills}
+            expenses={expenses}
+            getBillTotal={getBillTotal}
+            settings={settings}
+            isInline={true}
+          />
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
@@ -1254,17 +1259,6 @@ const ApartmentBillTracker = () => {
         onRecordRefund={handleRecordRefund}
       />
 
-      {/* Business Report Modal */}
-      <BusinessReportModal
-        isOpen={showBusinessReport}
-        onClose={() => setShowBusinessReport(false)}
-        rooms={rooms}
-        tenants={tenants}
-        bills={bills}
-        expenses={expenses}
-        getBillTotal={getBillTotal}
-        settings={settings}
-      />
     </div>
   );
 };
