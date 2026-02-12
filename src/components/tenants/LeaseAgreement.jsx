@@ -93,7 +93,9 @@ export function printLeaseAgreement(tenant, room, settings) {
   const waterRate = settings?.waterRate || UTILITY_RATES.water;
   const electricityRate = settings?.electricityRate || UTILITY_RATES.electricity;
   const wifiRate = settings?.wifiRate || UTILITY_RATES.wifi;
+  const advancePayment = tenant?.advancePayment || monthlyRent;
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
+  const totalMoveInPayment = advancePayment + securityDeposit;
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -449,9 +451,9 @@ export function printLeaseAgreement(tenant, room, settings) {
               Upon signing this Agreement, the Lessee shall pay:
             </span>
             <ul class="sub-list">
-              <li>One (1) month's rent as advance payment: <span class="amount">${formatCurrency(monthlyRent)}</span></li>
-              <li>One (1) month's rent as security deposit: <span class="amount">${formatCurrency(monthlyRent)}</span></li>
-              <li class="total-line">Total amount due upon move-in: <span class="amount">${formatCurrency(monthlyRent * 2)}</span></li>
+              <li>One (1) month's rent as advance payment: <span class="amount">${formatCurrency(advancePayment)}</span></li>
+              <li>One (1) month's rent as security deposit: <span class="amount">${formatCurrency(securityDeposit)}</span></li>
+              <li class="total-line">Total amount due upon move-in: <span class="amount">${formatCurrency(totalMoveInPayment)}</span></li>
             </ul>
           </li>
 
