@@ -664,6 +664,7 @@ function BusinessReportModal({
         <MonthlyCollectionReport
           rooms={rooms}
           bills={bills}
+          tenants={tenants}
           getBillTotal={getBillTotal}
           onBack={() => setReportView('summary')}
         />

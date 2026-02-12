@@ -27,7 +27,7 @@ const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
  * Monthly Collection Report Component
  * Shows cash collected per room per month in a table format
  */
-function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
+function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onBack }) {
   const reportRef = useRef(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isGenerating, setIsGenerating] = useState(false);
@@ -45,19 +45,21 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
     return Array.from(years).sort((a, b) => b - a);
   }, [bills]);
 
-  // Calculate monthly collections per room (including refunds)
+  // Calculate monthly collections per room (including refunds and advance payments)
   const monthlyData = useMemo(() => {
     const data = {};
 
     rooms.forEach(room => {
       data[room.id] = {
         roomName: room.name,
-        months: Array(12).fill(null).map(() => ({ collected: 0, refund: 0 })),
+        months: Array(12).fill(null).map(() => ({ collected: 0, refund: 0, advance: 0 })),
         total: 0,
         totalRefund: 0,
+        totalAdvance: 0,
       };
     });
 
+    // Process bills for collected amounts and refunds
     bills.forEach(bill => {
       if (!bill.dueDate) return;
 
@@ -91,25 +93,53 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
       data[bill.roomId].totalRefund += refund;
     });
 
-    return data;
-  }, [rooms, bills, selectedYear, getBillTotal]);
+    // Process tenant move-in payments (advance + deposit)
+    tenants.forEach(tenant => {
+      if (!tenant.roomId || !data[tenant.roomId]) return;
 
-  // Calculate monthly totals (collected and refunds separately)
+      // Calculate total move-in payment (advance + deposit)
+      const advanceAmount = tenant.advancePayment || 0;
+      const depositAmount = tenant.securityDeposit || 0;
+      const totalMoveInPayment = advanceAmount + depositAmount;
+
+      if (totalMoveInPayment <= 0) return;
+
+      // Use advancePaymentDate if available, otherwise use moveInDate
+      const advanceDate = tenant.advancePaymentDate || tenant.moveInDate;
+      if (!advanceDate) return;
+
+      const paymentDate = new Date(advanceDate);
+      const paymentYear = paymentDate.getFullYear();
+      const paymentMonth = paymentDate.getMonth();
+
+      if (paymentYear !== selectedYear) return;
+
+      data[tenant.roomId].months[paymentMonth].advance += totalMoveInPayment;
+      data[tenant.roomId].totalAdvance += totalMoveInPayment;
+    });
+
+    return data;
+  }, [rooms, bills, tenants, selectedYear, getBillTotal]);
+
+  // Calculate monthly totals (collected, refunds, and advance payments separately)
   const monthlyTotals = useMemo(() => {
-    const totals = Array(12).fill(null).map(() => ({ collected: 0, refund: 0 }));
+    const totals = Array(12).fill(null).map(() => ({ collected: 0, refund: 0, advance: 0 }));
     let grandTotalCollected = 0;
     let grandTotalRefund = 0;
+    let grandTotalAdvance = 0;
 
     Object.values(monthlyData).forEach(roomData => {
       roomData.months.forEach((monthData, index) => {
         totals[index].collected += monthData.collected;
         totals[index].refund += monthData.refund;
+        totals[index].advance += monthData.advance;
       });
       grandTotalCollected += roomData.total;
       grandTotalRefund += roomData.totalRefund;
+      grandTotalAdvance += roomData.totalAdvance;
     });
 
-    return { totals, grandTotalCollected, grandTotalRefund };
+    return { totals, grandTotalCollected, grandTotalRefund, grandTotalAdvance };
   }, [monthlyData]);
 
   // Sort rooms by name
@@ -122,13 +152,25 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
     });
   }, [rooms]);
 
-  // Find best and worst performing months
+  // Find best performing month (based on actual cash inflow)
   const bestMonth = useMemo(() => {
-    const collectedValues = monthlyTotals.totals.map(t => t.collected);
-    const maxValue = Math.max(...collectedValues);
-    const index = collectedValues.indexOf(maxValue);
+    // Calculate per-room contributions for each month
+    const inflowValues = Array(12).fill(0);
+    Object.values(monthlyData).forEach(roomData => {
+      roomData.months.forEach((m, index) => {
+        if (m.refund > 0) {
+          // This room has a move-out this month
+          inflowValues[index] += m.advance - m.refund;
+        } else {
+          // Normal month for this room
+          inflowValues[index] += m.collected + m.advance;
+        }
+      });
+    });
+    const maxValue = Math.max(...inflowValues);
+    const index = inflowValues.indexOf(maxValue);
     return { index, value: maxValue, name: FULL_MONTHS[index] };
-  }, [monthlyTotals.totals]);
+  }, [monthlyData]);
 
   // Current month index
   const currentMonth = new Date().getMonth();
@@ -172,26 +214,40 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
   };
 
   const handleExportCSV = () => {
-    const headers = ['Room', ...MONTHS.map(m => `${m} Collected`), ...MONTHS.map(m => `${m} Refund`), 'Total Collected', 'Total Refund', 'Net'];
+    const headers = ['Room', ...MONTHS.map(m => `${m} Collected`), ...MONTHS.map(m => `${m} Advance`), ...MONTHS.map(m => `${m} Refund`), 'Total Collected', 'Total Advance', 'Total Refund', 'Net'];
     const rows = sortedRooms.map(room => {
       const roomData = monthlyData[room.id];
-      const netTotal = roomData.total - roomData.totalRefund;
+      const netTotal = roomData.total + roomData.totalAdvance - roomData.totalRefund;
       return [
         room.name,
         ...roomData.months.map(m => m.collected || ''),
+        ...roomData.months.map(m => m.advance || ''),
         ...roomData.months.map(m => m.refund || ''),
         roomData.total,
+        roomData.totalAdvance,
         roomData.totalRefund,
         netTotal,
       ];
     });
 
-    const netGrandTotal = monthlyTotals.grandTotalCollected - monthlyTotals.grandTotalRefund;
+    // Calculate net grand total using per-room logic for CSV export
+    let netGrandTotal = 0;
+    Object.values(monthlyData).forEach(roomData => {
+      roomData.months.forEach(m => {
+        if (m.refund > 0) {
+          netGrandTotal += m.advance - m.refund;
+        } else {
+          netGrandTotal += m.collected + m.advance;
+        }
+      });
+    });
     rows.push([
       'Total per Month',
       ...monthlyTotals.totals.map(t => t.collected || ''),
+      ...monthlyTotals.totals.map(t => t.advance || ''),
       ...monthlyTotals.totals.map(t => t.refund || ''),
       monthlyTotals.grandTotalCollected,
+      monthlyTotals.grandTotalAdvance,
       monthlyTotals.grandTotalRefund,
       netGrandTotal,
     ]);
@@ -266,7 +322,17 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
 
       {/* Quick Stats Cards */}
       {(() => {
-        const netGrandTotal = monthlyTotals.grandTotalCollected - monthlyTotals.grandTotalRefund;
+        // Calculate actual cash grand total using per-room logic
+        let netGrandTotal = 0;
+        Object.values(monthlyData).forEach(roomData => {
+          roomData.months.forEach(m => {
+            if (m.refund > 0) {
+              netGrandTotal += m.advance - m.refund;
+            } else {
+              netGrandTotal += m.collected + m.advance;
+            }
+          });
+        });
         return (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
@@ -279,11 +345,14 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
             <div className={`bg-gradient-to-br ${netGrandTotal >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-red-500 to-red-600'} rounded-xl p-4 text-white`}>
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4 opacity-80" />
-                <span className="text-xs font-medium opacity-80">Net Collected</span>
+                <span className="text-xs font-medium opacity-80">Net Cash Flow</span>
               </div>
               <p className="text-xl font-bold">{netGrandTotal < 0 ? '-' : ''}{formatCurrency(Math.abs(netGrandTotal))}</p>
-              {monthlyTotals.grandTotalRefund > 0 && (
-                <p className="text-xs opacity-70 mt-1">Refunds: -{formatCurrency(monthlyTotals.grandTotalRefund)}</p>
+              {(monthlyTotals.grandTotalRefund > 0 || monthlyTotals.grandTotalAdvance > 0) && (
+                <div className="text-xs opacity-70 mt-1">
+                  {monthlyTotals.grandTotalAdvance > 0 && <span className="mr-2">New: +{formatCurrency(monthlyTotals.grandTotalAdvance)}</span>}
+                  {monthlyTotals.grandTotalRefund > 0 && <span>Out: -{formatCurrency(monthlyTotals.grandTotalRefund)}</span>}
+                </div>
               )}
             </div>
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
@@ -361,45 +430,101 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
                         {room.name}
                       </div>
                     </td>
-                    {roomData.months.map((monthData, monthIndex) => (
-                      <td
-                        key={monthIndex}
-                        className={`px-2 py-2.5 text-right font-mono text-xs ${
-                          monthIndex === currentMonth && selectedYear === currentYear
-                            ? 'bg-blue-50/50 dark:bg-blue-900/10'
-                            : ''
-                        }`}
-                      >
-                        {monthData.refund > 0 ? (
-                          <span className="text-red-600 dark:text-red-400">
-                            -{formatShortCurrency(monthData.refund)}
-                          </span>
-                        ) : monthData.collected > 0 ? (
-                          <span className="text-gray-800 dark:text-gray-200">
-                            {formatShortCurrency(monthData.collected)}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300 dark:text-gray-600">-</span>
-                        )}
-                      </td>
-                    ))}
+                    {roomData.months.map((monthData, monthIndex) => {
+                      const hasAdvance = monthData.advance > 0;
+                      const hasRefund = monthData.refund > 0;
+                      const hasCollected = monthData.collected > 0;
+
+                      // When there's a refund, the "collected" amount is from deposit settlement (not actual cash)
+                      // So we don't count it as actual cash inflow when calculating display
+                      // Net for move-out scenario = advance (from new tenant) - refund (to old tenant)
+                      // Net for normal scenario = collected + advance - refund
+                      const netAmount = hasRefund
+                        ? monthData.advance - monthData.refund  // Move-out: only count advance and refund
+                        : monthData.collected + monthData.advance;  // Normal: count collected + advance
+
+                      // Check if we have both new tenant advance and old tenant refund
+                      const hasMoveInAndMoveOut = hasAdvance && hasRefund;
+
+                      return (
+                        <td
+                          key={monthIndex}
+                          className={`px-2 py-2.5 text-right font-mono text-xs ${
+                            monthIndex === currentMonth && selectedYear === currentYear
+                              ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                              : ''
+                          }`}
+                        >
+                          {hasMoveInAndMoveOut ? (
+                            // Both new tenant (advance) and old tenant (refund) in same month
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className={`font-semibold ${netAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {netAmount < 0 ? '-' : ''}{formatShortCurrency(Math.abs(netAmount))}
+                              </span>
+                              <div className="flex flex-col items-end text-[9px] leading-tight">
+                                <span className="text-blue-500 dark:text-blue-400">
+                                  {formatShortCurrency(monthData.advance)} <span className="text-[8px]">(new)</span>
+                                </span>
+                                <span className="text-red-500 dark:text-red-400">
+                                  -{formatShortCurrency(monthData.refund)} <span className="text-[8px]">(out)</span>
+                                </span>
+                              </div>
+                            </div>
+                          ) : hasRefund ? (
+                            // Only refund (tenant move-out) - don't show collected since it's from deposit
+                            <div className="flex flex-col items-end">
+                              <span className="text-red-600 dark:text-red-400">
+                                -{formatShortCurrency(monthData.refund)}
+                              </span>
+                              <span className="text-[9px] text-red-400 dark:text-red-500">(out)</span>
+                            </div>
+                          ) : hasAdvance ? (
+                            // Only advance payment (new tenant move-in)
+                            <div className="flex flex-col items-end">
+                              <span className="text-blue-600 dark:text-blue-400">
+                                {formatShortCurrency(monthData.advance)}
+                              </span>
+                              <span className="text-[9px] text-blue-400 dark:text-blue-500">(new)</span>
+                            </div>
+                          ) : hasCollected ? (
+                            <span className="text-gray-800 dark:text-gray-200">
+                              {formatShortCurrency(monthData.collected)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300 dark:text-gray-600">-</span>
+                          )}
+                        </td>
+                      );
+                    })}
                     {(() => {
-                      const netTotal = roomData.total - roomData.totalRefund;
+                      // Calculate actual cash flow per room
+                      // When there's a refund month, don't count "collected" as it came from deposit
+                      let actualCashTotal = 0;
+                      roomData.months.forEach(m => {
+                        if (m.refund > 0) {
+                          // Move-out month: only count advance - refund
+                          actualCashTotal += m.advance - m.refund;
+                        } else {
+                          // Normal month: count collected + advance
+                          actualCashTotal += m.collected + m.advance;
+                        }
+                      });
+
                       return (
                         <td className={`px-3 py-2.5 text-right font-bold font-mono text-xs border-l border-gray-100 dark:border-gray-700 ${
-                          netTotal !== 0 ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''
+                          actualCashTotal !== 0 ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''
                         }`}>
-                          {netTotal > 0 && (
+                          {actualCashTotal > 0 && (
                             <span className="text-emerald-600 dark:text-emerald-400">
-                              {formatShortCurrency(netTotal)}
+                              {formatShortCurrency(actualCashTotal)}
                             </span>
                           )}
-                          {netTotal < 0 && (
+                          {actualCashTotal < 0 && (
                             <span className="text-red-600 dark:text-red-400">
-                              -{formatShortCurrency(Math.abs(netTotal))}
+                              -{formatShortCurrency(Math.abs(actualCashTotal))}
                             </span>
                           )}
-                          {netTotal === 0 && (
+                          {actualCashTotal === 0 && (
                             <span className="text-gray-400 dark:text-gray-500">-</span>
                           )}
                         </td>
@@ -416,8 +541,20 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
                   Total per Month
                 </td>
                 {monthlyTotals.totals.map((total, index) => {
-                  const netMonthTotal = total.collected - total.refund;
-                  const isBestMonth = total.collected === bestMonth.value && total.collected > 0;
+                  // Calculate per-room contributions for this month
+                  // We need to sum each room's cash flow based on whether THAT ROOM has a refund
+                  let netMonthTotal = 0;
+                  Object.values(monthlyData).forEach(roomData => {
+                    const m = roomData.months[index];
+                    if (m.refund > 0) {
+                      // This room has a move-out this month
+                      netMonthTotal += m.advance - m.refund;
+                    } else {
+                      // Normal month for this room
+                      netMonthTotal += m.collected + m.advance;
+                    }
+                  });
+                  const isBestMonth = netMonthTotal === bestMonth.value && netMonthTotal > 0;
                   return (
                     <td
                       key={index}
@@ -442,13 +579,23 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
                   );
                 })}
                 {(() => {
-                  const netGrandTotal = monthlyTotals.grandTotalCollected - monthlyTotals.grandTotalRefund;
+                  // Calculate actual cash grand total - sum each room's contribution per month
+                  let actualGrandTotal = 0;
+                  Object.values(monthlyData).forEach(roomData => {
+                    roomData.months.forEach(m => {
+                      if (m.refund > 0) {
+                        actualGrandTotal += m.advance - m.refund;
+                      } else {
+                        actualGrandTotal += m.collected + m.advance;
+                      }
+                    });
+                  });
                   return (
                     <td className="px-3 py-3 text-right font-bold font-mono text-sm bg-slate-900/50 border-l border-slate-600">
-                      {netGrandTotal >= 0 ? (
-                        <span className="text-amber-300">{formatShortCurrency(netGrandTotal)}</span>
+                      {actualGrandTotal >= 0 ? (
+                        <span className="text-amber-300">{formatShortCurrency(actualGrandTotal)}</span>
                       ) : (
-                        <span className="text-red-400">-{formatShortCurrency(Math.abs(netGrandTotal))}</span>
+                        <span className="text-red-400">-{formatShortCurrency(Math.abs(actualGrandTotal))}</span>
                       )}
                     </td>
                   );
@@ -461,7 +608,17 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
         {/* Summary Footer */}
         <div className="bg-gray-50 dark:bg-gray-750 border-t border-gray-100 dark:border-gray-700 p-4">
           {(() => {
-            const netGrandTotal = monthlyTotals.grandTotalCollected - monthlyTotals.grandTotalRefund;
+            // Calculate actual cash grand total using per-room logic
+            let netGrandTotal = 0;
+            Object.values(monthlyData).forEach(roomData => {
+              roomData.months.forEach(m => {
+                if (m.refund > 0) {
+                  netGrandTotal += m.advance - m.refund;
+                } else {
+                  netGrandTotal += m.collected + m.advance;
+                }
+              });
+            });
             return (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
@@ -473,13 +630,18 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Year Net Total</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Year Cash Flow</p>
                   <p className={`text-lg font-bold ${netGrandTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {netGrandTotal < 0 ? '-' : ''}{formatCurrency(Math.abs(netGrandTotal))}
                   </p>
-                  {monthlyTotals.grandTotalRefund > 0 && (
-                    <p className="text-xs text-red-500 dark:text-red-400">(-{formatCurrency(monthlyTotals.grandTotalRefund)} refunds)</p>
-                  )}
+                  <div className="text-xs">
+                    {monthlyTotals.grandTotalAdvance > 0 && (
+                      <span className="text-blue-500 dark:text-blue-400 mr-2">(+{formatCurrency(monthlyTotals.grandTotalAdvance)} new)</span>
+                    )}
+                    {monthlyTotals.grandTotalRefund > 0 && (
+                      <span className="text-red-500 dark:text-red-400">(-{formatCurrency(monthlyTotals.grandTotalRefund)} out)</span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Monthly Average</p>
@@ -498,15 +660,36 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
 
       {/* Monthly Trend Bar Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
-        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Monthly Trend (Net)</h4>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Monthly Cash Flow Trend</h4>
         <div className="flex items-end gap-1 h-32">
-          {monthlyTotals.totals.map((total, index) => {
-            const netAmount = total.collected - total.refund;
-            const netValues = monthlyTotals.totals.map(t => t.collected - t.refund);
+          {MONTHS.map((_, index) => {
+            // Calculate per-room contributions for this month
+            let netAmount = 0;
+            Object.values(monthlyData).forEach(roomData => {
+              const m = roomData.months[index];
+              if (m.refund > 0) {
+                netAmount += m.advance - m.refund;
+              } else {
+                netAmount += m.collected + m.advance;
+              }
+            });
+            // Calculate all net values for finding max
+            const netValues = MONTHS.map((_, i) => {
+              let total = 0;
+              Object.values(monthlyData).forEach(roomData => {
+                const m = roomData.months[i];
+                if (m.refund > 0) {
+                  total += m.advance - m.refund;
+                } else {
+                  total += m.collected + m.advance;
+                }
+              });
+              return total;
+            });
             const maxTotal = Math.max(...netValues.map(v => Math.abs(v))) || 1;
             const height = Math.abs(netAmount) / maxTotal * 100;
             const isCurrent = index === currentMonth && selectedYear === currentYear;
-            const isBest = total.collected === bestMonth.value && total.collected > 0;
+            const isBest = netAmount === bestMonth.value && netAmount > 0;
             const isNegative = netAmount < 0;
 
             return (
@@ -548,7 +731,7 @@ function MonthlyCollectionReport({ rooms, bills, getBillTotal, onBack }) {
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-gradient-to-t from-red-500 to-red-400"></div>
-            <span className="text-gray-600 dark:text-gray-400">Net Refund</span>
+            <span className="text-gray-600 dark:text-gray-400">Cash Out</span>
           </div>
         </div>
       </div>

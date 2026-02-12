@@ -254,6 +254,38 @@ function TenantForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Advance Payment Amount
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Enter advance payment"
+              value={form.advancePayment ?? ''}
+              onChange={(e) => onUpdateField('advancePayment', parseFloat(e.target.value) || 0)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              1 month advance rent collected upon move-in
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
+              Advance Payment Date
+            </label>
+            <input
+              type="date"
+              value={form.advancePaymentDate || ''}
+              onChange={(e) => onUpdateField('advancePaymentDate', e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Date when advance payment was collected
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Security Deposit Amount
             </label>
             <input
