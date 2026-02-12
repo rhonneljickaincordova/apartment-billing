@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Droplet, Zap, Wifi, Wind, Download, Droplets, Settings, Share2, RotateCcw, Info, MapPin, Phone, Eye, X, Image } from 'lucide-react';
+import { Save, Droplet, Zap, Wifi, Wind, Download, Droplets, Settings, Share2, RotateCcw, Info, MapPin, Phone, Eye, X, Image, Copy, Check } from 'lucide-react';
 import { CleaningForm, CleaningCard, CleaningHistoryModal } from '../aircon';
 import MediaGallery from './MediaGallery';
 
@@ -124,6 +124,8 @@ function SettingsForm({
   const [isMediaGalleryExpanded, setIsMediaGalleryExpanded] = useState(false);
   const [showRoomPreview, setShowRoomPreview] = useState(false);
   const [showGeneralPreview, setShowGeneralPreview] = useState(false);
+  const [copiedRoom, setCopiedRoom] = useState(false);
+  const [copiedGeneral, setCopiedGeneral] = useState(false);
 
   // Local state for templates to prevent cursor jumping
   const [localShareTemplate, setLocalShareTemplate] = useState(settings.shareTemplate || DEFAULT_SHARE_TEMPLATE);
@@ -163,6 +165,32 @@ function SettingsForm({
   const handleSaveGeneralTemplate = async () => {
     await onUpdateSetting('generalShareTemplate', localGeneralTemplate);
     // Note: onUpdateSetting already saves to Firestore, no need to call onSave()
+  };
+
+  const handleCopyRoomPreview = async () => {
+    const previewText = generateRoomPreview(localShareTemplate, undefined, settings);
+    try {
+      await navigator.clipboard.writeText(previewText);
+      setCopiedRoom(true);
+      setTimeout(() => setCopiedRoom(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleCopyGeneralPreview = async () => {
+    const previewText = generateGeneralPreview(
+      localGeneralTemplate,
+      vacantRooms.length > 0 ? vacantRooms : [{ name: 'Sample Room', rent: 5500, persons: 2 }],
+      settings
+    );
+    try {
+      await navigator.clipboard.writeText(previewText);
+      setCopiedGeneral(true);
+      setTimeout(() => setCopiedGeneral(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   return (
@@ -329,12 +357,25 @@ function SettingsForm({
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Preview (Sample Data)</span>
-                    <button
-                      onClick={() => setShowRoomPreview(false)}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCopyRoomPreview}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          copiedRoom
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                        }`}
+                      >
+                        {copiedRoom ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedRoom ? 'Copied!' : 'Copy'}
+                      </button>
+                      <button
+                        onClick={() => setShowRoomPreview(false)}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">
                     {generateRoomPreview(localShareTemplate, undefined, settings)}
@@ -495,12 +536,25 @@ function SettingsForm({
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Preview {vacantRooms.length > 0 ? `(${vacantRooms.length} vacant room${vacantRooms.length !== 1 ? 's' : ''})` : '(No vacant rooms)'}
                     </span>
-                    <button
-                      onClick={() => setShowGeneralPreview(false)}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCopyGeneralPreview}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          copiedGeneral
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        }`}
+                      >
+                        {copiedGeneral ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedGeneral ? 'Copied!' : 'Copy'}
+                      </button>
+                      <button
+                        onClick={() => setShowGeneralPreview(false)}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans max-h-96 overflow-y-auto">
                     {generateGeneralPreview(
