@@ -16,6 +16,7 @@ import MediaLibrarySection from './components/settings/MediaLibrarySection';
 import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable, ExpenseFilters } from './components/expenses';
 import { Pagination } from './components/ui';
+import { InfoModal, InfoButton, DashboardInfoContent } from './components/common';
 
 const ApartmentBillTracker = () => {
   const toast = useToast();
@@ -160,6 +161,7 @@ const ApartmentBillTracker = () => {
   const [isTenantFormExpanded, setIsTenantFormExpanded] = useState(false);
   const [isExpenseFormExpanded, setIsExpenseFormExpanded] = useState(false);
   const [isSettingsFormExpanded, setIsSettingsFormExpanded] = useState(false);
+  const [showDashboardInfo, setShowDashboardInfo] = useState(false);
 
   const confirmDialog = useConfirmDialog();
 
@@ -878,16 +880,28 @@ const ApartmentBillTracker = () => {
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Dashboard Filters */}
-            <DashboardFilters
-              timePeriod={dashboardTimePeriod}
-              selectedYear={dashboardYear}
-              availableYears={dashboardAvailableYears}
-              customRange={dashboardCustomRange}
-              onTimePeriodChange={setDashboardTimePeriod}
-              onYearChange={setDashboardYear}
-              onCustomRangeChange={setDashboardCustomRange}
-            />
+            {/* Dashboard Header with Filters */}
+            <div className="flex items-center justify-between gap-4">
+              <DashboardFilters
+                timePeriod={dashboardTimePeriod}
+                selectedYear={dashboardYear}
+                availableYears={dashboardAvailableYears}
+                customRange={dashboardCustomRange}
+                onTimePeriodChange={setDashboardTimePeriod}
+                onYearChange={setDashboardYear}
+                onCustomRangeChange={setDashboardCustomRange}
+              />
+              <InfoButton onClick={() => setShowDashboardInfo(true)} />
+            </div>
+
+            {/* Dashboard Info Modal */}
+            <InfoModal
+              isOpen={showDashboardInfo}
+              onClose={() => setShowDashboardInfo(false)}
+              title="Dashboard Overview"
+            >
+              <DashboardInfoContent />
+            </InfoModal>
 
             {/* Quick Stats */}
             <SummaryCards

@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSign, Calendar, Building, Wallet, Target, AlertTriangle, Clock, Building2, LayoutGrid, Table, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import MonthlyCollectionReport from './MonthlyCollectionReport';
 import MonthlyExpenseReport from './MonthlyExpenseReport';
+import { InfoModal, InfoButton, ReportsInfoContent } from '../common';
 
 /**
  * Format currency in PHP
@@ -53,6 +54,7 @@ function BusinessReportModal({
   const reportRef = useRef(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportView, setReportView] = useState('summary'); // 'summary', 'collection', or 'expense'
+  const [showReportsInfo, setShowReportsInfo] = useState(false);
 
   // Period filter state
   const currentYear = new Date().getFullYear();
@@ -793,6 +795,15 @@ function BusinessReportModal({
     // Summary view
     return (
       <div className="space-y-6">
+        {/* Reports Info Modal */}
+        <InfoModal
+          isOpen={showReportsInfo}
+          onClose={() => setShowReportsInfo(false)}
+          title="Reports Overview"
+        >
+          <ReportsInfoContent />
+        </InfoModal>
+
         {/* Header with actions */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex flex-col gap-4">
@@ -800,6 +811,7 @@ function BusinessReportModal({
               <div className="flex items-center gap-2">
                 <FileText className="w-6 h-6 text-blue-600" />
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Business Report</h2>
+                <InfoButton onClick={() => setShowReportsInfo(true)} />
               </div>
               <div className="flex items-center gap-2">
                 <button
