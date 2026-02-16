@@ -52,7 +52,7 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
     rooms.forEach(room => {
       data[room.id] = {
         roomName: room.name,
-        months: Array(12).fill(null).map(() => ({ collected: 0, refund: 0, advance: 0 })),
+        months: Array(12).fill(null).map(() => ({ collected: 0, collectedFromFinalBill: 0, refund: 0, advance: 0 })),
         total: 0,
         totalRefund: 0,
         totalAdvance: 0,
@@ -72,11 +72,23 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
 
       let collected = 0;
       let refund = 0;
+      let isFinalBill = false;
 
       if (bill.amountPaid) {
         collected = bill.amountPaid;
+        // If deposit was applied, subtract it to get only the actual cash payment
+        // (deposit was already counted when tenant moved in, not on this bill)
+        if (bill.depositApplied && bill.depositAmount > 0) {
+          collected = Math.max(0, collected - bill.depositAmount);
+          isFinalBill = true; // This is an outgoing tenant's final bill
+        }
       } else if (bill.paid) {
         collected = getBillTotal(bill, bill.rentExcluded || false);
+        // Same adjustment for deposit
+        if (bill.depositApplied && bill.depositAmount > 0) {
+          collected = Math.max(0, collected - bill.depositAmount);
+          isFinalBill = true; // This is an outgoing tenant's final bill
+        }
       }
 
       // Check for refunds (when deposit exceeds bill total)
@@ -88,6 +100,10 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
       }
 
       data[bill.roomId].months[billMonth].collected += collected;
+      // Track if this collected amount is from the outgoing tenant's final bill
+      if (isFinalBill && collected > 0) {
+        data[bill.roomId].months[billMonth].collectedFromFinalBill += collected;
+      }
       data[bill.roomId].months[billMonth].refund += refund;
       data[bill.roomId].total += collected;
       data[bill.roomId].totalRefund += refund;
@@ -478,6 +494,27 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
                               </span>
                               <span className="text-[9px] text-red-400 dark:text-red-500">(out)</span>
                             </div>
+                          ) : hasAdvance && hasCollected ? (
+                            // Both collected (from outgoing tenant) and advance (new tenant) in same month
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                {formatShortCurrency(netAmount)}
+                              </span>
+                              <div className="flex flex-col items-end text-[9px] leading-tight">
+                                {monthData.collectedFromFinalBill > 0 ? (
+                                  <span className="text-orange-500 dark:text-orange-400">
+                                    {formatShortCurrency(monthData.collected)} <span className="text-[8px]">(out)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {formatShortCurrency(monthData.collected)}
+                                  </span>
+                                )}
+                                <span className="text-blue-500 dark:text-blue-400">
+                                  {formatShortCurrency(monthData.advance)} <span className="text-[8px]">(new)</span>
+                                </span>
+                              </div>
+                            </div>
                           ) : hasAdvance ? (
                             // Only advance payment (new tenant move-in)
                             <div className="flex flex-col items-end">
@@ -487,9 +524,20 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
                               <span className="text-[9px] text-blue-400 dark:text-blue-500">(new)</span>
                             </div>
                           ) : hasCollected ? (
-                            <span className="text-gray-800 dark:text-gray-200">
-                              {formatShortCurrency(monthData.collected)}
-                            </span>
+                            monthData.collectedFromFinalBill > 0 ? (
+                              // Collected from outgoing tenant's final bill
+                              <div className="flex flex-col items-end">
+                                <span className="text-orange-600 dark:text-orange-400">
+                                  {formatShortCurrency(monthData.collected)}
+                                </span>
+                                <span className="text-[9px] text-orange-400 dark:text-orange-500">(out)</span>
+                              </div>
+                            ) : (
+                              // Normal collection
+                              <span className="text-gray-800 dark:text-gray-200">
+                                {formatShortCurrency(monthData.collected)}
+                              </span>
+                            )
                           ) : (
                             <span className="text-gray-300 dark:text-gray-600">-</span>
                           )}
