@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
-import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSign, Calendar, Building, Wallet, Target, AlertTriangle, Clock, Building2, LayoutGrid, Table } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSign, Calendar, Building, Wallet, Target, AlertTriangle, Clock, Building2, LayoutGrid, Table, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import MonthlyCollectionReport from './MonthlyCollectionReport';
+import MonthlyExpenseReport from './MonthlyExpenseReport';
 
 /**
  * Format currency in PHP
@@ -51,11 +52,83 @@ function BusinessReportModal({
 }) {
   const reportRef = useRef(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [reportView, setReportView] = useState('summary'); // 'summary' or 'collection'
+  const [reportView, setReportView] = useState('summary'); // 'summary', 'collection', or 'expense'
+
+  // Period filter state
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(0); // 0 = All Year, 1-12 = specific month
+
+  const MONTHS = ['All Year', 'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'];
 
   if (!isOpen) return null;
 
-  // Calculate metrics
+  // Get available years from data
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    bills.forEach(bill => {
+      if (bill.paidDate) years.add(new Date(bill.paidDate).getFullYear());
+      if (bill.dueDate) years.add(new Date(bill.dueDate).getFullYear());
+    });
+    tenants.forEach(tenant => {
+      if (tenant.moveInDate) years.add(new Date(tenant.moveInDate).getFullYear());
+    });
+    expenses.forEach(exp => {
+      if (exp.date) years.add(new Date(exp.date).getFullYear());
+    });
+    years.add(currentYear);
+    return Array.from(years).sort((a, b) => b - a);
+  }, [bills, tenants, expenses, currentYear]);
+
+  // Filter bills by paid date
+  const filteredBills = useMemo(() => {
+    return bills.filter(bill => {
+      if (!bill.paidDate) return false; // Only include paid bills with a date
+      const paidDate = new Date(bill.paidDate);
+      const billYear = paidDate.getFullYear();
+      const billMonth = paidDate.getMonth() + 1; // 1-12
+
+      if (billYear !== selectedYear) return false;
+      if (selectedMonth > 0 && billMonth !== selectedMonth) return false;
+      return true;
+    });
+  }, [bills, selectedYear, selectedMonth]);
+
+  // Filter tenants by move-in date (for move-in payments)
+  const filteredTenants = useMemo(() => {
+    return tenants.filter(tenant => {
+      if (!tenant.moveInDate) return false;
+      const moveInDate = new Date(tenant.moveInDate);
+      const moveYear = moveInDate.getFullYear();
+      const moveMonth = moveInDate.getMonth() + 1;
+
+      if (moveYear !== selectedYear) return false;
+      if (selectedMonth > 0 && moveMonth !== selectedMonth) return false;
+      return true;
+    });
+  }, [tenants, selectedYear, selectedMonth]);
+
+  // Filter expenses by date
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(exp => {
+      if (!exp.date) return false;
+      const expDate = new Date(exp.date);
+      const expYear = expDate.getFullYear();
+      const expMonth = expDate.getMonth() + 1;
+
+      if (expYear !== selectedYear) return false;
+      if (selectedMonth > 0 && expMonth !== selectedMonth) return false;
+      return true;
+    });
+  }, [expenses, selectedYear, selectedMonth]);
+
+  // Get period label for display
+  const periodLabel = selectedMonth > 0
+    ? `${MONTHS[selectedMonth]} ${selectedYear}`
+    : `Year ${selectedYear}`;
+
+  // Calculate metrics (using UNFILTERED data for property overview)
   const totalRooms = rooms.length;
   const occupiedRooms = rooms.filter((r) => r.status === 'occupied').length;
   const vacantRooms = totalRooms - occupiedRooms;
@@ -64,15 +137,15 @@ function BusinessReportModal({
   const activeTenants = tenants.filter((t) => t.isActive).length;
   const inactiveTenants = tenants.length - activeTenants;
 
-  // Financial calculations
-  const totalRevenue = bills.reduce((sum, bill) => sum + (getBillTotal(bill, bill.rentExcluded || false) || 0), 0);
+  // Financial calculations (using FILTERED data for period-specific cash flow)
+  const totalRevenue = filteredBills.reduce((sum, bill) => sum + (getBillTotal(bill, bill.rentExcluded || false) || 0), 0);
 
   // Calculate cash collected and deposits applied separately (same logic as FinancialSummary)
   let cashCollected = 0;
   let depositsApplied = 0;
   let refundsGiven = 0;
 
-  bills.forEach((bill) => {
+  filteredBills.forEach((bill) => {
     const amountPaid = bill.amountPaid || 0;
 
     if (bill.depositApplied && bill.depositAmount > 0) {
@@ -98,22 +171,37 @@ function BusinessReportModal({
     }
   });
 
+  // Calculate move-in payments (advance + deposit from tenants) - using FILTERED tenants
+  let totalMoveInPayments = 0;
+  let totalAdvancePayments = 0;
+  let totalSecurityDeposits = 0;
+
+  filteredTenants.forEach((tenant) => {
+    const advance = tenant.advancePayment || 0;
+    const deposit = tenant.securityDeposit || 0;
+    totalAdvancePayments += advance;
+    totalSecurityDeposits += deposit;
+    totalMoveInPayments += advance + deposit;
+  });
+
   // Total settled (for display purposes)
   const collectedRevenue = cashCollected + depositsApplied;
 
-  // Separate expenses by type
-  const apartmentExpenses = expenses.filter((exp) => (exp.expenseType || 'apartment') === 'apartment');
-  const personalExpenses = expenses.filter((exp) => exp.expenseType === 'personal');
+  // Separate expenses by type - using FILTERED expenses
+  const apartmentExpenses = filteredExpenses.filter((exp) => (exp.expenseType || 'apartment') === 'apartment');
+  const personalExpenses = filteredExpenses.filter((exp) => exp.expenseType === 'personal');
   const totalApartmentExpenses = apartmentExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
   const totalPersonalExpenses = personalExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
-  // Net profit uses only actual cash collected - apartment expenses - refunds
-  const netProfit = cashCollected - totalApartmentExpenses - refundsGiven;
-  const profitMargin = collectedRevenue > 0 ? ((netProfit / collectedRevenue) * 100).toFixed(1) : 0;
+  // Total actual cash in bank = bill payments + move-in payments - expenses - refunds
+  const totalCashInflow = cashCollected + totalMoveInPayments;
+  const netProfit = totalCashInflow - totalApartmentExpenses - refundsGiven;
+  const profitMargin = totalCashInflow > 0 ? ((netProfit / totalCashInflow) * 100).toFixed(1) : 0;
 
-  // Bill status breakdown
-  const paidBills = bills.filter((b) => b.paid).length;
+  // Bill status breakdown (using FILTERED bills for period stats)
+  const paidBills = filteredBills.length;
+  // For unpaid/overdue, we still use all bills since they're relevant to current status
   const unpaidBills = bills.filter((b) => !b.paid).length;
   const overdueBills = bills.filter((b) => !b.paid && new Date(b.dueDate) < new Date()).length;
   const partialBills = bills.filter((b) => !b.paid && (b.amountPaid || 0) > 0).length;
@@ -121,9 +209,9 @@ function BusinessReportModal({
   // Monthly rent potential
   const monthlyRentPotential = rooms.reduce((sum, room) => sum + (room.rent || 0), 0);
 
-  // Top revenue rooms
+  // Top revenue rooms - using FILTERED bills
   const roomRevenue = {};
-  bills.forEach((bill) => {
+  filteredBills.forEach((bill) => {
     if (!roomRevenue[bill.roomId]) {
       roomRevenue[bill.roomId] = 0;
     }
@@ -139,9 +227,9 @@ function BusinessReportModal({
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
-  // Expense by category with type breakdown
+  // Expense by category with type breakdown - using FILTERED expenses
   const expenseByCategory = {};
-  expenses.forEach((exp) => {
+  filteredExpenses.forEach((exp) => {
     const category = exp.category || 'Other';
     const expType = exp.expenseType || 'apartment';
     const amount = exp.amount || 0;
@@ -165,8 +253,8 @@ function BusinessReportModal({
 
   // === NEW BUSINESS METRICS ===
 
-  // 1. Cash Flow Summary - Actual cash collected minus expenses minus refunds
-  const cashFlow = cashCollected - totalApartmentExpenses - refundsGiven;
+  // 1. Cash Flow Summary - Actual cash collected + move-in payments - expenses - refunds
+  const cashFlow = totalCashInflow - totalApartmentExpenses - refundsGiven;
 
   // 2. Monthly Target vs Actual
   // Target = sum of rent from all occupied rooms
@@ -176,7 +264,7 @@ function BusinessReportModal({
   const targetVariance = collectedRevenue - monthlyTarget;
   const targetAchievement = monthlyTarget > 0 ? ((collectedRevenue / monthlyTarget) * 100).toFixed(1) : 0;
 
-  // 3. Overdue Analysis
+  // 3. Overdue Analysis (always uses current status, not filtered)
   const today = new Date();
   const overdueBillsData = bills.filter((b) => !b.paid && new Date(b.dueDate) < today);
   const overdueAmount = overdueBillsData.reduce((sum, bill) => {
@@ -198,8 +286,8 @@ function BusinessReportModal({
     ? ((lostRevenueFromVacancy / potentialMonthlyRevenue) * 100).toFixed(1)
     : 0;
 
-  // 5. Payment Timeliness - On-time vs late payments
-  const paidBillsData = bills.filter((b) => b.paid);
+  // 5. Payment Timeliness - On-time vs late payments (using FILTERED bills)
+  const paidBillsData = filteredBills;
   const onTimePaidBills = paidBillsData.filter((b) => {
     if (!b.paidDate || !b.dueDate) return true; // Assume on-time if no data
     return new Date(b.paidDate) <= new Date(b.dueDate);
@@ -211,6 +299,19 @@ function BusinessReportModal({
   const onTimeRate = paidBillsData.length > 0
     ? ((onTimePaidBills.length / paidBillsData.length) * 100).toFixed(1)
     : 0;
+
+  // Year navigation handlers
+  const handlePrevYear = () => {
+    if (availableYears.includes(selectedYear - 1) || selectedYear - 1 >= Math.min(...availableYears) - 1) {
+      setSelectedYear(selectedYear - 1);
+    }
+  };
+
+  const handleNextYear = () => {
+    if (selectedYear < currentYear) {
+      setSelectedYear(selectedYear + 1);
+    }
+  };
 
   // Generate and download PDF
   const handleDownloadPDF = async () => {
@@ -398,24 +499,28 @@ function BusinessReportModal({
         </div>
 
         <div class="summary-box">
-          <h2>Financial Summary</h2>
-          <div class="summary-grid">
+          <h2>Financial Summary (Bank Balance)</h2>
+          <div class="summary-grid" style="grid-template-columns: repeat(5, 1fr);">
             <div class="summary-item">
-              <div class="summary-value">${formatCurrency(totalRevenue)}</div>
-              <div class="summary-label">Total Billed</div>
+              <div class="summary-value">${formatCurrency(cashCollected)}</div>
+              <div class="summary-label">Bill Payments</div>
             </div>
             <div class="summary-item">
-              <div class="summary-value">${formatCurrency(collectedRevenue)}</div>
-              <div class="summary-label">Collected</div>
+              <div class="summary-value">${formatCurrency(totalMoveInPayments)}</div>
+              <div class="summary-label">Move-in Payments</div>
+              <div style="font-size: 8pt; opacity: 0.7; margin-top: 4px;">Adv: ${formatCurrency(totalAdvancePayments)} | Dep: ${formatCurrency(totalSecurityDeposits)}</div>
             </div>
             <div class="summary-item">
-              <div class="summary-value">${formatCurrency(totalExpenses)}</div>
-              <div class="summary-label">Expenses</div>
-              <div style="font-size: 8pt; opacity: 0.7; margin-top: 4px;">Apt: ${formatCurrency(totalApartmentExpenses)} | Pers: ${formatCurrency(totalPersonalExpenses)}</div>
+              <div class="summary-value">${formatCurrency(totalApartmentExpenses)}</div>
+              <div class="summary-label">Apt. Expenses</div>
             </div>
             <div class="summary-item">
+              <div class="summary-value">${formatCurrency(refundsGiven)}</div>
+              <div class="summary-label">Refunds</div>
+            </div>
+            <div class="summary-item" style="border-left: 2px solid rgba(255,255,255,0.3); padding-left: 15px;">
               <div class="summary-value">${formatCurrency(netProfit)}</div>
-              <div class="summary-label">Net Profit (Apt. Only)</div>
+              <div class="summary-label">Bank Balance</div>
             </div>
           </div>
         </div>
@@ -477,18 +582,22 @@ function BusinessReportModal({
         </div>
 
         <div class="section">
-          <div class="section-title">Cash Flow Summary</div>
-          <div class="grid">
+          <div class="section-title">Cash Flow Summary (Bank Balance)</div>
+          <div class="grid" style="grid-template-columns: repeat(4, 1fr);">
             <div class="card">
-              <div class="card-title">Revenue Collected</div>
-              <div class="card-value green">${formatCurrency(collectedRevenue)}</div>
+              <div class="card-title">Bill Payments</div>
+              <div class="card-value green">${formatCurrency(cashCollected)}</div>
             </div>
             <div class="card">
-              <div class="card-title">Apartment Expenses</div>
+              <div class="card-title">Move-in Payments</div>
+              <div class="card-value blue">${formatCurrency(totalMoveInPayments)}</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Apt. Expenses</div>
               <div class="card-value red">${formatCurrency(totalApartmentExpenses)}</div>
             </div>
             <div class="card">
-              <div class="card-title">Net Cash Flow</div>
+              <div class="card-title">Bank Balance</div>
               <div class="card-value ${cashFlow >= 0 ? 'green' : 'red'}">${formatCurrency(cashFlow)}</div>
             </div>
           </div>
@@ -671,6 +780,16 @@ function BusinessReportModal({
       );
     }
 
+    // Show Monthly Expense Report view
+    if (reportView === 'expense') {
+      return (
+        <MonthlyExpenseReport
+          expenses={expenses}
+          onBack={() => setReportView('summary')}
+        />
+      );
+    }
+
     // Summary view
     return (
       <div className="space-y-6">
@@ -725,7 +844,66 @@ function BusinessReportModal({
                 <Table className="w-4 h-4" />
                 Monthly Collection
               </button>
+              <button
+                onClick={() => setReportView('expense')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  reportView === 'expense'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                <TrendingDown className="w-4 h-4" />
+                Monthly Expense
+              </button>
             </div>
+
+            {/* Period Filter - Only show for Summary Report */}
+            {reportView === 'summary' && (
+              <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Filter className="w-4 h-4" />
+                  <span>Period:</span>
+                </div>
+
+                {/* Year Navigation */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handlePrevYear}
+                    className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    title="Previous year"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  </button>
+                  <span className="px-3 py-1 text-sm font-semibold text-gray-900 dark:text-white min-w-[60px] text-center">
+                    {selectedYear}
+                  </span>
+                  <button
+                    onClick={handleNextYear}
+                    disabled={selectedYear >= currentYear}
+                    className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Next year"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  </button>
+                </div>
+
+                {/* Month Selector */}
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {MONTHS.map((month, index) => (
+                    <option key={index} value={index}>{month}</option>
+                  ))}
+                </select>
+
+                {/* Period Summary */}
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                  Showing: {periodLabel}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -735,31 +913,38 @@ function BusinessReportModal({
             {/* Report Header */}
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Business Report</h1>
-              <p className="text-gray-500 dark:text-gray-400">Generated on {formatDate(new Date().toISOString())}</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                Period: <span className="font-medium text-blue-600 dark:text-blue-400">{periodLabel}</span>
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Generated on {formatDate(new Date().toISOString())}</p>
             </div>
 
             {/* Financial Summary */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white mb-6">
-              <h3 className="text-lg font-semibold mb-4 opacity-90">Financial Summary</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <h3 className="text-lg font-semibold mb-4 opacity-90">Financial Summary ({periodLabel})</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-                  <p className="text-sm opacity-80">Total Billed</p>
+                  <p className="text-2xl font-bold">{formatCurrency(cashCollected)}</p>
+                  <p className="text-sm opacity-80">Bill Payments</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{formatCurrency(collectedRevenue)}</p>
-                  <p className="text-sm opacity-80">Collected</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
-                  <p className="text-sm opacity-80">Expenses</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totalMoveInPayments)}</p>
+                  <p className="text-sm opacity-80">Move-in Payments</p>
                   <p className="text-xs opacity-60 mt-1">
-                    Apt: {formatCurrency(totalApartmentExpenses)} | Pers: {formatCurrency(totalPersonalExpenses)}
+                    {filteredTenants.length} tenant{filteredTenants.length !== 1 ? 's' : ''} moved in
                   </p>
                 </div>
                 <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(totalApartmentExpenses)}</p>
+                  <p className="text-sm opacity-80">Apt. Expenses</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatCurrency(refundsGiven)}</p>
+                  <p className="text-sm opacity-80">Refunds</p>
+                </div>
+                <div className="text-center border-l border-white/30 pl-4">
                   <p className="text-2xl font-bold">{formatCurrency(netProfit)}</p>
-                  <p className="text-sm opacity-80">Net Profit</p>
+                  <p className="text-sm opacity-80">Bank Balance</p>
                 </div>
               </div>
             </div>
@@ -825,11 +1010,7 @@ function BusinessReportModal({
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Total Bills</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{bills.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Paid</span>
+                    <span className="text-gray-600 dark:text-gray-300">Paid in Period</span>
                     <span className="font-semibold text-green-600">{paidBills}</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -851,17 +1032,27 @@ function BusinessReportModal({
               <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-blue-600" />
-                  Cash Flow Summary
+                  Cash Flow ({periodLabel})
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">Revenue Collected</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(collectedRevenue)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">Bill Payments</span>
+                    <span className="font-semibold text-green-600">+ {formatCurrency(cashCollected)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Move-in Payments</span>
+                    <span className="font-semibold text-blue-600">+ {formatCurrency(totalMoveInPayments)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-300">Apartment Expenses</span>
                     <span className="font-semibold text-red-600">- {formatCurrency(totalApartmentExpenses)}</span>
                   </div>
+                  {refundsGiven > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-300">Refunds Given</span>
+                      <span className="font-semibold text-red-600">- {formatCurrency(refundsGiven)}</span>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 dark:text-gray-200 font-medium">Net Cash Flow</span>
@@ -1163,25 +1354,29 @@ function BusinessReportModal({
           {/* Financial Summary */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white mb-6">
             <h3 className="text-lg font-semibold mb-4 opacity-90">Financial Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
-                <p className="text-sm opacity-80">Total Billed</p>
+                <p className="text-2xl font-bold">{formatCurrency(cashCollected)}</p>
+                <p className="text-sm opacity-80">Bill Payments</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">{formatCurrency(collectedRevenue)}</p>
-                <p className="text-sm opacity-80">Collected</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
-                <p className="text-sm opacity-80">Expenses</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalMoveInPayments)}</p>
+                <p className="text-sm opacity-80">Move-in Payments</p>
                 <p className="text-xs opacity-60 mt-1">
-                  Apt: {formatCurrency(totalApartmentExpenses)} | Pers: {formatCurrency(totalPersonalExpenses)}
+                  Adv: {formatCurrency(totalAdvancePayments)} | Dep: {formatCurrency(totalSecurityDeposits)}
                 </p>
               </div>
               <div className="text-center">
+                <p className="text-2xl font-bold">{formatCurrency(totalApartmentExpenses)}</p>
+                <p className="text-sm opacity-80">Apt. Expenses</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{formatCurrency(refundsGiven)}</p>
+                <p className="text-sm opacity-80">Refunds</p>
+              </div>
+              <div className="text-center border-l border-white/30 pl-4">
                 <p className="text-2xl font-bold">{formatCurrency(netProfit)}</p>
-                <p className="text-sm opacity-80">Net Profit</p>
+                <p className="text-sm opacity-80">Bank Balance</p>
               </div>
             </div>
           </div>
@@ -1273,20 +1468,30 @@ function BusinessReportModal({
             <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-blue-600" />
-                Cash Flow Summary
+                Cash Flow Summary (Bank Balance)
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Revenue Collected</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(collectedRevenue)}</span>
+                  <span className="text-gray-600 dark:text-gray-300">Bill Payments</span>
+                  <span className="font-semibold text-green-600">+ {formatCurrency(cashCollected)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">Move-in Payments</span>
+                  <span className="font-semibold text-blue-600">+ {formatCurrency(totalMoveInPayments)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-300">Apartment Expenses</span>
                   <span className="font-semibold text-red-600">- {formatCurrency(totalApartmentExpenses)}</span>
                 </div>
+                {refundsGiven > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">Refunds Given</span>
+                    <span className="font-semibold text-red-600">- {formatCurrency(refundsGiven)}</span>
+                  </div>
+                )}
                 <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-200 font-medium">Net Cash Flow</span>
+                    <span className="text-gray-700 dark:text-gray-200 font-medium">Bank Balance</span>
                     <span className={`text-xl font-bold ${cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(cashFlow)}
                     </span>
@@ -1310,8 +1515,8 @@ function BusinessReportModal({
                   <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthlyTarget)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Actual Collected</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(collectedRevenue)}</span>
+                  <span className="text-gray-600 dark:text-gray-300">Total Cash Inflow</span>
+                  <span className="font-semibold text-green-600">{formatCurrency(totalCashInflow)}</span>
                 </div>
                 <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                   <div className="flex justify-between items-center mb-2">

@@ -13,3 +13,4 @@ export { default as DashboardFilters, TIME_PERIODS, getAvailableYears, filterByP
 export { default as NotificationBell } from './NotificationBell';
 export { default as BusinessReportModal } from './BusinessReportModal';
 export { default as MonthlyCollectionReport } from './MonthlyCollectionReport';
+export { default as MonthlyExpenseReport } from './MonthlyExpenseReport';
