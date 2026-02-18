@@ -189,3 +189,12 @@
 .bg-gradient-danger {
   background: linear-gradient(135deg, var(--color-danger) 0%, #dc2626 100%);
 }
+
+/* Scrollbar hide utility for mobile tab navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

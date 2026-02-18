@@ -22,6 +22,7 @@ function Modal({
 
   // Size classes
   const sizeClasses = {
+    xs: 'max-w-xs',
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
@@ -67,7 +68,7 @@ function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 dark:bg-black/70"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -76,7 +77,7 @@ function Modal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col animate-modal-in`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col animate-modal-in`}
       >
         {/* Header */}
         {(title || showCloseButton) && (

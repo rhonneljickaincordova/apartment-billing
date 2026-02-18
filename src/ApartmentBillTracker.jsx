@@ -819,17 +819,17 @@ const ApartmentBillTracker = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header with Title and Notifications */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
             {/* Back to App Selection */}
             <button
               onClick={goBackToAppSelection}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="Back to Apps"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white truncate">
               Apartment Bill Tracker
             </h1>
           </div>
@@ -859,22 +859,29 @@ const ApartmentBillTracker = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 md:gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 scrollbar-thin">
-          {['dashboard', 'bills', 'tenants', 'expenses', 'reports', 'rooms', 'settings'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 px-3 md:px-6 py-2 md:py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
-                activeTab === tab
-                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-              aria-selected={activeTab === tab}
-              role="tab"
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+        <div className="relative mb-4 md:mb-6">
+          {/* Left fade indicator */}
+          <div className="absolute left-0 top-0 bottom-1 w-6 bg-gradient-to-r from-gray-50 dark:from-gray-900 to-transparent pointer-events-none z-10 md:hidden" />
+          {/* Right fade indicator */}
+          <div className="absolute right-0 top-0 bottom-1 w-6 bg-gradient-to-l from-gray-50 dark:from-gray-900 to-transparent pointer-events-none z-10 md:hidden" />
+
+          <div className="flex gap-1 md:gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
+            {['dashboard', 'bills', 'tenants', 'expenses', 'reports', 'rooms', 'settings'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-shrink-0 px-4 md:px-6 py-2.5 md:py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base snap-start ${
+                  activeTab === tab
+                    ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+                aria-selected={activeTab === tab}
+                role="tab"
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Dashboard Tab */}
@@ -936,7 +943,7 @@ const ApartmentBillTracker = () => {
             />
 
             {/* Financial Summary & Monthly Comparison Row */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <FinancialSummary
                 bills={dashboardFilteredBills}
                 expenses={dashboardFilteredExpenses}
@@ -950,7 +957,7 @@ const ApartmentBillTracker = () => {
             </div>
 
             {/* Recent Activity & Financial Breakdown */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <RecentActivity
                 bills={dashboardFilteredBills}
                 expenses={dashboardFilteredExpenses}
@@ -966,11 +973,11 @@ const ApartmentBillTracker = () => {
             </div>
 
             {/* Analytics Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <MonthlyBillsChart bills={dashboardFilteredBills} getBillTotal={getBillTotal} />
               <MonthlyExpenseChart expenses={dashboardFilteredExpenses} />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <BillsByRoomChart bills={dashboardFilteredBills} rooms={rooms} getBillTotal={getBillTotal} />
               <ExpenseByCategoryChart expenses={dashboardFilteredExpenses} />
             </div>

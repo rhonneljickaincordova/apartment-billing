@@ -34,41 +34,47 @@ function RevenueCards({ collected, pending, total }) {
       </div>
 
       {/* Revenue Stats */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4">
-        <div className="text-center p-2 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-          <div className="flex items-center justify-center mb-1 md:mb-2">
-            <div className="p-1.5 md:p-2 bg-green-100 dark:bg-green-800/50 rounded-lg">
-              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
+      <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 md:gap-4">
+        <div className="flex xs:flex-col items-center xs:text-center p-3 md:p-4 bg-green-50 dark:bg-green-900/20 rounded-xl gap-3 xs:gap-0">
+          <div className="flex items-center justify-center xs:mb-2">
+            <div className="p-2 bg-green-100 dark:bg-green-800/50 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <p className="text-[10px] md:text-xs text-green-600 dark:text-green-400 font-medium mb-0.5 md:mb-1">Collected</p>
-          <p className="text-sm md:text-lg font-bold text-green-700 dark:text-green-300 truncate">
-            {formatCurrency(collected)}
-          </p>
+          <div className="flex-1 xs:flex-none">
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-0.5">Collected</p>
+            <p className="text-base md:text-lg font-bold text-green-700 dark:text-green-300">
+              {formatCurrency(collected)}
+            </p>
+          </div>
         </div>
 
-        <div className="text-center p-2 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-          <div className="flex items-center justify-center mb-1 md:mb-2">
-            <div className="p-1.5 md:p-2 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
-              <Clock className="w-4 h-4 md:w-5 md:h-5 text-amber-600 dark:text-amber-400" />
+        <div className="flex xs:flex-col items-center xs:text-center p-3 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl gap-3 xs:gap-0">
+          <div className="flex items-center justify-center xs:mb-2">
+            <div className="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
-          <p className="text-[10px] md:text-xs text-amber-600 dark:text-amber-400 font-medium mb-0.5 md:mb-1">Pending</p>
-          <p className="text-sm md:text-lg font-bold text-amber-700 dark:text-amber-300 truncate">
-            {formatCurrency(pending)}
-          </p>
+          <div className="flex-1 xs:flex-none">
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-0.5">Pending</p>
+            <p className="text-base md:text-lg font-bold text-amber-700 dark:text-amber-300">
+              {formatCurrency(pending)}
+            </p>
+          </div>
         </div>
 
-        <div className="text-center p-2 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-          <div className="flex items-center justify-center mb-1 md:mb-2">
-            <div className="p-1.5 md:p-2 bg-blue-100 dark:bg-blue-800/50 rounded-lg">
-              <Wallet className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex xs:flex-col items-center xs:text-center p-3 md:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl gap-3 xs:gap-0">
+          <div className="flex items-center justify-center xs:mb-2">
+            <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-lg">
+              <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-          <p className="text-[10px] md:text-xs text-blue-600 dark:text-blue-400 font-medium mb-0.5 md:mb-1">Total</p>
-          <p className="text-sm md:text-lg font-bold text-blue-700 dark:text-blue-300 truncate">
-            {formatCurrency(total)}
-          </p>
+          <div className="flex-1 xs:flex-none">
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-0.5">Total</p>
+            <p className="text-base md:text-lg font-bold text-blue-700 dark:text-blue-300">
+              {formatCurrency(total)}
+            </p>
+          </div>
         </div>
       </div>
     </div>

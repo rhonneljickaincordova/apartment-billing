@@ -122,9 +122,106 @@ function ExpensesTable({
     );
   }
 
+  // Calculate total for footer
+  const totalAmount = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  // Mobile card component
+  const MobileExpenseCard = ({ expense }) => {
+    const typeStyle = getExpenseTypeStyle(expense.expenseType);
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        {/* Header Row */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-gray-900 dark:text-white truncate">
+              {expense.description}
+            </p>
+            {expense.notes && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                {expense.notes}
+              </p>
+            )}
+          </div>
+          <p className="text-lg font-bold text-gray-900 dark:text-white flex-shrink-0">
+            ₱{(expense.amount || 0).toFixed(2)}
+          </p>
+        </div>
+
+        {/* Tags Row */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${typeStyle.color}`}>
+            <typeStyle.Icon className="w-3 h-3" />
+            {getExpenseTypeLabel(expense.expenseType)}
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(expense.category)}`}>
+            {getCategoryLabel(expense.category)}
+          </span>
+        </div>
+
+        {/* Info Row */}
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-3">
+          <span>{formatDate(expense.date)}</span>
+          {expense.recurringFrequency && expense.recurringFrequency !== 'none' ? (
+            <span className="inline-flex items-center gap-1 text-xs">
+              <RefreshCw className="w-3 h-3" />
+              {getFrequencyLabel(expense.recurringFrequency)}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">One-time</span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => onDuplicate(expense)}
+            className="p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg"
+            title="Duplicate expense"
+          >
+            <Copy className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => onEdit(expense)}
+            className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
+            title="Edit expense"
+          >
+            <Edit2 className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => onDelete(expense.id)}
+            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+            title="Delete expense"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Mobile Card View */}
+      <div className="md:hidden">
+        <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+          {expenses.map((expense) => (
+            <MobileExpenseCard key={expense.id} expense={expense} />
+          ))}
+        </div>
+        {/* Mobile Total */}
+        <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <span className="font-medium text-gray-700 dark:text-gray-300">Total:</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">
+              ₱{totalAmount.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>

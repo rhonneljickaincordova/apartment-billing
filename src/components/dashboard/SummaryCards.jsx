@@ -73,16 +73,18 @@ function SummaryCards({
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-      {cards.map((card) => {
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {cards.map((card, index) => {
         const Icon = card.icon;
         const isHovered = hoveredCard === card.id;
         const hasItems = card.tooltipItems.length > 0;
+        // Position tooltip based on card position to prevent viewport overflow on mobile
+        const isRightSide = index % 2 === 1;
 
         return (
           <div
             key={card.id}
-            className={`${card.bgColor} rounded-xl shadow-lg p-3 md:p-5 text-white transform hover:scale-105 transition-all duration-200 relative cursor-pointer`}
+            className={`${card.bgColor} rounded-xl shadow-lg p-3 md:p-5 text-white transform hover:scale-105 transition-all duration-200 relative cursor-pointer touch-manipulation`}
             onMouseEnter={() => setHoveredCard(card.id)}
             onMouseLeave={() => setHoveredCard(null)}
           >
@@ -97,9 +99,9 @@ function SummaryCards({
               </div>
             </div>
 
-            {/* Tooltip */}
+            {/* Tooltip - positioned to prevent viewport overflow */}
             {isHovered && hasItems && (
-              <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-3 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700">
+              <div className={`absolute z-50 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-3 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 min-w-[200px] max-w-[280px] ${isRightSide ? 'right-0' : 'left-0'}`}>
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{card.tooltipTitle}</p>
                 <div className="max-h-32 overflow-y-auto">
                   {card.tooltipItems.map((item, idx) => (
