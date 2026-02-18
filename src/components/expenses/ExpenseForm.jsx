@@ -1,5 +1,6 @@
 import { DollarSign, Save, X, Tag, Calendar, FileText, RefreshCw, Building2, User } from 'lucide-react';
 import { EXPENSE_CATEGORIES, RECURRING_OPTIONS, EXPENSE_TYPES } from '../../hooks/useExpenses';
+import { SearchableSelect } from '../ui';
 
 /**
  * Expense Form Component
@@ -39,21 +40,14 @@ function ExpenseForm({ form, errors, isEditing, onSave, onCancel, onUpdateField 
             <Tag className="w-4 h-4 inline mr-1" aria-hidden="true" />
             Category
           </label>
-          <select
+          <SearchableSelect
             value={form.category}
-            onChange={(e) => onUpdateField('category', e.target.value)}
-            className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-              errors.category ? 'border-red-500' : ''
-            }`}
-            aria-invalid={!!errors.category}
-          >
-            <option value="">Select Category</option>
-            {EXPENSE_CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
+            options={EXPENSE_CATEGORIES}
+            onChange={(value) => onUpdateField('category', value)}
+            placeholder="Select Category"
+            searchPlaceholder="Search categories..."
+            error={errors.category}
+          />
           {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
         </div>
         <div>
