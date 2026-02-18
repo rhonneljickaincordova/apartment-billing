@@ -888,7 +888,7 @@ const ApartmentBillTracker = () => {
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Dashboard Header with Filters */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-2 sm:gap-4">
               <DashboardFilters
                 timePeriod={dashboardTimePeriod}
                 selectedYear={dashboardYear}
@@ -898,7 +898,9 @@ const ApartmentBillTracker = () => {
                 onYearChange={setDashboardYear}
                 onCustomRangeChange={setDashboardCustomRange}
               />
-              <InfoButton onClick={() => setShowDashboardInfo(true)} />
+              <div className="flex-shrink-0 mt-3 md:mt-4">
+                <InfoButton onClick={() => setShowDashboardInfo(true)} />
+              </div>
             </div>
 
             {/* Dashboard Info Modal */}
