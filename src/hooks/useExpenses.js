@@ -9,6 +9,7 @@ export const EXPENSE_CATEGORIES = [
   { value: 'electricity', label: 'Electricity' },
   { value: 'water', label: 'Water Bill' },
   { value: 'internet', label: 'Internet' },
+  { value: 'cable', label: 'Cable TV' },
   { value: 'maintenance', label: 'Maintenance' },
   { value: 'repairs', label: 'Repairs' },
   { value: 'supplies', label: 'Supplies' },

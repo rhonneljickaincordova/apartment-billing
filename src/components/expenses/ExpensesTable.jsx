@@ -45,6 +45,7 @@ const getCategoryColor = (category) => {
     electricity: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     water: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
     internet: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+    cable: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300',
     maintenance: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
     repairs: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
     supplies: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
