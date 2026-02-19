@@ -109,58 +109,58 @@ function PersonalBudgetList({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <PiggyBank className="w-6 h-6" />
+      <div className="flex justify-between items-center gap-2">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <PiggyBank className="w-5 h-5 sm:w-6 sm:h-6" />
           Budgets
         </h2>
         <button
           onClick={handleAdd}
           disabled={availableCategories.length === 0}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
           <Plus className="w-4 h-4" />
-          Add Budget
+          <span className="hidden xs:inline">Add</span> Budget
         </button>
       </div>
 
       {/* Budget List */}
       {budgets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {budgets.map((budget) => (
             <div
               key={budget.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 border-l-4 ${
+              className={`bg-white dark:bg-gray-800 rounded-xl shadow p-3 sm:p-4 border-l-4 ${
                 budget.isOverBudget ? 'border-red-500' : 'border-green-500'
               }`}
             >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+              <div className="flex justify-between items-start mb-2 sm:mb-3 gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
                     {budget.categoryName}
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 capitalize">
                     {budget.period} budget
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-shrink-0">
                   <button
                     onClick={() => handleEdit(budget)}
                     className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(budget.id)}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-1.5 sm:space-y-2">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Spent</span>
                   <span className={`font-medium ${
                     budget.isOverBudget ? 'text-red-600' : 'text-gray-900 dark:text-white'
@@ -168,7 +168,7 @@ function PersonalBudgetList({
                     {formatCurrency(budget.spent)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Budget</span>
                   <span className="font-medium text-gray-900 dark:text-white">
                     {formatCurrency(budget.amount)}
@@ -176,28 +176,28 @@ function PersonalBudgetList({
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 sm:h-3">
                   <div
-                    className={`h-3 rounded-full transition-all ${
+                    className={`h-2.5 sm:h-3 rounded-full transition-all ${
                       budget.isOverBudget ? 'bg-red-500' : 'bg-green-500'
                     }`}
                     style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                   />
                 </div>
 
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-[10px] sm:text-xs">
                   <span className={budget.isOverBudget ? 'text-red-500' : 'text-green-500'}>
                     {budget.percentage.toFixed(0)}% used
                   </span>
                   <span className={budget.remaining < 0 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}>
-                    {budget.remaining < 0 ? 'Over by ' : 'Remaining: '}
+                    {budget.remaining < 0 ? 'Over ' : ''}
                     {formatCurrency(Math.abs(budget.remaining))}
                   </span>
                 </div>
 
                 {budget.isOverBudget && (
-                  <div className="flex items-center gap-2 text-red-500 text-xs mt-2">
-                    <AlertTriangle className="w-4 h-4" />
+                  <div className="flex items-center gap-1.5 text-red-500 text-[10px] sm:text-xs mt-1 sm:mt-2">
+                    <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Budget exceeded!
                   </div>
                 )}

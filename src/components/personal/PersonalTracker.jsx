@@ -218,8 +218,13 @@ function PersonalTracker() {
   return (
     <div className="space-y-4">
       {/* Sub-navigation */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide -mx-2 px-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-2 relative">
+        {/* Left fade indicator */}
+        <div className="absolute left-2 top-2 bottom-2 w-4 bg-gradient-to-r from-white dark:from-gray-800 to-transparent pointer-events-none z-10 md:hidden" />
+        {/* Right fade indicator */}
+        <div className="absolute right-2 top-2 bottom-2 w-4 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none z-10 md:hidden" />
+
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -228,7 +233,7 @@ function PersonalTracker() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 snap-start ${
                   isActive
                     ? 'bg-blue-500 text-white'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'

@@ -78,30 +78,41 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
       <div className="flex justify-end">
         <button
           onClick={onAddTransaction}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shadow-lg"
+          className="flex items-center gap-1.5 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors shadow-lg text-sm sm:text-base"
         >
-          <Plus className="w-5 h-5" />
-          Add Transaction
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden xs:inline">Add</span> Transaction
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 md:gap-4">
         {summaryCards.map((card, index) => {
           const Icon = card.icon;
           return (
             <div
               key={index}
-              className={`${card.bgColor} rounded-xl shadow-lg p-4 md:p-5 text-white`}
+              className={`${card.bgColor} rounded-xl shadow-lg p-3 md:p-5 text-white`}
             >
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex xs:flex-col items-center xs:items-start justify-between xs:justify-start gap-3 xs:gap-0">
+                <div className="flex items-center xs:hidden gap-3">
+                  <div className={`${card.iconBg} p-2 rounded-xl`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white/80 text-xs font-medium">{card.title}</p>
+                    <p className="text-lg font-bold">
+                      {card.value < 0 && '-'}{formatCurrency(card.value)}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden xs:block">
                   <p className="text-white/80 text-xs md:text-sm font-medium">{card.title}</p>
                   <p className="text-xl md:text-2xl font-bold mt-1">
                     {card.value < 0 && '-'}{formatCurrency(card.value)}
                   </p>
                 </div>
-                <div className={`${card.iconBg} p-2 md:p-3 rounded-xl`}>
+                <div className={`${card.iconBg} p-2 md:p-3 rounded-xl hidden xs:block xs:mt-2 xs:self-end`}>
                   <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
               </div>
@@ -112,7 +123,7 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
 
       {/* Category Breakdown */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Expense by Category
         </h3>
         {categoryBreakdown.length > 0 ? (
@@ -151,7 +162,7 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
 
       {/* Recent Transactions */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Recent Transactions
         </h3>
         {recentTransactions.length > 0 ? (
@@ -159,28 +170,28 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
             {recentTransactions.slice(0, 5).map((tx) => (
               <div
                 key={tx.id}
-                className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 gap-2"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                     tx.type === 'income' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
                   }`}>
                     {tx.type === 'income' ? (
-                      <ArrowUpRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
                     ) : (
-                      <ArrowDownRight className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 dark:text-red-400" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       {tx.description || tx.categoryName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
                       {tx.date} • {tx.categoryName}
                     </p>
                   </div>
                 </div>
-                <span className={`text-sm font-semibold ${
+                <span className={`text-xs sm:text-sm font-semibold flex-shrink-0 ${
                   tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
@@ -197,10 +208,10 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
 
       {/* Monthly Trend */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 md:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Monthly Trend (Last 6 Months)
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Monthly Trend <span className="text-xs sm:text-sm font-normal text-gray-500">(Last 6 Months)</span>
         </h3>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-6 gap-1 sm:gap-2">
           {monthlyTrend.map((month, index) => {
             const maxValue = Math.max(
               ...monthlyTrend.map(m => Math.max(m.income, m.expenses))
@@ -210,49 +221,49 @@ function PersonalDashboard({ dashboard, onAddTransaction }) {
 
             return (
               <div key={index} className="text-center">
-                <div className="h-24 flex items-end justify-center gap-1 mb-2">
+                <div className="h-16 sm:h-24 flex items-end justify-center gap-0.5 sm:gap-1 mb-1 sm:mb-2">
                   <div
-                    className="w-3 bg-green-500 rounded-t"
+                    className="w-2 sm:w-3 bg-green-500 rounded-t"
                     style={{ height: `${incomeHeight}%`, minHeight: month.income > 0 ? '4px' : '0' }}
                     title={`Income: ${formatCurrency(month.income)}`}
                   />
                   <div
-                    className="w-3 bg-red-500 rounded-t"
+                    className="w-2 sm:w-3 bg-red-500 rounded-t"
                     style={{ height: `${expenseHeight}%`, minHeight: month.expenses > 0 ? '4px' : '0' }}
                     title={`Expenses: ${formatCurrency(month.expenses)}`}
                   />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{month.month}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">{month.month}</p>
               </div>
             );
           })}
         </div>
-        <div className="flex justify-center gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Income</span>
+        <div className="flex justify-center gap-4 sm:gap-6 mt-3 sm:mt-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded" />
+            <span className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Income</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Expenses</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded" />
+            <span className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Expenses</span>
           </div>
         </div>
       </div>
 
       {/* Daily Stats */}
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow p-4 md:p-6 text-white">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-white/70 text-sm">Daily Average Spending</p>
-            <p className="text-xl font-bold">{formatCurrency(dailyAverageSpending)}</p>
+        <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 xs:gap-4 text-center">
+          <div className="flex xs:block items-center justify-between xs:justify-start">
+            <p className="text-white/70 text-xs sm:text-sm">Daily Avg Spending</p>
+            <p className="text-lg sm:text-xl font-bold">{formatCurrency(dailyAverageSpending)}</p>
           </div>
-          <div>
-            <p className="text-white/70 text-sm">Transactions This Month</p>
-            <p className="text-xl font-bold">{monthlySummary.transactionCount}</p>
+          <div className="flex xs:block items-center justify-between xs:justify-start">
+            <p className="text-white/70 text-xs sm:text-sm">Transactions This Month</p>
+            <p className="text-lg sm:text-xl font-bold">{monthlySummary.transactionCount}</p>
           </div>
-          <div>
-            <p className="text-white/70 text-sm">Savings Rate</p>
-            <p className="text-xl font-bold">{monthlySummary.savingsRate.toFixed(1)}%</p>
+          <div className="flex xs:block items-center justify-between xs:justify-start">
+            <p className="text-white/70 text-xs sm:text-sm">Savings Rate</p>
+            <p className="text-lg sm:text-xl font-bold">{monthlySummary.savingsRate.toFixed(1)}%</p>
           </div>
         </div>
       </div>

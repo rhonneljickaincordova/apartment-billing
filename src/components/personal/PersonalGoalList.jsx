@@ -157,67 +157,67 @@ function PersonalGoalList({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Target className="w-6 h-6" />
-            Savings Goals
+      <div className="flex justify-between items-center gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Target className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+            <span className="truncate">Savings Goals</span>
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Total Saved: {formatCurrency(totalSavings)}
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            Total: {formatCurrency(totalSavings)}
           </p>
         </div>
         <button
           onClick={handleAdd}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0 text-sm sm:text-base"
         >
           <Plus className="w-4 h-4" />
-          Add Goal
+          <span className="hidden xs:inline">Add</span> Goal
         </button>
       </div>
 
       {/* Active Goals */}
       {activeGoals.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Goals</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3 sm:space-y-4">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Active Goals</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {activeGoals.map((goal) => (
               <div
                 key={goal.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow p-4"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow p-3 sm:p-4"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${getColorClass(goal.color)}`} />
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                <div className="flex justify-between items-start mb-2 sm:mb-3 gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${getColorClass(goal.color)}`} />
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white truncate">
                       {goal.name}
                     </h3>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-shrink-0">
                     <button
                       onClick={() => handleEdit(goal)}
                       className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(goal.id)}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
 
                 {/* Progress */}
-                <div className="space-y-2 mb-4">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 sm:h-3">
                     <div
-                      className={`h-3 rounded-full ${getColorClass(goal.color)}`}
+                      className={`h-2.5 sm:h-3 rounded-full ${getColorClass(goal.color)}`}
                       style={{ width: `${goal.progress}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
                       {formatCurrency(goal.currentAmount)}
                     </span>
@@ -225,20 +225,20 @@ function PersonalGoalList({
                       {formatCurrency(goal.targetAmount)}
                     </span>
                   </div>
-                  <p className="text-center text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-center text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                     {goal.progress.toFixed(0)}% Complete
                   </p>
                 </div>
 
                 {/* Deadline */}
                 {goal.deadline && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">
                     <Calendar className="w-3 h-3" />
                     {goal.daysRemaining !== null && (
                       <span className={goal.isOverdue ? 'text-red-500' : ''}>
                         {goal.isOverdue
                           ? `${Math.abs(goal.daysRemaining)} days overdue`
-                          : `${goal.daysRemaining} days remaining`
+                          : `${goal.daysRemaining} days left`
                         }
                       </span>
                     )}
@@ -249,16 +249,16 @@ function PersonalGoalList({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOpenFunds(goal, 'add')}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 text-sm"
+                    className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 text-xs sm:text-sm"
                   >
-                    <TrendingUp className="w-4 h-4" />
-                    Add Funds
+                    <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Add
                   </button>
                   <button
                     onClick={() => handleOpenFunds(goal, 'withdraw')}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
+                    className="flex-1 flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-xs sm:text-sm"
                   >
-                    <DollarSign className="w-4 h-4" />
+                    <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Withdraw
                   </button>
                 </div>
@@ -270,28 +270,28 @@ function PersonalGoalList({
 
       {/* Completed Goals */}
       {completedGoals.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed Goals</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3 sm:space-y-4">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Completed Goals</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {completedGoals.map((goal) => (
               <div
                 key={goal.id}
-                className="bg-green-50 dark:bg-green-900/20 rounded-xl shadow p-4 border border-green-200 dark:border-green-800"
+                className="bg-green-50 dark:bg-green-900/20 rounded-xl shadow p-3 sm:p-4 border border-green-200 dark:border-green-800"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-green-800 dark:text-green-300">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm sm:text-base text-green-800 dark:text-green-300 truncate">
                       {goal.name}
                     </h3>
-                    <p className="text-sm text-green-600 dark:text-green-400">
+                    <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                       {formatCurrency(goal.targetAmount)} achieved!
                     </p>
                   </div>
                   <button
                     onClick={() => handleDelete(goal.id)}
-                    className="p-1.5 text-green-400 hover:text-red-500 rounded-lg"
+                    className="p-1.5 text-green-400 hover:text-red-500 rounded-lg flex-shrink-0"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
