@@ -1,16 +1,16 @@
-import { Calendar, CalendarDays, X } from 'lucide-react';
+import { Calendar, X, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Time period options
  */
 export const TIME_PERIODS = [
+  { value: 'all', label: 'All Year' },
   { value: 'month', label: 'This Month' },
   { value: 'lastMonth', label: 'Last Month' },
   { value: 'quarter', label: 'This Quarter' },
   { value: '6months', label: 'Last 6 Months' },
   { value: 'year', label: 'This Year' },
   { value: 'custom', label: 'Custom Range' },
-  { value: 'all', label: 'All Time' },
 ];
 
 /**
@@ -129,7 +129,7 @@ const getPeriodDisplayLabel = (period, selectedYear, customRange) => {
       }
       return 'Custom Range';
     case 'all':
-      return `All of ${selectedYear}`;
+      return `Year ${selectedYear}`;
     default:
       return '';
   }
@@ -150,67 +150,94 @@ function DashboardFilters({
 }) {
   const showCustomRange = timePeriod === 'custom';
   const displayLabel = getPeriodDisplayLabel(timePeriod, selectedYear, customRange);
+  const currentYear = new Date().getFullYear();
+
+  const handlePrevYear = () => {
+    const minYear = Math.min(...availableYears);
+    if (selectedYear > minYear - 1) {
+      onYearChange(selectedYear - 1);
+    }
+  };
+
+  const handleNextYear = () => {
+    if (selectedYear < currentYear) {
+      onYearChange(selectedYear + 1);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 md:p-4 flex-1">
-      {/* Period Quick Select Buttons - Scrollable on mobile with fade indicators */}
-      <div className="relative">
-        {/* Left fade indicator */}
-        <div className="absolute left-0 top-0 bottom-2 w-4 bg-gradient-to-r from-white dark:from-gray-800 to-transparent pointer-events-none z-10 sm:hidden" />
-        {/* Right fade indicator */}
-        <div className="absolute right-0 top-0 bottom-2 w-4 bg-gradient-to-l from-white dark:from-gray-800 to-transparent pointer-events-none z-10 sm:hidden" />
+      {/* Filter Row - Similar to Business Report */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Filter Label */}
+        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+          <Filter className="w-4 h-4" />
+          <span className="hidden xs:inline">Period:</span>
+        </div>
 
-        <div className="overflow-x-auto pb-2 scrollbar-hide">
-          <div className="flex items-center gap-1.5 sm:gap-2 sm:flex-wrap min-w-max sm:min-w-0 mb-3 md:mb-4">
-            {TIME_PERIODS.filter(p => p.value !== 'custom').map((period) => (
-              <button
-                key={period.value}
-                onClick={() => onTimePeriodChange(period.value)}
-                className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  timePeriod === period.value
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
+        {/* Year Navigation - Hide for 6months and custom */}
+        {timePeriod !== 'custom' && timePeriod !== '6months' && (
+          <div className="flex items-center gap-0.5">
             <button
-              onClick={() => onTimePeriodChange('custom')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-1 whitespace-nowrap ${
-                timePeriod === 'custom'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
+              onClick={handlePrevYear}
+              className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              title="Previous year"
             >
-              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Custom
+              <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            </button>
+            <span className="px-2 sm:px-3 py-1 text-sm font-semibold text-gray-900 dark:text-white min-w-[50px] text-center">
+              {selectedYear}
+            </span>
+            <button
+              onClick={handleNextYear}
+              disabled={selectedYear >= currentYear}
+              className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next year"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
-        </div>
+        )}
+
+        {/* Period Dropdown */}
+        <select
+          value={timePeriod}
+          onChange={(e) => onTimePeriodChange(e.target.value)}
+          className="px-2 sm:px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {TIME_PERIODS.map((period) => (
+            <option key={period.value} value={period.value}>
+              {period.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Showing Label */}
+        <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-auto">
+          Showing: <span className="font-medium text-blue-600 dark:text-blue-400">{displayLabel}</span>
+        </span>
       </div>
 
       {/* Custom Date Range (conditionally shown) */}
       {showCustomRange && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 md:mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-500 hidden sm:block" />
-            <span className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">From:</span>
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">From:</span>
             <input
               type="date"
               value={customRange?.startDate || ''}
               onChange={(e) => onCustomRangeChange?.({ ...customRange, startDate: e.target.value })}
-              className="flex-1 sm:flex-none border rounded-lg px-2 md:px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="flex-1 sm:flex-none border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">To:</span>
-            <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">to</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">To:</span>
             <input
               type="date"
               value={customRange?.endDate || ''}
               onChange={(e) => onCustomRangeChange?.({ ...customRange, endDate: e.target.value })}
-              className="flex-1 sm:flex-none border rounded-lg px-2 md:px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="flex-1 sm:flex-none border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
             {(customRange?.startDate || customRange?.endDate) && (
               <button
@@ -224,33 +251,6 @@ function DashboardFilters({
           </div>
         </div>
       )}
-
-      {/* Year selector and current filter display */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Showing:</span>
-          <span className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 sm:px-3 py-1 rounded-full">
-            {displayLabel}
-          </span>
-        </div>
-
-        {timePeriod !== 'custom' && timePeriod !== '6months' && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Year:</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => onYearChange(parseInt(e.target.value))}
-              className="border rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
