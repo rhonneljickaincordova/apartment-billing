@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
@@ -12,6 +12,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
   const [statusFilter, setStatusFilter] = useState('active'); // 'all', 'active', 'movedOut'
   const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(null); // Tracks which tenant's PDF is being downloaded
 
   const getRoom = (roomId) => {
     if (!roomId) return null;
@@ -69,6 +70,344 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
   const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return '-';
     return `₱${parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Download contract as PDF
+  const handleDownloadPdf = async (tenant) => {
+    setDownloadingPdf(tenant.id);
+
+    try {
+      const room = getRoom(tenant.roomId);
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      const landlordSignature = (await import('../../assets/signiture.png')).default;
+
+      // Create a temporary container for rendering
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '800px';
+      document.body.appendChild(container);
+
+      const monthlyRent = room?.rent || 0;
+      const waterRate = tenant?.customRates?.waterRate ?? settings?.waterRate ?? 100;
+      const electricityRate = tenant?.customRates?.electricityRate ?? settings?.electricityRate ?? 15;
+      const wifiRate = tenant?.customRates?.wifiRate ?? settings?.wifiRate ?? 500;
+      const securityDeposit = tenant?.securityDeposit || monthlyRent;
+      const advancePayment = tenant?.advancePayment || monthlyRent;
+      const earlyTerminationPenalty = tenant?.earlyTerminationPenalty || securityDeposit;
+
+      const formatPdfCurrency = (amt) => {
+        return new Intl.NumberFormat('en-PH', {
+          style: 'currency',
+          currency: 'PHP',
+          minimumFractionDigits: 2,
+        }).format(amt);
+      };
+
+      const formatPdfDate = (dateString) => {
+        if (!dateString) return '____________________';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+      };
+
+      const getOrdinalSuffix = (day) => {
+        if (day === null || day === undefined || day === '') return '5th';
+        const num = parseInt(String(day).trim());
+        if (isNaN(num)) return '5th';
+        if (num >= 11 && num <= 13) return num + 'th';
+        switch (num % 10) {
+          case 1: return num + 'st';
+          case 2: return num + 'nd';
+          case 3: return num + 'rd';
+          default: return num + 'th';
+        }
+      };
+
+      const LANDLORD_INFO = {
+        name: 'Rhonnel Cordova',
+        phone: '09276161535',
+        property: 'Blk 13 Lot 30 Matutum St., Sto. Nino Bulusan, Central Park, Bangkal, Brgy Talomo Poblacion, Davao City',
+      };
+
+      container.innerHTML = `
+        <div style="background: white; padding: 32px; font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 4px double #1f2937;">
+            <h1 style="font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 4px; margin: 0 0 8px 0;">Lease Agreement</h1>
+            <p style="font-size: 14px; color: #6b7280; font-style: italic; margin: 0;">Residential Property Rental Contract</p>
+          </div>
+
+          <!-- Parties Section -->
+          <div style="margin-bottom: 24px; padding: 16px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #2563eb;">
+            <p style="font-style: italic; margin-bottom: 16px; color: #374151;">This Lease Agreement ("Agreement") is entered into by and between:</p>
+
+            <div style="margin-bottom: 12px;">
+              <span style="font-weight: bold; color: #2563eb; text-transform: uppercase; font-size: 12px; margin-right: 16px;">Lessor:</span>
+              <span style="font-weight: bold; color: black;">${LANDLORD_INFO.name}</span>
+              <span style="font-size: 12px; color: #4b5563; margin-left: 8px;">Contact: ${LANDLORD_INFO.phone}</span>
+            </div>
+
+            <div>
+              <span style="font-weight: bold; color: #2563eb; text-transform: uppercase; font-size: 12px; margin-right: 16px;">Lessee:</span>
+              <span style="font-weight: bold; color: black;">${tenant?.fullName || '____________________'}</span>
+              <span style="font-size: 12px; color: #4b5563; margin-left: 8px;">Contact: ${tenant?.phoneNumber || '____________________'}</span>
+              <div style="font-size: 12px; color: #4b5563; margin-left: 64px;">
+                Emergency: ${tenant?.emergencyContactName || '____________________'} (${tenant?.relationship || '____________________'}) - ${tenant?.emergencyContactNumber || '____________________'}
+              </div>
+            </div>
+          </div>
+
+          <!-- Property Address -->
+          <div style="margin-bottom: 24px; padding: 16px; background: #dbeafe; border-radius: 8px;">
+            <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 4px 0;">Property Address</p>
+            <p style="color: #1f2937; margin: 0;">
+              ${room?.name ? `<strong>Room ${room.name}</strong> - ` : ''}${LANDLORD_INFO.property}
+            </p>
+          </div>
+
+          <!-- Terms Introduction -->
+          <div style="margin-bottom: 24px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; text-align: justify;">
+            <p style="color: #374151; margin: 0;">
+              The parties hereby agree to the following terms and conditions governing the rental of the above-mentioned property:
+            </p>
+          </div>
+
+          <!-- Terms List -->
+          <div>
+            <!-- Term 1 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">1</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Term of Lease</p>
+                  <p style="color: #374151; margin: 0;">
+                    The term of this lease shall begin on <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold;">${formatPdfDate(tenant?.moveInDate)}</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 2 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">2</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Monthly Rent</p>
+                  <p style="color: #374151; margin: 0;">
+                    The Lessee agrees to pay the Lessor the monthly rent of <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(monthlyRent)}</span>,
+                    payable on or before the <strong>${getOrdinalSuffix(tenant?.rentDueDay || tenant?.rentDueDate || 5)}</strong> day of each month.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 3 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">3</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Advance Payment & Security Deposit</p>
+                  <p style="color: #374151; margin: 0 0 8px 0;">Upon signing this Agreement, the Lessee shall pay:</p>
+                  <ul style="margin: 0 0 0 16px; padding: 0; list-style: disc; color: #374151;">
+                    <li style="margin-bottom: 4px;">One (1) month's rent as advance payment: <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(advancePayment)}</span></li>
+                    <li style="margin-bottom: 4px;">One (1) month's rent as security deposit: <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(securityDeposit)}</span></li>
+                    <li style="padding-top: 8px; border-top: 1px dashed #d1d5db; font-weight: bold;">
+                      Total amount due upon move-in: <span style="color: #15803d;">${formatPdfCurrency(advancePayment + securityDeposit)}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 4 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">4</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Security Deposit Refund</p>
+                  <p style="color: #374151; margin: 0; text-align: justify;">
+                    The security deposit shall be refundable upon the Lessee's departure from the property,
+                    provided that no damage to the premises beyond normal wear and tear has occurred and all
+                    outstanding rent and utility payments have been settled. The refund shall be processed
+                    within <strong>one (1) day</strong> of the Lessee's departure.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 5 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">5</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Early Termination</p>
+                  <p style="color: #374151; margin: 0; text-align: justify;">
+                    If the Lessee terminates this lease before the completion of <strong>six (6) months</strong> from the start date,
+                    a penalty of <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold; color: #b91c1c;">${formatPdfCurrency(earlyTerminationPenalty)}</span> shall be forfeited.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 6 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">6</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Utilities</p>
+                  <p style="color: #374151; margin: 0 0 8px 0;">The Lessee shall be responsible for payment of all utilities consumed, at the following rates:</p>
+                  <ul style="margin: 0 0 0 16px; padding: 0; list-style: disc; color: #374151;">
+                    <li style="margin-bottom: 4px;">Water: <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(waterRate)}</span> per person per month</li>
+                    <li style="margin-bottom: 4px;">Electricity: <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(electricityRate)}</span> per kilowatt-hour (kWh)</li>
+                    <li>Wi-Fi: <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(wifiRate)}</span> per month (flat rate)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 7 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">7</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Maintenance & Repairs</p>
+                  <p style="color: #374151; margin: 0; text-align: justify;">
+                    The Lessee agrees to maintain the premises in good condition. Minor repairs shall be the
+                    responsibility of the Lessee. Major repairs requiring structural changes or significant
+                    cost shall be reported to the Lessor for appropriate action.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 8 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">8</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Termination Notice</p>
+                  <p style="color: #374151; margin: 0; text-align: justify;">
+                    Either party may terminate this Agreement with at least <strong>one (1) day</strong> prior written notice to the other party.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 9 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">9</span>
+                <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">House Rules</p>
+                  <p style="color: #374151; margin: 0; text-align: justify;">
+                    The Lessee agrees to abide by all house rules and regulations set by the Lessor,
+                    including but not limited to: maintaining peace and quiet, proper disposal of garbage,
+                    and respecting other tenants' privacy and property.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Witness Section -->
+          <div style="margin-top: 32px; padding: 16px; background: #f3f4f6; border-radius: 8px; text-align: justify;">
+            <p style="color: #374151; margin: 0;">
+              <strong>IN WITNESS WHEREOF</strong>, the parties have hereunto set their hands this
+              <span style="font-weight: bold;">${formatPdfDate(new Date().toISOString())}</span>.
+            </p>
+          </div>
+
+          <!-- Signature Section -->
+          <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+            <!-- Lessor Signature -->
+            <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 8px;">
+                <img src="${landlordSignature}" alt="Landlord Signature" style="max-width: 180px; max-height: 70px;" crossorigin="anonymous" />
+              </div>
+              <div style="border-top: 2px solid #1f2937; padding-top: 8px;">
+                <p style="font-weight: bold; font-size: 16px; color: black; margin: 0 0 4px 0;">${LANDLORD_INFO.name}</p>
+                <p style="color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Lessor</p>
+              </div>
+              <p style="margin-top: 12px; font-size: 12px; color: #4b5563;">
+                Date: <span style="border-bottom: 1px solid #9ca3af; padding: 0 16px;">${formatPdfDate(new Date().toISOString())}</span>
+              </p>
+            </div>
+
+            <!-- Lessee Signature -->
+            <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+              <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 8px;">
+                ${tenant?.contractSignature ? `<img src="${tenant.contractSignature}" alt="Tenant Signature" style="max-width: 180px; max-height: 70px;" crossorigin="anonymous" />` : ''}
+              </div>
+              <div style="border-top: 2px solid #1f2937; padding-top: 8px;">
+                <p style="font-weight: bold; font-size: 16px; color: black; margin: 0 0 4px 0;">${tenant?.fullName || '____________________'}</p>
+                <p style="color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Lessee</p>
+              </div>
+              <p style="margin-top: 12px; font-size: 12px; color: #4b5563;">
+                Date: <span style="border-bottom: 1px solid #9ca3af; padding: 0 16px;">${tenant?.contractSignedDate ? formatPdfDate(tenant.contractSignedDate) : '_______________'}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(container.firstChild, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 800,
+      });
+
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const pdf = new jsPDF({
+        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2);
+
+      const aspectRatio = imgWidth / imgHeight;
+      let finalWidth = availableWidth;
+      let finalHeight = finalWidth / aspectRatio;
+
+      if (finalHeight > availableHeight) {
+        finalHeight = availableHeight;
+        finalWidth = finalHeight * aspectRatio;
+      }
+
+      const x = (pdfWidth - finalWidth) / 2;
+      const y = margin;
+
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+      const fileName = `LeaseAgreement-${tenant.fullName.replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setDownloadingPdf(null);
+    }
   };
 
   // Filter and sort tenants
@@ -328,6 +667,14 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex justify-end gap-2">
                     <button
+                      onClick={() => handleDownloadPdf(tenant)}
+                      disabled={downloadingPdf === tenant.id}
+                      className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 p-1 disabled:opacity-50"
+                      title="Download Contract PDF"
+                    >
+                      <Download className={`w-4 h-4 ${downloadingPdf === tenant.id ? 'animate-pulse' : ''}`} />
+                    </button>
+                    <button
                       onClick={() => setLeaseModalTenant(tenant)}
                       className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 p-1"
                       title="Send Contract"
@@ -459,6 +806,14 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   Bill
                 </button>
               )}
+              <button
+                onClick={() => handleDownloadPdf(tenant)}
+                disabled={downloadingPdf === tenant.id}
+                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 flex items-center gap-1 text-sm disabled:opacity-50"
+              >
+                <Download className={`w-4 h-4 ${downloadingPdf === tenant.id ? 'animate-pulse' : ''}`} />
+                PDF
+              </button>
               <button
                 onClick={() => setLeaseModalTenant(tenant)}
                 className="text-green-600 hover:text-green-800 dark:text-green-400 flex items-center gap-1 text-sm"

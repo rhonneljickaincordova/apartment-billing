@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { X, Share2 } from 'lucide-react';
+import { X, Share2, Download } from 'lucide-react';
 import landlordSignature from '../../assets/signiture.png';
 
 const LANDLORD_INFO = {
@@ -88,6 +88,7 @@ const getOrdinalSuffix = (day) => {
 function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   const contentRef = useRef(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isOpen || !tenant) return null;
 
@@ -163,6 +164,71 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
     }
   };
 
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      const element = contentRef.current;
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 800,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Create PDF with A4 dimensions (210mm x 297mm)
+      const pdf = new jsPDF({
+        orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10; // 10mm margin
+
+      // Calculate the dimensions to fit the image within the PDF with margins
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2);
+
+      // Calculate aspect ratio
+      const aspectRatio = imgWidth / imgHeight;
+      let finalWidth = availableWidth;
+      let finalHeight = finalWidth / aspectRatio;
+
+      // If height exceeds available space, scale down
+      if (finalHeight > availableHeight) {
+        finalHeight = availableHeight;
+        finalWidth = finalHeight * aspectRatio;
+      }
+
+      // Center the image
+      const x = (pdfWidth - finalWidth) / 2;
+      const y = margin;
+
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+      // Download the PDF
+      const tenantName = tenant?.fullName || 'Tenant';
+      const fileName = `LeaseAgreement-${tenantName.replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -184,6 +250,14 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
             Lease Agreement Preview
           </h2>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Download className={`w-4 h-4 ${isDownloading ? 'animate-pulse' : ''}`} />
+              {isDownloading ? 'Generating...' : 'PDF'}
+            </button>
             <button
               onClick={handleShare}
               disabled={isSharing}
