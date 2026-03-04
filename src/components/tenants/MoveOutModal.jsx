@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, LogOut, Calendar, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, LogOut, Calendar, DollarSign, AlertCircle, CheckCircle, FileText } from 'lucide-react';
+
+// Move-out reason options
+const MOVE_OUT_REASONS = [
+  { value: 'normal', label: 'Normal Move-Out', description: 'Tenant completed lease term or gave proper notice' },
+  { value: 'early_termination', label: 'Early Termination', description: 'Tenant leaving before minimum stay period' },
+  { value: 'emergency', label: 'Emergency', description: 'Unexpected circumstances requiring immediate move-out' },
+  { value: 'eviction', label: 'Eviction', description: 'Tenant evicted due to violations or non-payment' },
+  { value: 'contract_violation', label: 'Contract Violation', description: 'Tenant violated lease agreement terms' },
+  { value: 'personal', label: 'Personal Reasons', description: 'Job relocation, family matters, etc.' },
+  { value: 'other', label: 'Other', description: 'Other reason not listed above' },
+];
 
 /**
  * Move Out Modal Component
@@ -13,6 +24,7 @@ function MoveOutModal({
   onConfirmMoveOut,
 }) {
   const [moveOutDate, setMoveOutDate] = useState('');
+  const [moveOutReason, setMoveOutReason] = useState('normal');
   const [refundAmount, setRefundAmount] = useState(0);
   const [deductions, setDeductions] = useState('');
   const [notes, setNotes] = useState('');
@@ -22,6 +34,7 @@ function MoveOutModal({
     if (isOpen && tenant) {
       const today = new Date().toISOString().split('T')[0];
       setMoveOutDate(today);
+      setMoveOutReason('normal');
       setRefundAmount(tenant.securityDeposit || 0);
       setDeductions('');
       setNotes('');
@@ -55,8 +68,12 @@ function MoveOutModal({
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    const reasonInfo = MOVE_OUT_REASONS.find(r => r.value === moveOutReason);
+
     onConfirmMoveOut(tenant, {
       moveOutDate,
+      moveOutReason,
+      moveOutReasonLabel: reasonInfo?.label || 'Normal Move-Out',
       refundAmount,
       deductions: parseFloat(deductions) || 0,
       notes,
@@ -150,6 +167,28 @@ function MoveOutModal({
               />
             </div>
 
+            {/* Move Out Reason */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <FileText className="w-4 h-4 inline mr-1" />
+                Reason for Move-Out
+              </label>
+              <select
+                value={moveOutReason}
+                onChange={(e) => setMoveOutReason(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                {MOVE_OUT_REASONS.map((reason) => (
+                  <option key={reason.value} value={reason.value}>
+                    {reason.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {MOVE_OUT_REASONS.find(r => r.value === moveOutReason)?.description}
+              </p>
+            </div>
+
             {/* Deposit & Refund Calculation */}
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
               <h4 className="font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
@@ -226,6 +265,18 @@ function MoveOutModal({
                   <span className="text-gray-600 dark:text-gray-300">Move-Out Date:</span>
                   <span className="font-medium text-gray-900 dark:text-white">
                     {moveOutDate ? new Date(moveOutDate).toLocaleDateString() : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">Reason:</span>
+                  <span className={`font-medium ${
+                    moveOutReason === 'eviction' || moveOutReason === 'contract_violation'
+                      ? 'text-red-600 dark:text-red-400'
+                      : moveOutReason === 'emergency'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-gray-900 dark:text-white'
+                  }`}>
+                    {MOVE_OUT_REASONS.find(r => r.value === moveOutReason)?.label}
                   </span>
                 </div>
                 <div className="flex justify-between">

@@ -649,9 +649,22 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                       {tenant.isActive ? 'Active' : tenant.moveOutDate ? 'Moved Out' : 'Inactive'}
                     </span>
                     {tenant.moveOutDate && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {formatDate(tenant.moveOutDate)}
-                      </span>
+                      <>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {formatDate(tenant.moveOutDate)}
+                        </span>
+                        {tenant.moveOutDetails?.moveOutReasonLabel && (
+                          <span className={`text-xs mt-0.5 ${
+                            tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
+                              ? 'text-red-500 dark:text-red-400'
+                              : tenant.moveOutDetails.moveOutReason === 'emergency'
+                                ? 'text-amber-500 dark:text-amber-400'
+                                : 'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            ({tenant.moveOutDetails.moveOutReasonLabel})
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>
@@ -761,9 +774,22 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   {tenant.isActive ? 'Active' : tenant.moveOutDate ? 'Moved Out' : 'Inactive'}
                 </span>
                 {tenant.moveOutDate && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {formatDate(tenant.moveOutDate)}
-                  </span>
+                  <>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formatDate(tenant.moveOutDate)}
+                    </span>
+                    {tenant.moveOutDetails?.moveOutReasonLabel && (
+                      <span className={`text-xs ${
+                        tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
+                          ? 'text-red-500 dark:text-red-400'
+                          : tenant.moveOutDetails.moveOutReason === 'emergency'
+                            ? 'text-amber-500 dark:text-amber-400'
+                            : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        ({tenant.moveOutDetails.moveOutReasonLabel})
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
