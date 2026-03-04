@@ -294,6 +294,8 @@ export function useTenants() {
       try {
         const {
           moveOutDate = new Date().toISOString().split('T')[0],
+          moveOutReason = 'normal',
+          moveOutReasonLabel = 'Normal Move-Out',
           refundAmount = 0,
           deductions = 0,
           notes = '',
@@ -305,6 +307,8 @@ export function useTenants() {
           isActive: false,
           moveOutDate,
           moveOutDetails: {
+            moveOutReason,
+            moveOutReasonLabel,
             refundAmount,
             deductions,
             notes,
