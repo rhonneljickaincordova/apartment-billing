@@ -125,6 +125,27 @@ function BusinessReportModal({
     });
   }, [expenses, selectedYear, selectedMonth]);
 
+  // Filter tenants who moved out during the selected period (for move-out refunds)
+  const movedOutTenants = useMemo(() => {
+    return tenants.filter(tenant => {
+      if (!tenant.moveOutDate) return false;
+      const moveOutDate = new Date(tenant.moveOutDate);
+      const moveOutYear = moveOutDate.getFullYear();
+      const moveOutMonth = moveOutDate.getMonth() + 1;
+
+      if (moveOutYear !== selectedYear) return false;
+      if (selectedMonth > 0 && moveOutMonth !== selectedMonth) return false;
+      return true;
+    });
+  }, [tenants, selectedYear, selectedMonth]);
+
+  // Calculate total move-out refunds for the period
+  const totalMoveOutRefunds = useMemo(() => {
+    return movedOutTenants.reduce((sum, tenant) => {
+      return sum + (tenant.moveOutDetails?.refundAmount || 0);
+    }, 0);
+  }, [movedOutTenants]);
+
   // Get period label for display
   const periodLabel = selectedMonth > 0
     ? `${MONTHS[selectedMonth]} ${selectedYear}`
@@ -196,9 +217,12 @@ function BusinessReportModal({
   const totalPersonalExpenses = personalExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
+  // Add move-out refunds to total refunds
+  const totalRefunds = refundsGiven + totalMoveOutRefunds;
+
   // Total actual cash in bank = bill payments + move-in payments - expenses - refunds
   const totalCashInflow = cashCollected + totalMoveInPayments;
-  const netProfit = totalCashInflow - totalApartmentExpenses - refundsGiven;
+  const netProfit = totalCashInflow - totalApartmentExpenses - totalRefunds;
   const profitMargin = totalCashInflow > 0 ? ((netProfit / totalCashInflow) * 100).toFixed(1) : 0;
 
   // Bill status breakdown (using FILTERED bills for period stats)
@@ -256,7 +280,7 @@ function BusinessReportModal({
   // === NEW BUSINESS METRICS ===
 
   // 1. Cash Flow Summary - Actual cash collected + move-in payments - expenses - refunds
-  const cashFlow = totalCashInflow - totalApartmentExpenses - refundsGiven;
+  const cashFlow = totalCashInflow - totalApartmentExpenses - totalRefunds;
 
   // 2. Monthly Target vs Actual
   // Target = sum of rent from all occupied rooms
@@ -517,7 +541,7 @@ function BusinessReportModal({
               <div class="summary-label">Apt. Expenses</div>
             </div>
             <div class="summary-item">
-              <div class="summary-value">${formatCurrency(refundsGiven)}</div>
+              <div class="summary-value">${formatCurrency(totalRefunds)}</div>
               <div class="summary-label">Refunds</div>
             </div>
             <div class="summary-item" style="border-left: 2px solid rgba(255,255,255,0.3); padding-left: 15px;">
@@ -951,7 +975,7 @@ function BusinessReportModal({
                   <p className="text-sm opacity-80">Apt. Expenses</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{formatCurrency(refundsGiven)}</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totalRefunds)}</p>
                   <p className="text-sm opacity-80">Refunds</p>
                 </div>
                 <div className="text-center border-l border-white/30 pl-4">
@@ -1059,10 +1083,10 @@ function BusinessReportModal({
                     <span className="text-gray-600 dark:text-gray-300">Apartment Expenses</span>
                     <span className="font-semibold text-red-600">- {formatCurrency(totalApartmentExpenses)}</span>
                   </div>
-                  {refundsGiven > 0 && (
+                  {totalRefunds > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-300">Refunds Given</span>
-                      <span className="font-semibold text-red-600">- {formatCurrency(refundsGiven)}</span>
+                      <span className="font-semibold text-red-600">- {formatCurrency(totalRefunds)}</span>
                     </div>
                   )}
                   <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
@@ -1383,7 +1407,7 @@ function BusinessReportModal({
                 <p className="text-sm opacity-80">Apt. Expenses</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">{formatCurrency(refundsGiven)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalRefunds)}</p>
                 <p className="text-sm opacity-80">Refunds</p>
               </div>
               <div className="text-center border-l border-white/30 pl-4">
@@ -1495,10 +1519,10 @@ function BusinessReportModal({
                   <span className="text-gray-600 dark:text-gray-300">Apartment Expenses</span>
                   <span className="font-semibold text-red-600">- {formatCurrency(totalApartmentExpenses)}</span>
                 </div>
-                {refundsGiven > 0 && (
+                {totalRefunds > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-300">Refunds Given</span>
-                    <span className="font-semibold text-red-600">- {formatCurrency(refundsGiven)}</span>
+                    <span className="font-semibold text-red-600">- {formatCurrency(totalRefunds)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
