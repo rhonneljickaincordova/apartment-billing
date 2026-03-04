@@ -134,6 +134,26 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
       data[tenant.roomId].totalAdvance += totalMoveInPayment;
     });
 
+    // Process move-out refunds from tenant.moveOutDetails
+    tenants.forEach(tenant => {
+      if (!tenant.roomId || !data[tenant.roomId]) return;
+      if (!tenant.moveOutDetails?.refundAmount) return;
+
+      // Get move-out date to determine which month to apply the refund
+      const moveOutDate = tenant.moveOutDate || tenant.moveOutDetails?.processedDate;
+      if (!moveOutDate) return;
+
+      const moveOutDateObj = new Date(moveOutDate);
+      const moveOutYear = moveOutDateObj.getFullYear();
+      const moveOutMonth = moveOutDateObj.getMonth();
+
+      if (moveOutYear !== selectedYear) return;
+
+      const moveOutRefund = tenant.moveOutDetails.refundAmount;
+      data[tenant.roomId].months[moveOutMonth].refund += moveOutRefund;
+      data[tenant.roomId].totalRefund += moveOutRefund;
+    });
+
     return data;
   }, [rooms, bills, tenants, selectedYear, getBillTotal]);
 
