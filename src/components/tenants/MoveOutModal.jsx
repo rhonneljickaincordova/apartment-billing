@@ -57,12 +57,26 @@ function MoveOutModal({
   const handleDeductionsChange = (value) => {
     const deductionAmount = parseFloat(value) || 0;
     setDeductions(value);
-    const calculatedRefund = Math.max(0, securityDeposit - deductionAmount);
-    setRefundAmount(calculatedRefund);
+    // Only auto-calculate refund for non-emergency reasons
+    if (moveOutReason !== 'emergency') {
+      const calculatedRefund = Math.max(0, securityDeposit - deductionAmount);
+      setRefundAmount(calculatedRefund);
+    }
   };
 
   const handleRefundChange = (value) => {
     setRefundAmount(parseFloat(value) || 0);
+  };
+
+  // Handle reason change
+  const handleReasonChange = (value) => {
+    setMoveOutReason(value);
+    // Reset refund to deposit when switching away from emergency
+    if (value !== 'emergency') {
+      const deductionAmount = parseFloat(deductions) || 0;
+      const calculatedRefund = Math.max(0, securityDeposit - deductionAmount);
+      setRefundAmount(calculatedRefund);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -175,7 +189,7 @@ function MoveOutModal({
               </label>
               <select
                 value={moveOutReason}
-                onChange={(e) => setMoveOutReason(e.target.value)}
+                onChange={(e) => handleReasonChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 {MOVE_OUT_REASONS.map((reason) => (
@@ -190,11 +204,25 @@ function MoveOutModal({
             </div>
 
             {/* Deposit & Refund Calculation */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+            <div className={`rounded-lg p-4 space-y-3 ${
+              moveOutReason === 'emergency'
+                ? 'bg-amber-50 dark:bg-amber-900/20'
+                : 'bg-blue-50 dark:bg-blue-900/20'
+            }`}>
+              <h4 className={`font-semibold flex items-center gap-2 ${
+                moveOutReason === 'emergency'
+                  ? 'text-amber-800 dark:text-amber-200'
+                  : 'text-blue-800 dark:text-blue-200'
+              }`}>
                 <DollarSign className="w-4 h-4" />
-                Deposit & Refund Calculation
+                {moveOutReason === 'emergency' ? 'Emergency Refund' : 'Deposit & Refund Calculation'}
               </h4>
+
+              {moveOutReason === 'emergency' && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded">
+                  Emergency move-out: You can set any refund amount below.
+                </p>
+              )}
 
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-300">Security Deposit:</span>
@@ -203,26 +231,28 @@ function MoveOutModal({
                 </span>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-                  Deductions (damages, unpaid bills, etc.):
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={securityDeposit}
-                    value={deductions}
-                    onChange={(e) => handleDeductionsChange(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.00"
-                  />
+              {moveOutReason !== 'emergency' && (
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+                    Deductions (damages, unpaid bills, etc.):
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max={securityDeposit}
+                      value={deductions}
+                      onChange={(e) => handleDeductionsChange(e.target.value)}
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
+              <div className={`pt-3 ${moveOutReason !== 'emergency' ? 'border-t border-blue-200 dark:border-blue-800' : ''}`}>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Refund Amount to Tenant:
                 </label>
@@ -234,7 +264,11 @@ function MoveOutModal({
                     min="0"
                     value={refundAmount}
                     onChange={(e) => handleRefundChange(e.target.value)}
-                    className="w-full pl-8 pr-4 py-3 border-2 border-green-500 dark:border-green-600 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-bold text-lg focus:ring-2 focus:ring-green-500"
+                    className={`w-full pl-8 pr-4 py-3 border-2 rounded-lg font-bold text-lg focus:ring-2 ${
+                      moveOutReason === 'emergency'
+                        ? 'border-amber-500 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 focus:ring-amber-500'
+                        : 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 focus:ring-green-500'
+                    }`}
                   />
                 </div>
               </div>
