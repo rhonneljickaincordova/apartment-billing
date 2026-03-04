@@ -590,6 +590,11 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
               </th>
+              {statusFilter === 'movedOut' && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Reason
+                </th>
+              )}
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Refund
               </th>
@@ -653,7 +658,8 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                         <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {formatDate(tenant.moveOutDate)}
                         </span>
-                        {tenant.moveOutDetails?.moveOutReasonLabel && (
+                        {/* Show reason inline only when NOT in movedOut filter (when it doesn't have its own column) */}
+                        {statusFilter !== 'movedOut' && tenant.moveOutDetails?.moveOutReasonLabel && (
                           <span className={`text-xs mt-0.5 ${
                             tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
                               ? 'text-red-500 dark:text-red-400'
@@ -668,6 +674,26 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                     )}
                   </div>
                 </td>
+                {/* Reason column - only shown when filtering by movedOut */}
+                {statusFilter === 'movedOut' && (
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {tenant.moveOutDate && tenant.moveOutDetails?.moveOutReasonLabel ? (
+                      <span className={`text-sm font-medium ${
+                        tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
+                          ? 'text-red-600 dark:text-red-400'
+                          : tenant.moveOutDetails.moveOutReason === 'emergency'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : tenant.moveOutDetails.moveOutReason === 'normal'
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {tenant.moveOutDetails.moveOutReasonLabel}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   {tenant.moveOutDate && tenant.moveOutDetails?.refundAmount !== undefined ? (
                     <span className={`text-sm font-medium ${tenant.moveOutDetails.refundAmount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -778,7 +804,8 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {formatDate(tenant.moveOutDate)}
                     </span>
-                    {tenant.moveOutDetails?.moveOutReasonLabel && (
+                    {/* Show reason inline only when NOT in movedOut filter */}
+                    {statusFilter !== 'movedOut' && tenant.moveOutDetails?.moveOutReasonLabel && (
                       <span className={`text-xs ${
                         tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
                           ? 'text-red-500 dark:text-red-400'
@@ -815,6 +842,23 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   <span className="text-gray-500 dark:text-gray-400">Refund:</span>
                   <span className={`ml-1 font-medium ${tenant.moveOutDetails.refundAmount > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                     {formatCurrency(tenant.moveOutDetails.refundAmount)}
+                  </span>
+                </div>
+              )}
+              {/* Show Reason as separate field when filtering by movedOut */}
+              {statusFilter === 'movedOut' && tenant.moveOutDate && tenant.moveOutDetails?.moveOutReasonLabel && (
+                <div className="col-span-2">
+                  <span className="text-gray-500 dark:text-gray-400">Reason:</span>
+                  <span className={`ml-1 font-medium ${
+                    tenant.moveOutDetails.moveOutReason === 'eviction' || tenant.moveOutDetails.moveOutReason === 'contract_violation'
+                      ? 'text-red-600 dark:text-red-400'
+                      : tenant.moveOutDetails.moveOutReason === 'emergency'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : tenant.moveOutDetails.moveOutReason === 'normal'
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    {tenant.moveOutDetails.moveOutReasonLabel}
                   </span>
                 </div>
               )}
