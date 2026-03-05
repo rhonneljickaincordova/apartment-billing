@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, DollarSign, CheckCircle, Upload, Trash2, Plus, Minus } from 'lucide-react';
+import { X, DollarSign, CheckCircle, Upload, Trash2, Plus, Minus, Clock, ChevronDown, ChevronUp, CreditCard, Image } from 'lucide-react';
 
 /**
  * Payment Popup Component
@@ -20,6 +20,7 @@ function PaymentPopup({
   ]);
   const [error, setError] = useState('');
   const [notes, setNotes] = useState('');
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const fileInputRefs = useRef([]);
 
   // Reset form when popup opens/closes or bill changes
@@ -28,6 +29,7 @@ function PaymentPopup({
       setPaymentMethods([{ method: 'Cash', amount: '', proofImages: [] }]);
       setError('');
       setNotes('');
+      setShowPaymentHistory(false);
     }
   }, [isOpen, bill?.id]);
 
@@ -163,6 +165,130 @@ function PaymentPopup({
                 <span className="font-bold text-red-600 dark:text-red-400">₱{remainingBalance.toFixed(2)}</span>
               </div>
             </div>
+
+            {/* Payment History Section - Show when there are previous payments */}
+            {bill.paymentHistory && bill.paymentHistory.length > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Payment History ({bill.paymentHistory.length} {bill.paymentHistory.length === 1 ? 'payment' : 'payments'})
+                    </span>
+                  </div>
+                  {showPaymentHistory ? (
+                    <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </button>
+
+                {showPaymentHistory && (
+                  <div className="px-4 pb-3 space-y-2">
+                    {bill.paymentHistory.map((payment, index) => {
+                      const paymentDate = payment.date ? new Date(payment.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : 'N/A';
+
+                      const getMethodIcon = (method) => {
+                        switch (method) {
+                          case 'GCash':
+                            return <span className="text-blue-500 font-bold text-xs">G</span>;
+                          case 'Bank Transfer':
+                            return <CreditCard className="w-3 h-3 text-purple-500" />;
+                          default:
+                            return <DollarSign className="w-3 h-3 text-green-500" />;
+                        }
+                      };
+
+                      const getMethodColor = (method) => {
+                        switch (method) {
+                          case 'GCash':
+                            return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400';
+                          case 'Bank Transfer':
+                            return 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400';
+                          default:
+                            return 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400';
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={index}
+                          className="bg-white dark:bg-gray-700 rounded-lg p-3 border border-blue-200 dark:border-blue-800"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{paymentDate}</span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">
+                              ₱{(Number(payment.amount) || 0).toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Payment methods breakdown */}
+                          {payment.paymentMethods && payment.paymentMethods.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                {payment.paymentMethods.map((method, methodIndex) => (
+                                  <span
+                                    key={methodIndex}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getMethodColor(method.method)}`}
+                                  >
+                                    {getMethodIcon(method.method)}
+                                    {method.method}: ₱{(Number(method.amount) || 0).toFixed(2)}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Proof images for each payment method */}
+                              {payment.paymentMethods.some(m => m.proofImages && m.proofImages.length > 0) && (
+                                <div className="pt-1">
+                                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                    <Image className="w-3 h-3" />
+                                    <span>Proof of Payment</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {payment.paymentMethods.map((method, methodIndex) =>
+                                      method.proofImages && method.proofImages.map((image, imgIndex) => (
+                                        <a
+                                          key={`${methodIndex}-${imgIndex}`}
+                                          href={image}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block"
+                                        >
+                                          <img
+                                            src={image}
+                                            alt={`Proof ${imgIndex + 1}`}
+                                            className="w-12 h-12 object-cover rounded border border-gray-300 dark:border-gray-600 hover:opacity-80 hover:border-blue-500 transition-all cursor-pointer"
+                                          />
+                                        </a>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Notes if any */}
+                          {payment.notes && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 italic truncate">
+                              "{payment.notes}"
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Payment Methods */}
             <div className="space-y-3">
