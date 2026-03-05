@@ -1,4 +1,15 @@
-import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi } from 'lucide-react';
+import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi, LogOut, DollarSign } from 'lucide-react';
+
+// Move-out reason options (same as MoveOutModal)
+const MOVE_OUT_REASONS = [
+  { value: 'normal', label: 'Normal Move-Out', description: 'Tenant completed lease term or gave proper notice' },
+  { value: 'early_termination', label: 'Early Termination', description: 'Tenant leaving before minimum stay period' },
+  { value: 'emergency', label: 'Emergency', description: 'Unexpected circumstances requiring immediate move-out' },
+  { value: 'eviction', label: 'Eviction', description: 'Tenant evicted due to violations or non-payment' },
+  { value: 'contract_violation', label: 'Contract Violation', description: 'Tenant violated lease agreement terms' },
+  { value: 'personal', label: 'Personal Reasons', description: 'Job relocation, family matters, etc.' },
+  { value: 'other', label: 'Other', description: 'Other reason not listed above' },
+];
 import { useRef } from 'react';
 
 /**
@@ -25,6 +36,26 @@ function TenantForm({
     onUpdateField('customRates', {
       ...form.customRates,
       [rateKey]: isNaN(newValue) ? null : newValue,
+    });
+  };
+
+  // Helper to update move-out details
+  const updateMoveOutDetails = (key, value) => {
+    const currentDetails = form.moveOutDetails || {};
+    onUpdateField('moveOutDetails', {
+      ...currentDetails,
+      [key]: value,
+    });
+  };
+
+  // Handle move-out reason change
+  const handleMoveOutReasonChange = (value) => {
+    const reasonInfo = MOVE_OUT_REASONS.find(r => r.value === value);
+    const currentDetails = form.moveOutDetails || {};
+    onUpdateField('moveOutDetails', {
+      ...currentDetails,
+      moveOutReason: value,
+      moveOutReasonLabel: reasonInfo?.label || 'Normal Move-Out',
     });
   };
 
@@ -405,6 +436,103 @@ function TenantForm({
           </div>
         </div>
       </div>
+
+      {/* Move-Out Details - Only show when editing a moved-out tenant */}
+      {isEditing && form.moveOutDate && (
+        <div className="mb-6">
+          <h3 className="text-md font-medium mb-4 text-red-700 dark:text-red-300 border-b border-red-200 dark:border-red-700 pb-2">
+            <LogOut className="w-4 h-4 inline mr-1" aria-hidden="true" />
+            Move-Out Details
+          </h3>
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-red-600 dark:text-red-400">
+              This tenant has moved out. You can update the move-out details below.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                Move-Out Date
+              </label>
+              <input
+                type="date"
+                value={form.moveOutDate || ''}
+                onChange={(e) => onUpdateField('moveOutDate', e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <FileText className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                Move-Out Reason
+              </label>
+              <select
+                value={form.moveOutDetails?.moveOutReason || 'normal'}
+                onChange={(e) => handleMoveOutReasonChange(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                {MOVE_OUT_REASONS.map((reason) => (
+                  <option key={reason.value} value={reason.value}>
+                    {reason.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {MOVE_OUT_REASONS.find(r => r.value === (form.moveOutDetails?.moveOutReason || 'normal'))?.description}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                Refund Amount
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Enter refund amount"
+                value={form.moveOutDetails?.refundAmount ?? ''}
+                onChange={(e) => updateMoveOutDetails('refundAmount', parseFloat(e.target.value) || 0)}
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Amount refunded to tenant upon move-out
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                Deductions
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Enter deductions"
+                value={form.moveOutDetails?.deductions ?? ''}
+                onChange={(e) => updateMoveOutDetails('deductions', parseFloat(e.target.value) || 0)}
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Deductions for damages or unpaid bills
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Move-Out Notes
+            </label>
+            <textarea
+              value={form.moveOutDetails?.notes || ''}
+              onChange={(e) => updateMoveOutDetails('notes', e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              rows="2"
+              placeholder="Add any notes about the move-out..."
+            />
+          </div>
+        </div>
+      )}
 
       {/* Valid ID Images */}
       <div className="mb-6">

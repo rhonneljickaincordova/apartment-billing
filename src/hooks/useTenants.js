@@ -85,6 +85,7 @@ export function useTenants() {
           waterRate: null,
           wifiRate: null,
         },
+        moveOutDetails: tenantForm.moveOutDetails || null,
       };
 
       let message;
