@@ -42,6 +42,7 @@ export const DEFAULT_CATEGORIES = [
   { name: 'Coffee & Drinks', type: 'expense', icon: 'Coffee', color: 'amber', isDefault: true },
   { name: 'Taxes', type: 'expense', icon: 'Receipt', color: 'red', isDefault: true },
   { name: 'Fees & Charges', type: 'expense', icon: 'Banknote', color: 'gray', isDefault: true },
+  { name: 'Credit Card', type: 'expense', icon: 'CreditCard', color: 'red', isDefault: true },
   { name: 'Other Expense', type: 'expense', icon: 'MoreHorizontal', color: 'gray', isDefault: true },
   // Income categories
   { name: 'Salary', type: 'income', icon: 'Briefcase', color: 'green', isDefault: true },

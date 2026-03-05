@@ -22,6 +22,7 @@ export function usePersonalCategories() {
       await personalCategoryService.initializeDefaults();
       // Add any new default categories that were added after initial setup
       await personalCategoryService.addMissingDefault('Car');
+      await personalCategoryService.addMissingDefault('Credit Card');
       setInitialized(true);
     };
 
