@@ -9,7 +9,7 @@ import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
 
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
-import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, PaymentHistoryModal } from './components/bills';
+import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, PaymentHistoryModal, PaymentReceiptModal } from './components/bills';
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, FinancialBreakdown, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import MediaLibrarySection from './components/settings/MediaLibrarySection';
@@ -157,6 +157,7 @@ const ApartmentBillTracker = () => {
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
   const [paymentHistoryData, setPaymentHistoryData] = useState(null);
+  const [receiptData, setReceiptData] = useState(null);
   const [pendingBillRoomId, setPendingBillRoomId] = useState(null);
   const [isTenantFormExpanded, setIsTenantFormExpanded] = useState(false);
   const [isExpenseFormExpanded, setIsExpenseFormExpanded] = useState(false);
@@ -492,12 +493,45 @@ const ApartmentBillTracker = () => {
   };
 
   const handleSubmitPayment = async (billId, amount, paymentDetails) => {
+    // Get bill data before payment to check remaining balance
+    const billBeforePayment = bills.find(b => b.id === billId);
+    const totalBill = billBeforePayment ? getBillTotal(billBeforePayment) : 0;
+    const paidBefore = billBeforePayment?.amountPaid || 0;
+    const remainingBefore = totalBill - paidBefore;
+
     const result = await recordPayment(billId, amount, paymentDetails);
     if (result.success) {
       toast.success(result.message);
+
+      // Check if bill is now fully paid (payment covers remaining balance)
+      if (amount >= remainingBefore) {
+        // Wait a moment for state to update, then show receipt
+        setTimeout(() => {
+          const updatedBill = bills.find(b => b.id === billId);
+          if (updatedBill) {
+            setReceiptData({
+              bill: updatedBill,
+              totalAmount: totalBill,
+            });
+          }
+        }, 500);
+      }
     } else {
       toast.error(result.message);
     }
+  };
+
+  const handleCloseReceipt = () => {
+    setReceiptData(null);
+  };
+
+  const handlePrintReceiptFromHistory = (bill) => {
+    // Close payment history and open receipt modal
+    setPaymentHistoryData(null);
+    setReceiptData({
+      bill: bill,
+      totalAmount: getBillTotal(bill),
+    });
   };
 
   // Payment history modal handlers
@@ -1280,6 +1314,17 @@ const ApartmentBillTracker = () => {
         onUpdatePayment={handleUpdatePaymentHistory}
         onAddMissingRecord={handleAddMissingRecord}
         onRecordRefund={handleRecordRefund}
+        onPrintReceipt={handlePrintReceiptFromHistory}
+      />
+
+      {/* Payment Receipt Modal */}
+      <PaymentReceiptModal
+        isOpen={!!receiptData}
+        onClose={handleCloseReceipt}
+        bill={receiptData?.bill}
+        room={receiptData?.bill ? getRoomById(receiptData.bill.roomId) : null}
+        tenant={receiptData?.bill ? tenants.find(t => t.roomId === receiptData.bill.roomId && t.status === 'active') : null}
+        totalAmount={receiptData?.totalAmount || 0}
       />
 
     </div>

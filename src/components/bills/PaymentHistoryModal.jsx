@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, DollarSign, Calendar, CreditCard, FileText, Image, Clock, Edit2, Check, Upload, Trash2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { X, DollarSign, Calendar, CreditCard, FileText, Image, Clock, Edit2, Check, Upload, Trash2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, Plus, RefreshCw, AlertTriangle, Printer } from 'lucide-react';
 
 /**
  * Image Lightbox Component
@@ -140,6 +140,7 @@ function PaymentHistoryModal({
   onUpdatePayment,
   onAddMissingRecord,
   onRecordRefund,
+  onPrintReceipt,
 }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -300,12 +301,24 @@ function PaymentHistoryModal({
             <FileText className="w-5 h-5 text-blue-500" />
             Payment History
           </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Print Receipt button - only show when fully paid */}
+            {amountPaid >= total && onPrintReceipt && (
+              <button
+                onClick={() => onPrintReceipt(bill)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Print Receipt
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content - Scrollable */}
