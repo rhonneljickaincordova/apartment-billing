@@ -1,340 +1,357 @@
-# Apartment Bill Tracker
+# Rental & Personal Finance Suite
 
-A comprehensive React application for managing apartment rentals, tenant information, utility billing, and aircon maintenance schedules. Built with React 19, Firebase Firestore, and Tailwind CSS.
+A multi-app React workspace combining an **Apartment Bill Tracker** (rooms, tenants, utility billing, aircon maintenance, expenses, reports) and a **Personal Finance Tracker** (transactions, budgets, goals, recurring payments) behind a single authenticated login. Built with React 19, Firebase (Auth + Firestore + Storage), and Tailwind CSS.
 
-## Features
+**Live URL**: `https://apartment-billing-five.vercel.app`
+
+## App Shell
+
+- **Login Screen** — Firebase Authentication gates the entire app
+- **App Selection Screen** — choose between Apartment, Personal Finance, or Investments (coming soon)
+- **Per-app navigation** — each app has its own tab layout and dashboard
+
+## Apartment Bill Tracker
 
 ### Dashboard
-- **Summary Cards** - Overview of total rooms, active tenants, pending bills, and collected revenue
-- **Revenue Cards** - Monthly and yearly revenue tracking
-- **Alerts List** - Notifications for overdue bills and upcoming aircon maintenance
+- **Summary Cards** — total rooms, active tenants, pending bills, collected revenue
+- **Revenue Cards** — monthly and yearly revenue tracking
+- **Financial Summary / Breakdown** — income vs. expense view
+- **Monthly Comparison** — period-over-period comparison
+- **Recent Activity** feed and **Notification Bell**
+- **Charts** (Recharts): Monthly Bills, Bills by Room, Monthly Expense, Expense by Category
+- **Reports**: Business Report, Monthly Collection Report, Monthly Expense Report
+- **Alerts** for overdue bills and upcoming aircon maintenance
+- **Dashboard Filters** for time-range scoping
 
 ### Room Management
-- Create, edit, and delete rooms
-- Set monthly rent per room
-- Toggle room active/inactive status
-- Track room occupancy
+- Create, edit, delete rooms; set monthly rent and persons per room
+- Toggle active/inactive status
+- **Media Library / Room Media** — upload and manage room photos (Firebase Storage)
+- **Share Preview** — generate a shareable preview for listing a room
 
 ### Tenant Management
-- Full CRUD operations for tenants
-- Store tenant information:
-  - Full name and phone number
-  - Valid ID images (multiple uploads supported)
-  - Emergency contact details (name, number, relationship)
-  - Room assignment
-  - Move-in date
-  - Lease dates (start/end)
-  - Rent due day preference
-- Digital signature capture for contracts
-- Toggle tenant active/inactive status
+- Full CRUD with: full name, phone, valid ID images, emergency contact, room assignment, move-in date, lease start/end, rent-due day
+- **Per-tenant custom utility rates** that override global settings for that tenant's bills
+- **Security deposit** and **early-termination penalty** fields
+- **Digital signature** capture (canvas) for the lease
+- **Lease Agreement Modal** — auto-generated printable contract with landlord + tenant signatures
+- **Move-Out Modal** — guided move-out flow
 
 ### Billing System
-- Generate monthly bills per room
-- Track utility consumption:
-  - Water (per person rate)
-  - Electricity (per kWh rate)
-  - Wi-Fi (flat monthly rate)
-- Bill filtering by room, status, and date range
-- Mark bills as paid/unpaid
-- Pagination for bill history
-- Export bills to CSV
+Monthly bills per room with full line-item breakdown:
+
+- **Line items**: Rent, Electricity (per kWh from meter readings), Water (per person flat), Wi-Fi (flat, optional), Aircon Cleaning (optional per bill), Mineral Water (per-unit, optional)
+- **Effective rates** — automatically uses tenant's custom rates when set, otherwise global settings; each bill stores a `ratesUsed` snapshot for historical accuracy
+- **Auto-fill on room selection** — `lastMonthReading` is pulled from the most recent bill for that room; `dueDate` is computed from the tenant's `rentDueDay`
+- **Security deposit application** (move-out flow) — apply 50% or 100% of the tenant's deposit toward the final bill; rent is automatically excluded (advance rent covers last month), with auto-refund or remaining-cash display
+- **Early termination penalty** — optional penalty line added to the bill when a tenant leaves early
+- **Partial payments** with full **payment history**: multiple payment methods per entry, proof-of-payment images, notes
+- **Retroactive payments** — add missing historical payment records
+- **Refunds** — recorded as negative entries in the payment history
+- **4-state status**: Paid / Partial / Pending / Overdue (auto-derived, with remaining balance display)
+- **Filters**: search by room, status, room, date range
+- **Sortable** table columns
+- **Pagination** for bill history
+- **Print bill** — opens a styled HTML invoice with paid/unpaid badge
+- **Payment Receipt Modal** — view a printable receipt for any payment
+- **Payment History Modal** — review all payments and refunds for a bill
+- **CSV export**
+
+### Expenses
+- Full CRUD with form, filters, and tabular view
+- Feeds the dashboard's expense charts and reports
 
 ### Aircon Cleaning Scheduler
-- Schedule aircon maintenance per room
-- Set cleaning frequency (monthly intervals)
-- Track last cleaned date
-- Automatic overdue detection
+- Schedule per-room aircon maintenance with custom interval (months)
+- Last-cleaned tracking and automatic overdue detection
 - Cleaning history log
 
-### Printable Lease Agreement
-- Auto-generated lease contracts with tenant details
-- Professional formatting for printing
-- Includes:
-  - Lessor and Lessee information
-  - Property address
-  - Monthly rent and payment terms
-  - Advance payment and security deposit details
-  - Utility rates
-  - House rules and maintenance responsibilities
-  - Digital signatures with dates
-
 ### Settings
-- Configure utility rates (water, electricity, Wi-Fi)
-- Dark mode support
+- Configure utility rates (water, electricity, Wi-Fi, aircon cleaning, mineral water)
+- **Media Gallery / Media Library** — central media management
+- Dark mode toggle
 - Export all data to JSON
+
+## Personal Finance Tracker
+
+A separate app inside the same shell, with its own dashboard and Firestore collections (`personal_*`).
+
+- **Transactions** — list + form with searchable selects
+- **Categories** — custom income/expense categories
+- **Budgets** — per-category budget tracking
+- **Goals** — savings goals
+- **Payment Methods** — list of accounts/cards
+- **Recurring** — scheduled recurring transactions
+- **Reports** and a dedicated **Personal Dashboard**
 
 ## Tech Stack
 
-- **Frontend**: React 19 with Vite
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Database**: Firebase Firestore
-- **State Management**: React Hooks (useState, useCallback, useMemo)
+- **Frontend**: React 19 + Vite 7
+- **Styling**: Tailwind CSS 3
+- **Icons**: lucide-react
+- **Charts**: Recharts
+- **PDF / Image export**: jsPDF + html2canvas
+- **Backend**: Firebase Authentication, Firestore, Storage
+- **State**: React hooks (no external state library)
 
 ## Project Structure
 
 ```
 src/
-├── assets/
-│   └── signiture.png           # Landlord signature image
+├── App.jsx                       # Auth gate + app selection switch
+├── main.jsx                      # React DOM render
+├── ApartmentBillTracker.jsx      # Apartment app shell + tabs
+├── PersonalFinanceTracker.jsx    # Personal finance app shell + tabs
+├── index.css                     # Global styles + Tailwind
+│
+├── assets/                       # Static assets (landlord signature, etc.)
+│
 ├── components/
-│   ├── aircon/
-│   │   ├── CleaningCard.jsx    # Aircon schedule card
-│   │   ├── CleaningForm.jsx    # Add/edit cleaning schedule
-│   │   ├── CleaningHistoryModal.jsx
-│   │   └── index.js
-│   ├── bills/
-│   │   ├── BillFilters.jsx     # Bill filtering controls
-│   │   ├── BillForm.jsx        # Add/edit bills
-│   │   ├── BillsTable.jsx      # Bills list with pagination
-│   │   └── index.js
-│   ├── dashboard/
-│   │   ├── AlertsList.jsx      # Overdue/due soon alerts
-│   │   ├── RevenueCards.jsx    # Revenue statistics
-│   │   ├── SummaryCards.jsx    # Quick stats overview
-│   │   └── index.js
-│   ├── rooms/
-│   │   ├── RoomForm.jsx        # Add/edit rooms
-│   │   ├── RoomsList.jsx       # Rooms grid display
-│   │   └── index.js
-│   ├── settings/
-│   │   ├── SettingsForm.jsx    # App settings
-│   │   └── index.js
-│   ├── tenants/
-│   │   ├── LeaseAgreement.jsx  # Printable contract generator
-│   │   ├── SignaturePad.jsx    # Digital signature canvas
-│   │   ├── TenantDetailsModal.jsx
-│   │   ├── TenantForm.jsx      # Add/edit tenants
-│   │   ├── TenantsList.jsx     # Tenants grid display
-│   │   └── index.js
-│   └── ui/
-│       ├── ConfirmDialog.jsx   # Confirmation modal
-│       ├── Modal.jsx           # Base modal component
-│       ├── Pagination.jsx      # Pagination controls
-│       ├── Toast.jsx           # Toast notifications
-│       └── index.js
+│   ├── app-selection/            # AppCard, AppSelectionScreen
+│   ├── auth/                     # LoginScreen
+│   ├── aircon/                   # Cleaning card, form, history modal
+│   ├── bills/                    # BillForm, BillsTable, BillFilters,
+│   │                             #   BillPrintModal, PaymentPopup,
+│   │                             #   PaymentHistoryModal, PaymentReceiptModal
+│   ├── common/                   # InfoModal
+│   ├── dashboard/                # SummaryCards, RevenueCards, AlertsList,
+│   │                             #   NotificationBell, RecentActivity,
+│   │                             #   FinancialSummary/Breakdown,
+│   │                             #   MonthlyComparison, DashboardFilters,
+│   │                             #   MonthlyBillsChart, BillsByRoomChart,
+│   │                             #   MonthlyExpenseChart, ExpenseByCategoryChart,
+│   │                             #   BusinessReportModal,
+│   │                             #   MonthlyCollectionReport, MonthlyExpenseReport
+│   ├── expenses/                 # ExpenseForm, ExpensesTable, ExpenseFilters
+│   ├── personal/                 # Personal finance components
+│   ├── rooms/                    # RoomForm, RoomsList,
+│   │                             #   MediaLibraryModal, RoomMediaModal,
+│   │                             #   SharePreviewModal, GeneralSharePreviewModal
+│   ├── settings/                 # SettingsForm, MediaGallery, MediaLibrarySection
+│   ├── tenants/                  # TenantForm, TenantsList, TenantDetailsModal,
+│   │                             #   SignaturePad, LeaseAgreement,
+│   │                             #   LeaseAgreementModal, MoveOutModal
+│   └── ui/                       # Modal, ConfirmDialog, Toast,
+│                                 #   Pagination, SearchableSelect
+│
 ├── config/
-│   └── firebase.js             # Firebase configuration
+│   └── firebase.js               # Firebase initialization
+│
 ├── context/
-│   └── ToastContext.jsx        # Toast notification context
+│   ├── AuthContext.jsx           # Auth state + selected-app routing
+│   └── ToastContext.jsx          # Toast notifications
+│
 ├── hooks/
-│   ├── useAirconCleaning.js    # Aircon schedule management
-│   ├── useBills.js             # Bills CRUD operations
-│   ├── useConfirmDialog.js     # Confirmation dialog state
-│   ├── useFirestore.js         # Generic Firestore hooks
-│   ├── useLocalStorage.js      # Local storage persistence
-│   ├── useRooms.js             # Rooms CRUD operations
-│   ├── useSettings.js          # App settings management
-│   ├── useTenants.js           # Tenants CRUD operations
-│   └── index.js                # Barrel exports
+│   ├── useFirestore.js           # Generic real-time collection hook
+│   ├── useRooms.js
+│   ├── useTenants.js
+│   ├── useBills.js               # Bills + payments + deposits + penalties
+│   ├── useExpenses.js
+│   ├── useAirconCleaning.js
+│   ├── useSettings.js
+│   ├── useConfirmDialog.js
+│   ├── useLocalStorage.js
+│   └── personal/                 # usePersonalTransactions, usePersonalBudgets,
+│                                 #   usePersonalCategories, usePersonalGoals,
+│                                 #   usePersonalPaymentMethods,
+│                                 #   usePersonalRecurring, usePersonalDashboard
+│
 ├── services/
-│   └── firestore.js            # Firestore service layer
-├── utils/
-│   ├── dateHelpers.js          # Date formatting utilities
-│   ├── exportHelpers.js        # CSV/JSON export functions
-│   └── validation.js           # Form validation functions
-├── ApartmentBillTracker.jsx    # Main application component
-├── App.jsx                     # App entry with providers
-├── main.jsx                    # React DOM render
-└── index.css                   # Global styles + Tailwind
+│   ├── firestore.js              # Apartment Firestore services + COLLECTIONS
+│   ├── authService.js            # Firebase Auth wrapper
+│   ├── storageService.js         # Firebase Storage wrapper
+│   ├── localStorageService.js
+│   └── personal/                 # personal_* Firestore services
+│
+└── utils/
+    ├── dateHelpers.js
+    ├── exportHelpers.js          # CSV / JSON export
+    ├── validation.js
+    └── rateHelpers.js            # getEffectiveRates (tenant overrides)
 ```
 
 ## Architecture
 
-### Data Flow
+### High-level data flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        App.jsx                               │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              ToastContext Provider                   │    │
-│  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │         ApartmentBillTracker                │    │    │
-│  │  │                                             │    │    │
-│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────────┐   │    │    │
-│  │  │  │useRooms │ │useBills │ │useTenants   │   │    │    │
-│  │  │  └────┬────┘ └────┬────┘ └──────┬──────┘   │    │    │
-│  │  │       │           │             │          │    │    │
-│  │  │       └───────────┼─────────────┘          │    │    │
-│  │  │                   ▼                        │    │    │
-│  │  │         useFirestoreCollection             │    │    │
-│  │  │                   │                        │    │    │
-│  │  │                   ▼                        │    │    │
-│  │  │           Firestore Service                │    │    │
-│  │  │                   │                        │    │    │
-│  │  │                   ▼                        │    │    │
-│  │  │         Firebase Firestore DB              │    │    │
-│  │  └─────────────────────────────────────────────┘    │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+                    ┌────────────────────────────────┐
+                    │           App.jsx              │
+                    │  ┌──────────────────────────┐  │
+                    │  │   AuthContext Provider   │  │
+                    │  │  ┌────────────────────┐  │  │
+                    │  │  │ ToastContext       │  │  │
+                    │  │  │ ┌────────────────┐ │  │  │
+                    │  │  │ │ App switch:    │ │  │  │
+                    │  │  │ │  Apartment /   │ │  │  │
+                    │  │  │ │  Personal /    │ │  │  │
+                    │  │  │ │  (Investments) │ │  │  │
+                    │  │  │ └────────────────┘ │  │  │
+                    │  │  └────────────────────┘  │  │
+                    │  └──────────────────────────┘  │
+                    └────────────────────────────────┘
+                                  │
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │  Domain hooks (useBills,      │
+                  │  useTenants, useRooms,        │
+                  │  useExpenses, usePersonal*…)  │
+                  └───────────────────────────────┘
+                                  │
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │   useFirestoreCollection      │
+                  │   (real-time subscription)    │
+                  └───────────────────────────────┘
+                                  │
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │   Firestore service classes   │
+                  │   (firestore.js, personal/*)  │
+                  └───────────────────────────────┘
+                                  │
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │   Firebase Firestore / Auth / │
+                  │           Storage              │
+                  └───────────────────────────────┘
 ```
 
-### Custom Hooks Pattern
+### Custom hooks pattern
 
-Each domain has its own custom hook that:
-1. Uses `useFirestoreCollection` for real-time data sync
-2. Manages local form state
-3. Provides CRUD operations with validation
-4. Returns state and actions to components
+Each domain has its own hook that:
+1. Subscribes to a Firestore collection via `useFirestoreCollection` for real-time sync
+2. Manages local form state and validation errors
+3. Exposes CRUD operations and derived helpers (`getBillTotal`, `getBillStatus`, `getRemainingBalance`, totals, etc.)
+4. Returns `{ data, form, isEditing, errors, ...actions, ...helpers }`
 
 ```javascript
-// Example: useTenants hook
+// useBills exposes:
 const {
-  tenants,           // Array of tenant data
-  tenantForm,        // Current form state
-  isEditing,         // Edit mode flag
-  errors,            // Validation errors
-  saveTenant,        // Create/update tenant
-  editTenant,        // Load tenant for editing
-  deleteTenant,      // Remove tenant
-  resetForm,         // Clear form
-  updateFormField,   // Update single field
-} = useTenants();
+  bills, billForm, isEditing, errors,
+  saveBill, editBill, deleteBill, togglePaid,
+  recordPayment, updatePaymentHistory,
+  addMissingPaymentRecord, recordRefund,
+  resetForm, updateFormField, printBill,
+  getBillTotal, getBillStatus, getRemainingBalance,
+  getOverdueBills, getPartialBills, getBillsDueSoon,
+  getTotalCollected, getTotalPending, getTotalBilled,
+} = useBills(rooms, settings, tenants);
 ```
 
-### Component Organization
+### Bill calculation
 
-Components are organized by feature domain:
-- **Feature components** - Domain-specific UI (TenantForm, BillsTable)
-- **UI components** - Reusable primitives (Modal, Toast, Pagination)
-- **Barrel exports** - Clean imports via index.js files
+`getEffectiveRates(roomId, tenants, settings)` resolves the rates used for a bill — preferring a tenant's `customRates` over global settings field-by-field. The resolved rates are snapshotted onto the bill as `ratesUsed`, so historical bills are not retroactively re-priced when global rates change.
+
+`getBillTotal(bill, excludeRent)` sums rent + utilities + penalty, with `excludeRent` used on move-out bills where the advance rent already covered the final month.
+
+## Firestore Collections
+
+**Apartment app:**
+- `rooms` — room info and rent
+- `tenants` — tenant details, custom rates, deposit, penalty
+- `bills` — monthly bills, payment history, deposit/penalty application
+- `airconCleaning` — maintenance schedules
+- `expenses` — landlord-side expenses
+- `settings` — app configuration (single document)
+
+**Personal Finance app:**
+- `personal_transactions`
+- `personal_categories`
+- `personal_budgets`
+- `personal_goals`
+- `personal_payment_methods`
+- `personal_recurring`
+
+Plus Firebase Authentication for login and Firebase Storage for room media, ID images, and payment proof uploads.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
-- Firebase project with Firestore enabled
+- npm
+- Firebase project with **Firestore**, **Authentication**, and **Storage** enabled
 
 ### Installation
 
 1. Clone the repository:
-```bash
-git clone <repository-url>
-cd apartment-billing
-```
+   ```bash
+   git clone <repository-url>
+   cd apartment-billing
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. Create a `.env` file with your Firebase configuration:
-```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-```
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
 
-4. Start the development server:
-```bash
-npm run dev
-```
+4. Start the dev server:
+   ```bash
+   npm run dev
+   ```
 
 ### Firebase Setup
 
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Firestore Database
-3. Set up Firestore rules for your security needs
-4. Copy your Firebase config to the `.env` file
-
-### Firestore Collections
-
-The app uses the following collections:
-- `rooms` - Room information and rent
-- `tenants` - Tenant details and lease info
-- `bills` - Monthly billing records
-- `cleaningSchedules` - Aircon maintenance schedules
-- `settings` - App configuration (single document)
+1. Create a project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable **Firestore Database**, **Authentication** (email/password), and **Storage**
+3. Configure Firestore and Storage security rules for your needs
+4. Copy the Firebase config into `.env`
 
 ## Available Scripts
 
 ```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run ESLint
-npm run lint
+npm run dev        # Start dev server
+npm run build      # Production build (outputs to dist/)
+npm run preview    # Preview production build
+npm run lint       # Run ESLint
 ```
 
 ## Deployment
 
-### Build for Production
+### Vercel (current host)
 
-```bash
-npm run build
-```
-
-The build output will be in the `dist/` folder, ready for deployment to any static hosting service.
-
-### Deploy to Vercel (Recommended)
-
-This project is deployed on [Vercel](https://vercel.com), which provides excellent support for React/Vite applications.
+This project is deployed on [Vercel](https://vercel.com).
 
 **Live URL**: `https://apartment-billing-five.vercel.app`
 
-#### Initial Deployment
-
-1. Install Vercel CLI (already included as dev dependency):
 ```bash
-npm install
+npx vercel          # preview deploy
+npx vercel --prod   # production deploy
 ```
 
-2. Deploy to preview:
-```bash
-npx vercel
-```
+Automatic deployments are configured for the connected GitHub repo:
+- **Production** on push to `main`
+- **Preview** on pull requests
 
-3. Deploy to production:
-```bash
-npx vercel --prod
-```
-
-#### Automatic Deployments
-
-Once connected to your GitHub repository, Vercel automatically deploys:
-- **Production** - On push to `main` branch
-- **Preview** - On pull requests
-
-#### Environment Variables
-
-Set these in your Vercel project dashboard under **Settings → Environment Variables**:
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
+Set the `VITE_FIREBASE_*` variables under **Settings → Environment Variables** in the Vercel dashboard.
 
 ### Add to iPhone/iPad Home Screen
 
-For the best mobile experience, add the app to your device's home screen:
+1. Open the deployment URL in Safari
+2. Tap the **Share** button
+3. Tap **Add to Home Screen**
 
-1. Open Safari and navigate to your deployment URL
-2. Tap the **Share** button (square with upward arrow)
-3. Scroll down and tap **"Add to Home Screen"**
-4. Name it "Apartment Billing" and tap **Add**
+The app opens full-screen without browser chrome.
 
-The app will appear on your home screen and open in full-screen mode without browser UI.
+### Alternative Hosting
 
-### Alternative Hosting Options
-
-- **Firebase Hosting** - Seamless integration with Firestore
-- **Netlify** - Easy deployment with CI/CD
+- **Firebase Hosting** — natural pairing with Firestore/Auth/Storage
+- **Netlify** — works out of the box for Vite builds
 
 ## License
 
-This project is private and proprietary.
+Private and proprietary.
 
 ## Author
 
