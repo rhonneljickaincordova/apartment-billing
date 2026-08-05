@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# Third-party agent skills installed via `npx skills add …` — each dev runs it
+.agents/
+.claude/skills/
+skills-lock.json
