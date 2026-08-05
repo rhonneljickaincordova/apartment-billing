@@ -498,33 +498,50 @@ export function useTenants() {
 
   /**
    * Revert a tenant's move-out — restores active status and clears move-out fields.
-   * Does NOT touch the refund record (financial fact — handle separately if incorrect).
-   * Room status is toggled by the caller (mirrors the transfer flow pattern).
+   * Atomically also deletes the final bill created during move-out (if any) so the
+   * revert leaves no orphan. Room status is toggled by the caller (mirrors transfer).
    * @param {object} tenant - Tenant to revert
-   * @returns {{ success: boolean, message: string }}
+   * @param {string|null} finalBillIdToDelete - Bill id to delete alongside; null to skip
+   * @returns {{ success: boolean, message: string, deletedFinalBillId?: string }}
    */
   const revertMoveOut = useCallback(
-    async (tenant) => {
+    async (tenant, finalBillIdToDelete = null) => {
       if (!tenant?.id) return { success: false, message: 'Missing tenant.' };
       if (!tenant.moveOutDate) {
         return { success: false, message: 'Tenant has not moved out.' };
       }
       try {
-        await update(tenant.id, {
+        const batch = writeBatch(db);
+        const tenantRef = doc(db, COLLECTIONS.TENANTS, tenant.id);
+
+        batch.update(tenantRef, {
           isActive: true,
           moveOutDate: null,
           moveOutDetails: null,
+          updatedAt: serverTimestamp(),
         });
+
+        if (finalBillIdToDelete) {
+          const billRef = doc(db, COLLECTIONS.BILLS, finalBillIdToDelete);
+          batch.delete(billRef);
+        }
+
+        await batch.commit();
+
+        const parts = [`${tenant.fullName}'s move-out has been reverted.`];
+        if (finalBillIdToDelete) parts.push('Final bill deleted.');
+
         return {
           success: true,
-          message: `${tenant.fullName}'s move-out has been reverted.`,
+          message: parts.join(' '),
+          deletedFinalBillId: finalBillIdToDelete,
         };
       } catch (error) {
         console.error('Error reverting move-out:', error);
         return { success: false, message: 'Failed to revert move-out.' };
       }
     },
-    [update]
+    []
   );
 
   return {

@@ -751,11 +751,35 @@ const ApartmentBillTracker = () => {
   };
 
   const handleRevertMoveOut = (tenant) => {
+    const finalBillId = tenant.moveOutDetails?.finalBillId || null;
+    const finalBill = finalBillId ? bills.find((b) => b.id === finalBillId) : null;
+    const billStillExists = !!finalBill;
+    // "Extra" cash payments = anything beyond the deposit that was auto-applied.
+    // Deleting a bill that received real cash payments loses that record — warn.
+    const extraPayments = billStillExists
+      ? Math.max(0, (finalBill.amountPaid || 0) - (finalBill.depositAmount || 0))
+      : 0;
+
+    const parts = [`Restore "${tenant.fullName}" to active status and clear the move-out record.`];
+    if (billStillExists) {
+      parts.push(
+        `The final bill of ₱${(finalBill.totalAmount || 0).toFixed(2)} will also be deleted.`
+      );
+      if (extraPayments > 0) {
+        parts.push(
+          `WARNING: ₱${extraPayments.toFixed(2)} in cash payments were recorded on this bill — deleting it will lose those records.`
+        );
+      }
+    } else if (finalBillId) {
+      parts.push('(The linked final bill was already deleted — nothing to remove.)');
+    }
+    parts.push('The refund itself will NOT be reversed — handle that separately if it was recorded in error.');
+
     confirmDialog.showConfirm(
       'Revert Move-Out',
-      `Restore "${tenant.fullName}" to active status and clear the move-out record? The refund (if any) will NOT be reversed — handle that separately if it was recorded in error.`,
+      parts.join(' '),
       async () => {
-        const result = await revertMoveOut(tenant);
+        const result = await revertMoveOut(tenant, billStillExists ? finalBillId : null);
         if (result.success) {
           if (tenant.roomId) {
             const room = getRoomById(tenant.roomId);
@@ -768,7 +792,7 @@ const ApartmentBillTracker = () => {
           toast.error(result.message);
         }
       },
-      'warning'
+      extraPayments > 0 ? 'danger' : 'warning'
     );
   };
 
