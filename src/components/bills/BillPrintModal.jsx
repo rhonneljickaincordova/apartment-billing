@@ -251,11 +251,48 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
               {/* Deposit Application and Final Calculation */}
               {bill.depositApplied && bill.depositAmount > 0 && (
                 <>
+                  {bill.securityDepositAtMoveOut != null && (
+                    <div className="flex justify-between py-2 text-gray-700 text-sm">
+                      <span>Security Deposit Held</span>
+                      <span>₱{(bill.securityDepositAtMoveOut || 0).toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-3 text-blue-700 font-semibold">
-                    <span>- Security Deposit Applied</span>
+                    <span>- Security Deposit Applied to Bill</span>
                     <span>₱{(bill.depositAmount || 0).toFixed(2)}</span>
                   </div>
-                  {bill.depositAmount >= total ? (
+                  {bill.additionalDeductions > 0 && (
+                    <>
+                      <div className="flex justify-between py-3 text-orange-700 font-semibold">
+                        <span>- Additional Deductions (damages, etc.)</span>
+                        <span>₱{bill.additionalDeductions.toFixed(2)}</span>
+                      </div>
+                      {bill.deductionsNotes && (
+                        <div className="py-2 px-3 bg-orange-50 border-l-4 border-orange-400 text-xs text-orange-900 italic">
+                          <span className="font-semibold not-italic">Note: </span>
+                          {bill.deductionsNotes}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {bill.refundAmount != null ? (
+                    bill.refundAmount > 0 ? (
+                      <div className="flex justify-between py-4 border-t-2 border-b-2 border-green-600 bg-green-50 px-3 text-lg font-bold text-green-700">
+                        <span>Refund to Tenant</span>
+                        <span>₱{bill.refundAmount.toFixed(2)}</span>
+                      </div>
+                    ) : (bill.depositAmount || 0) < total ? (
+                      <div className="flex justify-between py-4 border-t-2 border-b-2 border-red-600 bg-red-50 px-3 text-lg font-bold text-red-700">
+                        <span>Remaining Balance</span>
+                        <span>₱{(total - (bill.depositAmount || 0)).toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between py-4 border-t-2 border-b-2 border-gray-600 bg-gray-50 px-3 text-lg font-bold text-gray-700">
+                        <span>Refund to Tenant</span>
+                        <span>₱0.00</span>
+                      </div>
+                    )
+                  ) : bill.depositAmount >= total ? (
                     <div className="flex justify-between py-4 border-t-2 border-b-2 border-green-600 bg-green-50 px-3 text-lg font-bold text-green-700">
                       <span>Refund to Tenant</span>
                       <span>₱{(bill.depositAmount - total).toFixed(2)}</span>

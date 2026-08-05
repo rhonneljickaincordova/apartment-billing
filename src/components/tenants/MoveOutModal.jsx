@@ -149,6 +149,11 @@ function MoveOutModal({
         paid,
         paidDate: paid ? moveOutDate : null,
         type: 'finalMoveOut',
+        // Move-out context for the printed bill / audit
+        securityDepositAtMoveOut: securityDeposit,
+        additionalDeductions: manualDeductions,
+        deductionsNotes: notes,
+        refundAmount,
       };
     }
 
