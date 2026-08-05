@@ -87,6 +87,7 @@ const ApartmentBillTracker = () => {
     updateFormField: updateTenantField,
     toggleTenantStatus,
     moveOutTenant,
+    revertMoveOut,
     transferTenantRoom,
     addValidIdImage,
     removeValidIdImage,
@@ -749,6 +750,28 @@ const ApartmentBillTracker = () => {
     setMoveOutTenantData(null);
   };
 
+  const handleRevertMoveOut = (tenant) => {
+    confirmDialog.showConfirm(
+      'Revert Move-Out',
+      `Restore "${tenant.fullName}" to active status and clear the move-out record? The refund (if any) will NOT be reversed — handle that separately if it was recorded in error.`,
+      async () => {
+        const result = await revertMoveOut(tenant);
+        if (result.success) {
+          if (tenant.roomId) {
+            const room = getRoomById(tenant.roomId);
+            if (room && room.status !== 'occupied') {
+              await toggleRoomStatus(room);
+            }
+          }
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      'warning'
+    );
+  };
+
   const handleTransferRoom = (tenant) => {
     setTransferTenantData(tenant);
   };
@@ -1219,6 +1242,7 @@ const ApartmentBillTracker = () => {
               onViewDetails={handleViewTenantDetails}
               onToggleStatus={handleToggleTenantStatus}
               onMoveOut={handleMoveOutTenant}
+              onRevertMoveOut={handleRevertMoveOut}
               onTransferRoom={handleTransferRoom}
               onCreateBill={handleCreateBillForTenant}
             />

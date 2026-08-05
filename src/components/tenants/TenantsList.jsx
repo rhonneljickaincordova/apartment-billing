@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2 } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onTransferRoom, onCreateBill }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onRevertMoveOut, onTransferRoom, onCreateBill }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
   const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
@@ -760,6 +760,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                         <LogOut className="w-4 h-4" />
                       </button>
                     )}
+                    {tenant.moveOutDate && onRevertMoveOut && (
+                      <button
+                        onClick={() => onRevertMoveOut(tenant)}
+                        className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 p-1"
+                        title="Revert Move-Out"
+                      >
+                        <Undo2 className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(tenant)}
                       className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1"
@@ -943,6 +952,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 >
                   <LogOut className="w-4 h-4" />
                   Move Out
+                </button>
+              )}
+              {tenant.moveOutDate && onRevertMoveOut && (
+                <button
+                  onClick={() => onRevertMoveOut(tenant)}
+                  className="text-amber-600 hover:text-amber-800 dark:text-amber-400 flex items-center gap-1 text-sm"
+                >
+                  <Undo2 className="w-4 h-4" />
+                  Revert Move-Out
                 </button>
               )}
               <button

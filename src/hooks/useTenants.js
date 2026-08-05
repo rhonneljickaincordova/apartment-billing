@@ -469,6 +469,37 @@ export function useTenants() {
     []
   );
 
+  /**
+   * Revert a tenant's move-out — restores active status and clears move-out fields.
+   * Does NOT touch the refund record (financial fact — handle separately if incorrect).
+   * Room status is toggled by the caller (mirrors the transfer flow pattern).
+   * @param {object} tenant - Tenant to revert
+   * @returns {{ success: boolean, message: string }}
+   */
+  const revertMoveOut = useCallback(
+    async (tenant) => {
+      if (!tenant?.id) return { success: false, message: 'Missing tenant.' };
+      if (!tenant.moveOutDate) {
+        return { success: false, message: 'Tenant has not moved out.' };
+      }
+      try {
+        await update(tenant.id, {
+          isActive: true,
+          moveOutDate: null,
+          moveOutDetails: null,
+        });
+        return {
+          success: true,
+          message: `${tenant.fullName}'s move-out has been reverted.`,
+        };
+      } catch (error) {
+        console.error('Error reverting move-out:', error);
+        return { success: false, message: 'Failed to revert move-out.' };
+      }
+    },
+    [update]
+  );
+
   return {
     // State
     tenants,
@@ -486,6 +517,7 @@ export function useTenants() {
     updateFormField,
     toggleTenantStatus,
     moveOutTenant,
+    revertMoveOut,
     transferTenantRoom,
 
     // Image handling
