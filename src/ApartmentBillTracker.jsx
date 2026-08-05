@@ -775,6 +775,55 @@ const ApartmentBillTracker = () => {
     setTransferTenantData(null);
   };
 
+  const handleSyncRoomOccupancy = () => {
+    const activeRoomIds = new Set(
+      tenants.filter((t) => t.isActive && t.roomId).map((t) => t.roomId)
+    );
+    const changes = rooms
+      .map((room) => {
+        const shouldBeOccupied = activeRoomIds.has(room.id);
+        const currentlyOccupied = room.status === 'occupied';
+        if (shouldBeOccupied === currentlyOccupied) return null;
+        return {
+          room,
+          from: room.status || 'vacant',
+          to: shouldBeOccupied ? 'occupied' : 'vacant',
+        };
+      })
+      .filter(Boolean);
+
+    if (changes.length === 0) {
+      toast.success('Room occupancy is already in sync.');
+      return;
+    }
+
+    const preview = changes
+      .slice(0, 5)
+      .map((c) => `${c.room.name} (${c.from} → ${c.to})`)
+      .join(', ');
+    const suffix = changes.length > 5 ? `, and ${changes.length - 5} more` : '';
+
+    confirmDialog.showConfirm(
+      'Sync Room Occupancy',
+      `${changes.length} room${changes.length === 1 ? '' : 's'} will be updated: ${preview}${suffix}. Proceed?`,
+      async () => {
+        let ok = 0;
+        let fail = 0;
+        for (const c of changes) {
+          const result = await toggleRoomStatus(c.room);
+          if (result.success) ok++;
+          else fail++;
+        }
+        if (fail === 0) {
+          toast.success(`Synced ${ok} room${ok === 1 ? '' : 's'}.`);
+        } else {
+          toast.error(`Synced ${ok}, failed ${fail}.`);
+        }
+      },
+      'warning'
+    );
+  };
+
   const handleViewTenantDetails = (tenant) => {
     setSelectedTenant(tenant);
   };
@@ -1278,6 +1327,20 @@ const ApartmentBillTracker = () => {
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+              <h3 className="text-md font-semibold text-gray-800 dark:text-white mb-2">
+                Data Maintenance
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Reconcile any drift between tenants and their assigned rooms. Runs a safe diff first and asks for confirmation before writing.
+              </p>
+              <button
+                onClick={handleSyncRoomOccupancy}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+              >
+                Sync Room Occupancy
+              </button>
+            </div>
             <SettingsForm
               settings={settings}
               onUpdateSetting={updateSetting}
