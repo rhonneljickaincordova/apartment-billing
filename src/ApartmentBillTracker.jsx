@@ -756,6 +756,14 @@ const ApartmentBillTracker = () => {
   const handleConfirmTransfer = async (tenant, details) => {
     const result = await transferTenantRoom(tenant, details);
     if (result.success) {
+      const oldRoom = tenant.roomId ? getRoomById(tenant.roomId) : null;
+      if (oldRoom && oldRoom.status === 'occupied') {
+        await toggleRoomStatus(oldRoom);
+      }
+      const newRoom = details.newRoomId ? getRoomById(details.newRoomId) : null;
+      if (newRoom && newRoom.status !== 'occupied') {
+        await toggleRoomStatus(newRoom);
+      }
       toast.success(result.message);
     } else {
       toast.error(result.message);
