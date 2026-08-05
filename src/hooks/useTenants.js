@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
+import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore';
 import { validateTenant } from '../utils/validation';
-import { tenantsService } from '../services/firestore';
+import { tenantsService, COLLECTIONS } from '../services/firestore';
 import { useFirestoreCollection } from './useFirestore';
+import { db } from '../config/firebase';
 
 /**
  * Custom hook for managing tenants
@@ -335,6 +337,138 @@ export function useTenants() {
     [update]
   );
 
+  /**
+   * Transfer a tenant to a new room without moving out.
+   *
+   * Atomically (via writeBatch):
+   *   - flips tenant.roomId to newRoomId
+   *   - overwrites tenant.securityDeposit / tenant.advancePayment with the reconciled values
+   *   - appends a roomHistory entry capturing the transfer
+   *   - creates a bill.type='roomTransfer' document (positive on upward, negative auto-paid on downward)
+   *
+   * @param {object} tenant - Tenant being transferred
+   * @param {object} details - {
+   *     newRoomId, newRoomRent, oldRoomId, oldRoomRent, transferDate, notes,
+   *     finalElectricityReading,
+   *     customRatesChoice ('keep'|'reset'|'edit'), customRatesAtTransfer,
+   *     reconciledDeposit, reconciledAdvance,
+   *     depositTopUp, advanceTopUp,
+   *     overrideReason,
+   *     refundStyle ('cash'|'credit'|'keep-surplus'), payNow,
+   *   }
+   * @returns {{ success: boolean, message: string, transferBillId?: string }}
+   */
+  const transferTenantRoom = useCallback(
+    async (tenant, details) => {
+      if (!tenant?.id) return { success: false, message: 'Missing tenant.' };
+      if (!details?.newRoomId) return { success: false, message: 'Destination room is required.' };
+      if (details.newRoomId === tenant.roomId) {
+        return { success: false, message: 'Destination room must be different from the current room.' };
+      }
+
+      const totalTopUp = (details.depositTopUp || 0) + (details.advanceTopUp || 0);
+      const isDownward = totalTopUp < 0;
+
+      try {
+        const batch = writeBatch(db);
+
+        const tenantRef = doc(db, COLLECTIONS.TENANTS, tenant.id);
+        const billRef = doc(collection(db, COLLECTIONS.BILLS));
+
+        const historyEntry = {
+          fromRoomId: details.oldRoomId || tenant.roomId,
+          toRoomId: details.newRoomId,
+          transferDate: details.transferDate,
+          notes: details.notes || '',
+          finalElectricityReading: details.finalElectricityReading ?? null,
+          customRatesChoice: details.customRatesChoice || 'keep',
+          customRatesAtTransfer: details.customRatesAtTransfer || null,
+          previousDeposit: tenant.securityDeposit || 0,
+          previousAdvance: tenant.advancePayment || 0,
+          reconciledDeposit: details.reconciledDeposit || 0,
+          reconciledAdvance: details.reconciledAdvance || 0,
+          depositTopUp: details.depositTopUp || 0,
+          advanceTopUp: details.advanceTopUp || 0,
+          overrideReason: details.overrideReason || '',
+          refundStyle: isDownward ? (details.refundStyle || 'cash') : null,
+          topUpBillId: billRef.id,
+          createdAt: new Date().toISOString(),
+        };
+
+        const nextHistory = [...(tenant.roomHistory || []), historyEntry];
+
+        const tenantUpdate = {
+          roomId: details.newRoomId,
+          securityDeposit: details.reconciledDeposit || 0,
+          advancePayment: details.reconciledAdvance || 0,
+          roomHistory: nextHistory,
+          updatedAt: serverTimestamp(),
+        };
+
+        if (details.customRatesChoice === 'reset') {
+          tenantUpdate.customRates = { electricityRate: null, waterRate: null, wifiRate: null };
+        } else if (details.customRatesChoice === 'edit' && details.customRatesAtTransfer) {
+          tenantUpdate.customRates = { ...details.customRatesAtTransfer };
+        }
+
+        batch.update(tenantRef, tenantUpdate);
+
+        const billPayments = isDownward
+          ? [
+              {
+                id: `refund-${Date.now()}`,
+                amount: totalTopUp,
+                date: details.transferDate,
+                method: details.refundStyle === 'credit' ? 'Credit' : 'Cash',
+                notes: `Room transfer refund (${details.refundStyle || 'cash'})`,
+                createdAt: new Date().toISOString(),
+              },
+            ]
+          : [];
+
+        const billData = {
+          type: 'roomTransfer',
+          roomId: details.newRoomId,
+          tenantId: tenant.id,
+          dueDate: details.transferDate,
+          depositTopUp: details.depositTopUp || 0,
+          advanceTopUp: details.advanceTopUp || 0,
+          totalAmount: totalTopUp,
+          paid: isDownward || (details.payNow && totalTopUp === 0),
+          payments: billPayments,
+          transferHistoryIndex: nextHistory.length - 1,
+          overrideReason: details.overrideReason || '',
+          rentBill: 0,
+          electricityBill: 0,
+          waterBill: 0,
+          wifiBill: 0,
+          airconCleaningBill: 0,
+          mineralWaterBill: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        batch.set(billRef, billData);
+
+        await batch.commit();
+
+        return {
+          success: true,
+          message: isDownward
+            ? `${tenant.fullName} transferred. Refund of ₱${Math.abs(totalTopUp).toFixed(2)} recorded.`
+            : totalTopUp > 0
+              ? `${tenant.fullName} transferred. Top-up bill of ₱${totalTopUp.toFixed(2)} created.`
+              : `${tenant.fullName} transferred. No top-up needed.`,
+          transferBillId: billRef.id,
+        };
+      } catch (error) {
+        console.error('Error transferring tenant:', error);
+        return { success: false, message: 'Failed to transfer tenant.' };
+      }
+    },
+    []
+  );
+
   return {
     // State
     tenants,
@@ -352,6 +486,7 @@ export function useTenants() {
     updateFormField,
     toggleTenantStatus,
     moveOutTenant,
+    transferTenantRoom,
 
     // Image handling
     addValidIdImage,

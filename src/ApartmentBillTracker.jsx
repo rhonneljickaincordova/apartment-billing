@@ -13,7 +13,7 @@ import { BillForm, BillsTable, BillFilters, BillPrintModal, PaymentPopup, Paymen
 import { SummaryCards, RecentActivity, MonthlyComparison, MonthlyExpenseChart, MonthlyBillsChart, ExpenseByCategoryChart, BillsByRoomChart, FinancialSummary, FinancialBreakdown, DashboardFilters, getAvailableYears, filterByPeriod, NotificationBell, BusinessReportModal } from './components/dashboard';
 import { SettingsForm } from './components/settings';
 import MediaLibrarySection from './components/settings/MediaLibrarySection';
-import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal } from './components/tenants';
+import { TenantForm, TenantsList, TenantDetailsModal, MoveOutModal, TransferRoomModal } from './components/tenants';
 import { ExpenseForm, ExpensesTable, ExpenseFilters } from './components/expenses';
 import { Pagination } from './components/ui';
 import { InfoModal, InfoButton, DashboardInfoContent } from './components/common';
@@ -87,6 +87,7 @@ const ApartmentBillTracker = () => {
     updateFormField: updateTenantField,
     toggleTenantStatus,
     moveOutTenant,
+    transferTenantRoom,
     addValidIdImage,
     removeValidIdImage,
     setContractSignature,
@@ -154,6 +155,7 @@ const ApartmentBillTracker = () => {
 
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [moveOutTenantData, setMoveOutTenantData] = useState(null);
+  const [transferTenantData, setTransferTenantData] = useState(null);
   const [printBillData, setPrintBillData] = useState(null);
   const [paymentBillData, setPaymentBillData] = useState(null);
   const [paymentHistoryData, setPaymentHistoryData] = useState(null);
@@ -747,6 +749,24 @@ const ApartmentBillTracker = () => {
     setMoveOutTenantData(null);
   };
 
+  const handleTransferRoom = (tenant) => {
+    setTransferTenantData(tenant);
+  };
+
+  const handleConfirmTransfer = async (tenant, details) => {
+    const result = await transferTenantRoom(tenant, details);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+    setTransferTenantData(null);
+  };
+
+  const handleCloseTransferModal = () => {
+    setTransferTenantData(null);
+  };
+
   const handleViewTenantDetails = (tenant) => {
     setSelectedTenant(tenant);
   };
@@ -1142,6 +1162,7 @@ const ApartmentBillTracker = () => {
               onViewDetails={handleViewTenantDetails}
               onToggleStatus={handleToggleTenantStatus}
               onMoveOut={handleMoveOutTenant}
+              onTransferRoom={handleTransferRoom}
               onCreateBill={handleCreateBillForTenant}
             />
             <TenantDetailsModal
@@ -1159,6 +1180,16 @@ const ApartmentBillTracker = () => {
               tenant={moveOutTenantData}
               room={moveOutTenantData ? rooms.find(r => r.id === moveOutTenantData.roomId) : null}
               onConfirmMoveOut={handleConfirmMoveOut}
+            />
+            <TransferRoomModal
+              key={transferTenantData?.id || 'transfer-modal'}
+              isOpen={!!transferTenantData}
+              onClose={handleCloseTransferModal}
+              tenant={transferTenantData}
+              rooms={rooms}
+              tenants={tenants}
+              settings={settings}
+              onConfirmTransfer={handleConfirmTransfer}
             />
           </div>
         )}

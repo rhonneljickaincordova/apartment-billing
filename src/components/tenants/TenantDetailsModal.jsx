@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2, LogOut } from 'lucide-react';
+import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2, LogOut, ArrowRightLeft } from 'lucide-react';
 import SignaturePad from './SignaturePad';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
@@ -243,6 +243,62 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
               {tenant.isActive ? 'Active Tenant' : tenant.moveOutDate ? 'Moved Out' : 'Inactive Tenant'}
             </span>
           </div>
+
+          {Array.isArray(tenant.roomHistory) && tenant.roomHistory.length > 0 && (
+            <div>
+              <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4" />
+                Room History
+              </h3>
+              <ul className="space-y-3">
+                {tenant.roomHistory.map((entry, idx) => {
+                  const from = getRoom(entry.fromRoomId);
+                  const to = getRoom(entry.toRoomId);
+                  const topUp = (entry.depositTopUp || 0) + (entry.advanceTopUp || 0);
+                  const isRefund = topUp < 0;
+                  return (
+                    <li key={idx} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white truncate">
+                            {from?.name || 'Unknown'} → {to?.name || 'Unknown'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(entry.transferDate)}
+                            {entry.finalElectricityReading != null && (
+                              <span> · final reading: {entry.finalElectricityReading}</span>
+                            )}
+                          </p>
+                          {entry.notes && (
+                            <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 italic">
+                              {entry.notes}
+                            </p>
+                          )}
+                          {entry.overrideReason && (
+                            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                              Override: {entry.overrideReason}
+                            </p>
+                          )}
+                        </div>
+                        <div className={`text-right whitespace-nowrap font-semibold ${
+                          isRefund
+                            ? 'text-emerald-700 dark:text-emerald-300'
+                            : topUp > 0
+                              ? 'text-blue-700 dark:text-blue-300'
+                              : 'text-gray-500'
+                        }`}>
+                          {new Intl.NumberFormat('en-PH', {
+                            style: 'currency',
+                            currency: 'PHP',
+                          }).format(topUp)}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

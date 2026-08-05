@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 
 /**
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onCreateBill }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onTransferRoom, onCreateBill }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
   const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
@@ -742,6 +742,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                         <UserCheck className="w-4 h-4" />
                       )}
                     </button>
+                    {tenant.isActive && !tenant.moveOutDate && onTransferRoom && (
+                      <button
+                        onClick={() => onTransferRoom(tenant)}
+                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 p-1"
+                        title="Transfer Room"
+                      >
+                        <ArrowRightLeft className="w-4 h-4" />
+                      </button>
+                    )}
                     {tenant.isActive && !tenant.moveOutDate && (
                       <button
                         onClick={() => onMoveOut(tenant)}
@@ -918,6 +927,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                   </>
                 )}
               </button>
+              {tenant.isActive && !tenant.moveOutDate && onTransferRoom && (
+                <button
+                  onClick={() => onTransferRoom(tenant)}
+                  className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 flex items-center gap-1 text-sm"
+                >
+                  <ArrowRightLeft className="w-4 h-4" />
+                  Transfer Room
+                </button>
+              )}
               {tenant.isActive && !tenant.moveOutDate && (
                 <button
                   onClick={() => onMoveOut(tenant)}
