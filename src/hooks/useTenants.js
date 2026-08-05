@@ -304,9 +304,25 @@ export function useTenants() {
           notes = '',
           isEarlyTermination = false,
           monthsStayed = 0,
+          finalBill = null,
         } = moveOutDetails;
 
-        await update(tenant.id, {
+        const batch = writeBatch(db);
+        const tenantRef = doc(db, COLLECTIONS.TENANTS, tenant.id);
+
+        let finalBillId = null;
+        if (finalBill) {
+          const billRef = doc(collection(db, COLLECTIONS.BILLS));
+          finalBillId = billRef.id;
+          batch.set(billRef, {
+            ...finalBill,
+            tenantId: tenant.id,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        batch.update(tenantRef, {
           isActive: false,
           moveOutDate,
           moveOutDetails: {
@@ -317,24 +333,35 @@ export function useTenants() {
             notes,
             isEarlyTermination,
             monthsStayed,
+            finalBillId,
             processedDate: new Date().toISOString(),
-          }
+          },
+          updatedAt: serverTimestamp(),
         });
 
-        const refundMessage = refundAmount > 0
-          ? ` Refund of ₱${refundAmount.toFixed(2)} recorded.`
-          : ' No refund applicable.';
+        await batch.commit();
+
+        const parts = [`${tenant.fullName} has been moved out.`];
+        if (finalBillId) {
+          parts.push(`Final bill created (₱${(finalBill.totalAmount || 0).toFixed(2)}).`);
+        }
+        if (refundAmount > 0) {
+          parts.push(`Refund of ₱${refundAmount.toFixed(2)} recorded.`);
+        } else if (!finalBillId) {
+          parts.push('No refund applicable.');
+        }
 
         return {
           success: true,
-          message: `${tenant.fullName} has been moved out.${refundMessage}`,
+          message: parts.join(' '),
+          finalBillId,
         };
       } catch (error) {
         console.error('Error moving out tenant:', error);
         return { success: false, message: 'Failed to move out tenant.' };
       }
     },
-    [update]
+    []
   );
 
   /**

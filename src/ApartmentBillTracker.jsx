@@ -1256,10 +1256,14 @@ const ApartmentBillTracker = () => {
               onClearSignature={handleClearTenantSignature}
             />
             <MoveOutModal
+              key={moveOutTenantData?.id || 'moveout-modal'}
               isOpen={!!moveOutTenantData}
               onClose={handleCloseMoveOutModal}
               tenant={moveOutTenantData}
               room={moveOutTenantData ? rooms.find(r => r.id === moveOutTenantData.roomId) : null}
+              bills={bills}
+              tenants={tenants}
+              settings={settings}
               onConfirmMoveOut={handleConfirmMoveOut}
             />
             <TransferRoomModal
