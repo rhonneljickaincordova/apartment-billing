@@ -44,6 +44,7 @@ function MoveOutModal({
   const [moveOutReason, setMoveOutReason] = useState('normal');
   const [deductions, setDeductions] = useState('');
   const [notes, setNotes] = useState('');
+  const [applyPenalty, setApplyPenalty] = useState(false);
 
   // Final bill fields
   const [issueFinalBill, setIssueFinalBill] = useState(true);
@@ -87,15 +88,21 @@ function MoveOutModal({
   const securityDeposit = tenant?.securityDeposit || 0;
   const earlyTerminationPenalty = tenant?.earlyTerminationPenalty || 0;
 
+  // The penalty is a bill line item, not a deposit deduction — that way a penalty
+  // exceeding the remaining deposit is tracked as a balance the tenant still owes,
+  // rather than silently flooring the refund at zero.
+  const penaltyOnBill = applyPenalty ? earlyTerminationPenalty : 0;
+  const finalBillTotal = finalBill.totalExclRent + penaltyOnBill;
+
   // Refund = deposit - (bill covered by deposit) - manual deductions
   const billCoveredByDeposit = issueFinalBill
-    ? Math.min(securityDeposit, finalBill.totalExclRent)
+    ? Math.min(securityDeposit, finalBillTotal)
     : 0;
   const remainingDepositAfterBill = securityDeposit - billCoveredByDeposit;
   const manualDeductions = parseFloat(deductions) || 0;
   const refundAmount = Math.max(0, remainingDepositAfterBill - manualDeductions);
-  const billShortfall = issueFinalBill && finalBill.totalExclRent > securityDeposit
-    ? finalBill.totalExclRent - securityDeposit
+  const billShortfall = issueFinalBill && finalBillTotal > securityDeposit
+    ? finalBillTotal - securityDeposit
     : 0;
 
   if (!isOpen || !tenant) return null;
@@ -111,12 +118,12 @@ function MoveOutModal({
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(amount);
 
-  const penaltyNote = `Early termination penalty of ${formatCurrency(earlyTerminationPenalty)} deducted from security deposit.`;
+  const penaltyNote = `Early termination penalty of ${formatCurrency(earlyTerminationPenalty)} charged on the final bill.`;
 
   /**
-   * Selecting "Early Termination" auto-applies the tenant's contracted penalty as a
-   * deduction and stamps a note explaining it. Switching away undoes both — but only
-   * if the values are still the ones we set, so manual edits are never clobbered.
+   * Selecting "Early Termination" adds the tenant's contracted penalty as a line item
+   * on the final bill and stamps an explanatory note. Switching away undoes both — the
+   * note only when it's still the one we wrote, so manual edits are never clobbered.
    */
   const handleReasonChange = (value) => {
     const previousReason = moveOutReason;
@@ -125,10 +132,10 @@ function MoveOutModal({
     if (earlyTerminationPenalty <= 0) return;
 
     if (value === 'early_termination') {
-      setDeductions((prev) => (prev === '' ? String(earlyTerminationPenalty) : prev));
+      setApplyPenalty(true);
       setNotes((prev) => (prev.includes(penaltyNote) ? prev : prev ? `${prev}\n${penaltyNote}` : penaltyNote));
     } else if (previousReason === 'early_termination') {
-      setDeductions((prev) => (parseFloat(prev) === earlyTerminationPenalty ? '' : prev));
+      setApplyPenalty(false);
       setNotes((prev) =>
         prev
           .split('\n')
@@ -146,8 +153,8 @@ function MoveOutModal({
     // Matches the schema in useBills.saveBill so bill list / totals / receipts work uniformly.
     let finalBillPayload = null;
     if (issueFinalBill) {
-      const depositAmount = Math.min(securityDeposit, finalBill.totalExclRent);
-      const paid = depositAmount >= finalBill.totalExclRent;
+      const depositAmount = Math.min(securityDeposit, finalBillTotal);
+      const paid = depositAmount >= finalBillTotal;
       finalBillPayload = {
         roomId: tenant.roomId,
         dueDate: moveOutDate,
@@ -168,8 +175,10 @@ function MoveOutModal({
           wifiRate: effectiveRates.wifiRate,
           mineralWaterRate: settings.mineralWaterRate || 0,
         },
-        totalAmount: finalBill.totalExclRent,
+        totalAmount: finalBillTotal,
         rentExcluded: true,
+        penaltyApplied: penaltyOnBill > 0,
+        penaltyAmount: penaltyOnBill,
         depositApplied: depositAmount > 0,
         depositAmount,
         amountPaid: depositAmount,
@@ -245,9 +254,9 @@ function MoveOutModal({
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Early Termination Penalty Applies</p>
                     <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                       Tenant is leaving before 6 months, and their contract carries a {formatCurrency(earlyTerminationPenalty)} penalty.
-                      {moveOutReason === 'early_termination'
-                        ? ' It has been applied as a deduction below.'
-                        : ' Select "Early Termination" as the reason to apply it as a deduction automatically.'}
+                      {applyPenalty
+                        ? ' It is charged as a line item on the final bill below.'
+                        : ' Select "Early Termination" as the reason to charge it on the final bill.'}
                     </p>
                   </div>
                 </div>
@@ -359,6 +368,23 @@ function MoveOutModal({
                     />
                   </div>
 
+                  {earlyTerminationPenalty > 0 && (
+                    <label className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={applyPenalty}
+                        onChange={(e) => setApplyPenalty(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <span>
+                        Charge early termination penalty — {formatCurrency(earlyTerminationPenalty)}
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          Auto-checked when the move-out reason is Early Termination.
+                        </span>
+                      </span>
+                    </label>
+                  )}
+
                   {/* Breakdown */}
                   <div className="text-xs bg-white dark:bg-gray-900/40 rounded p-3 space-y-1">
                     <div className="flex justify-between">
@@ -387,9 +413,15 @@ function MoveOutModal({
                         <span className="text-gray-900 dark:text-white">{formatCurrency(finalBill.mineralWaterBill)}</span>
                       </div>
                     )}
+                    {penaltyOnBill > 0 && (
+                      <div className="flex justify-between text-red-700 dark:text-red-400 font-semibold">
+                        <span>Early Termination Penalty</span>
+                        <span>{formatCurrency(penaltyOnBill)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700 font-semibold">
                       <span className="text-gray-800 dark:text-gray-200">Total (rent excluded)</span>
-                      <span className="text-gray-900 dark:text-white">{formatCurrency(finalBill.totalExclRent)}</span>
+                      <span className="text-gray-900 dark:text-white">{formatCurrency(finalBillTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -418,11 +450,6 @@ function MoveOutModal({
               <div>
                 <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                   Additional deductions (damages, etc.)
-                  {moveOutReason === 'early_termination' && earlyTerminationPenalty > 0 && (
-                    <span className="ml-1 text-amber-700 dark:text-amber-300">
-                      — includes {formatCurrency(earlyTerminationPenalty)} early termination penalty
-                    </span>
-                  )}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
@@ -486,7 +513,7 @@ function MoveOutModal({
                 {issueFinalBill && (
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Final bill:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(finalBill.totalExclRent)}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(finalBillTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
