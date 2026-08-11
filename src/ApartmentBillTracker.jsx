@@ -528,6 +528,21 @@ const ApartmentBillTracker = () => {
     setReceiptData(null);
   };
 
+  /**
+   * Resolve which tenant a bill belongs to.
+   * Bills created by the transfer and move-out flows snapshot tenantId, which stays
+   * correct no matter how the tenant moves afterwards. Older bills have no tenantId,
+   * so fall back to the active tenant in the bill's room — right in the common case,
+   * though it can't recover the tenant if they have since transferred or moved out.
+   */
+  const resolveBillTenant = (bill) => {
+    if (!bill) return null;
+    if (bill.tenantId) {
+      return tenants.find((t) => t.id === bill.tenantId) || null;
+    }
+    return tenants.find((t) => t.roomId === bill.roomId && t.isActive) || null;
+  };
+
   const handlePrintReceiptFromHistory = (bill) => {
     // Close payment history and open receipt modal
     setPaymentHistoryData(null);
@@ -1478,7 +1493,7 @@ const ApartmentBillTracker = () => {
         onClose={handleCloseReceipt}
         bill={receiptData?.bill}
         room={receiptData?.bill ? getRoomById(receiptData.bill.roomId) : null}
-        tenant={receiptData?.bill ? tenants.find(t => t.roomId === receiptData.bill.roomId && t.status === 'active') : null}
+        tenant={resolveBillTenant(receiptData?.bill)}
         totalAmount={receiptData?.totalAmount || 0}
       />
 

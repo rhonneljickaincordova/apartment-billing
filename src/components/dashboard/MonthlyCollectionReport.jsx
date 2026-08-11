@@ -74,7 +74,16 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
       let refund = 0;
       let isFinalBill = false;
 
-      if (bill.amountPaid) {
+      // A downward room transfer carries a negative total — the landlord owes the
+      // tenant. Route it to the refund column so it doesn't read as negative cash
+      // collected for that room-month.
+      const isTransferRefund = bill.type === 'roomTransfer' && (bill.totalAmount || 0) < 0;
+
+      if (isTransferRefund) {
+        if (bill.amountPaid) {
+          refund = Math.abs(bill.amountPaid);
+        }
+      } else if (bill.amountPaid) {
         collected = bill.amountPaid;
         // If deposit was applied, subtract it to get only the actual cash payment
         // (deposit was already counted when tenant moved in, not on this bill)
@@ -110,12 +119,25 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
     });
 
     // Process tenant move-in payments (advance + deposit)
+    //
+    // A room transfer overwrites tenant.securityDeposit / tenant.advancePayment with
+    // the reconciled values for the new room, and repoints tenant.roomId at that room.
+    // Neither reflects what was actually collected at move-in, so for a tenant with
+    // transfer history we take the origin room and the pre-transfer amounts from the
+    // first roomHistory entry. Later top-ups are collected through their own transfer
+    // bills, which the loop above already counts — so they are not re-counted here.
     tenants.forEach(tenant => {
-      if (!tenant.roomId || !data[tenant.roomId]) return;
+      const firstTransfer = tenant.roomHistory?.[0];
+      const originRoomId = firstTransfer?.fromRoomId || tenant.roomId;
+      if (!originRoomId || !data[originRoomId]) return;
 
       // Calculate total move-in payment (advance + deposit)
-      const advanceAmount = tenant.advancePayment || 0;
-      const depositAmount = tenant.securityDeposit || 0;
+      const advanceAmount = firstTransfer
+        ? (firstTransfer.previousAdvance || 0)
+        : (tenant.advancePayment || 0);
+      const depositAmount = firstTransfer
+        ? (firstTransfer.previousDeposit || 0)
+        : (tenant.securityDeposit || 0);
       const totalMoveInPayment = advanceAmount + depositAmount;
 
       if (totalMoveInPayment <= 0) return;
@@ -130,8 +152,8 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
 
       if (paymentYear !== selectedYear) return;
 
-      data[tenant.roomId].months[paymentMonth].advance += totalMoveInPayment;
-      data[tenant.roomId].totalAdvance += totalMoveInPayment;
+      data[originRoomId].months[paymentMonth].advance += totalMoveInPayment;
+      data[originRoomId].totalAdvance += totalMoveInPayment;
     });
 
     // Process move-out refunds from tenant.moveOutDetails
