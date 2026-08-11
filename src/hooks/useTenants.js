@@ -440,6 +440,7 @@ export function useTenants() {
 
         batch.update(tenantRef, tenantUpdate);
 
+        const payNowMarksPaid = !isDownward && totalTopUp > 0 && details.payNow;
         const billPayments = isDownward
           ? [
               {
@@ -451,7 +452,18 @@ export function useTenants() {
                 createdAt: new Date().toISOString(),
               },
             ]
-          : [];
+          : payNowMarksPaid
+            ? [
+                {
+                  id: `topup-${Date.now()}`,
+                  amount: totalTopUp,
+                  date: details.transferDate,
+                  method: 'Cash',
+                  notes: 'Room transfer top-up paid at transfer',
+                  createdAt: new Date().toISOString(),
+                },
+              ]
+            : [];
 
         const billData = {
           type: 'roomTransfer',
@@ -461,7 +473,8 @@ export function useTenants() {
           depositTopUp: details.depositTopUp || 0,
           advanceTopUp: details.advanceTopUp || 0,
           totalAmount: totalTopUp,
-          paid: isDownward || (details.payNow && totalTopUp === 0),
+          amountPaid: (isDownward || payNowMarksPaid) ? totalTopUp : 0,
+          paid: isDownward || payNowMarksPaid || totalTopUp === 0,
           payments: billPayments,
           transferHistoryIndex: nextHistory.length - 1,
           overrideReason: details.overrideReason || '',

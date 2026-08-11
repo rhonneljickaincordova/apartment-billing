@@ -75,6 +75,13 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getBillTotal = useCallback((bill, excludeRent = false) => {
+    // Transfer bills carry their total directly — the utility fields are all 0
+    // and the real line items are depositTopUp + advanceTopUp.
+    if (bill.type === 'roomTransfer') {
+      return bill.totalAmount != null
+        ? bill.totalAmount
+        : (bill.depositTopUp || 0) + (bill.advanceTopUp || 0);
+    }
     const rent = excludeRent ? 0 : (bill.rentBill || 0);
     const baseTotal = rent + (bill.electricityBill || 0) + (bill.waterBill || 0) + (bill.wifiBill || 0) + (bill.airconCleaningBill || 0) + (bill.mineralWaterBill || 0);
     const penalty = (bill.penaltyApplied && bill.penaltyAmount) ? bill.penaltyAmount : 0;
