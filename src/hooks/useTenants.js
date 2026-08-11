@@ -443,7 +443,7 @@ export function useTenants() {
         const utility = details.utilityBill || {};
         const grandTotal = details.grandTotal != null
           ? details.grandTotal
-          : (utility.totalUtilities || 0) + totalTopUp;
+          : (utility.rentBill || 0) + (utility.totalUtilities || 0) + totalTopUp;
         const isRefundBill = grandTotal < 0;
 
         // Default: bill unpaid. payNow explicitly opts in to auto-mark paid + record
@@ -481,8 +481,10 @@ export function useTenants() {
           electricityBill: utility.electricityBill || 0,
           waterBill: utility.waterBill || 0,
           wifiBill: utility.wifiBill || 0,
-          rentBill: 0,
-          rentExcluded: true,
+          // Transfer-month rent is charged at the OLD room's rate; the new room
+          // starts billing on its next normal cycle.
+          rentBill: utility.rentBill || 0,
+          rentExcluded: !utility.includeRent,
           airconCleaningBill: utility.airconCleaningBill || 0,
           mineralWaterBill: utility.mineralWaterBill || 0,
           mineralWaterCount: utility.mineralWaterCount || 0,

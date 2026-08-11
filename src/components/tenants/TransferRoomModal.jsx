@@ -55,7 +55,8 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
   const [transferDate, setTransferDate] = useState(today);
   const [notes, setNotes] = useState('');
 
-  // Utility bill fields (old room's final utilities)
+  // Final bill fields (old room's rent + utilities)
+  const [includeRent, setIncludeRent] = useState(true);
   const [lastMonthReading, setLastMonthReading] = useState(previousReading);
   const [currentReading, setCurrentReading] = useState('');
   const [includeAirconCleaning, setIncludeAirconCleaning] = useState(false);
@@ -100,10 +101,14 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
     return { kwh, electricityBill, waterBill, wifiBill, airconCleaningBill, mineralWaterBill, mineralWaterCount: mineralUnits, total };
   }, [currentReading, lastMonthReading, includeWifi, includeAirconCleaning, mineralWaterCount, oldRoomRates, currentRoom, settings]);
 
+  // Rent for the transfer month is charged at the OLD room's rate — the tenant
+  // started the month there. The new room begins billing on the next cycle.
+  const rentAmount = includeRent ? (currentRoom?.rent || 0) : 0;
+
   const depositTopUp = reconciledDeposit - currentDeposit;
   const advanceTopUp = reconciledAdvance - currentAdvance;
   const totalTopUp = depositTopUp + advanceTopUp;
-  const grandTotal = utilityBill.total + totalTopUp;
+  const grandTotal = rentAmount + utilityBill.total + totalTopUp;
   const isRefund = grandTotal < 0;
   const hasNegativeTopUp = totalTopUp < 0;
   const isOverride =
@@ -149,8 +154,10 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
       oldRoomRent: currentRoom?.rent || 0,
       transferDate,
       notes: notes.trim(),
-      // Utility bill lines for the old room
+      // Final bill lines for the old room (rent + utilities)
       utilityBill: {
+        includeRent,
+        rentBill: rentAmount,
         lastMonthReading: parseFloat(lastMonthReading) || 0,
         currentReading: parseFloat(currentReading) || 0,
         includeAirconCleaning,
@@ -260,11 +267,26 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
             {/* Final Utility Bill for the OLD room */}
             <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
               <h4 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Zap className="w-4 h-4" /> Final Utility Bill — {currentRoom?.name || 'old room'}
+                <Zap className="w-4 h-4" /> Final Bill — {currentRoom?.name || 'old room'}
               </h4>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Rent is excluded — advance payment covers the tenant's final month in this room.
+                Rent for the transfer month is charged at the old room's rate. {newRoom?.name || 'The new room'} starts billing on the next cycle.
               </p>
+
+              <label className="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeRent}
+                  onChange={(e) => setIncludeRent(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  Include rent — {formatCurrency(currentRoom?.rent || 0)}
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    Uncheck if this month's rent was already billed before the transfer.
+                  </span>
+                </span>
+              </label>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -313,6 +335,12 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
               </div>
 
               <div className="text-xs bg-white dark:bg-gray-900/40 rounded p-3 space-y-1">
+                {includeRent && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Rent — {currentRoom?.name || 'old room'}</span>
+                    <span className="text-gray-900 dark:text-white">{formatCurrency(rentAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Electricity ({utilityBill.kwh.toFixed(2)} kWh × {formatCurrency(oldRoomRates.electricityRate || 0)})</span>
                   <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.electricityBill)}</span>
@@ -340,8 +368,8 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
                   </div>
                 )}
                 <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700 font-semibold">
-                  <span className="text-gray-800 dark:text-gray-200">Utilities subtotal</span>
-                  <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.total)}</span>
+                  <span className="text-gray-800 dark:text-gray-200">Subtotal</span>
+                  <span className="text-gray-900 dark:text-white">{formatCurrency(rentAmount + utilityBill.total)}</span>
                 </div>
               </div>
             </div>
@@ -467,6 +495,12 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
             {/* Grand total preview */}
             {newRoom && (
               <div className={`rounded-lg p-4 space-y-1 text-sm ${isRefund ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                {includeRent && (
+                  <div className="flex justify-between text-gray-700 dark:text-gray-200">
+                    <span>Rent ({currentRoom?.name || 'old room'})</span>
+                    <span>{formatCurrency(rentAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-700 dark:text-gray-200">
                   <span>Utilities (old room)</span>
                   <span>{formatCurrency(utilityBill.total)}</span>

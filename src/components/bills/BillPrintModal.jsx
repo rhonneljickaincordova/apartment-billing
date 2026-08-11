@@ -210,12 +210,17 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                   <div className="mb-2 p-3 bg-indigo-100 rounded-lg text-indigo-800 text-sm">
                     <p className="font-semibold">Room Transfer — Final Bill</p>
                     <p className="text-xs mt-1">
-                      Utility charges for the tenant's final stay in this room, plus the deposit and
-                      advance reconciliation for the room transfer. Rent excluded — advance covers
-                      the final month.
+                      Rent and utilities for the tenant's final month in this room, plus the deposit
+                      and advance reconciliation for the room transfer.
                     </p>
                   </div>
-                  {/* Utility line items — old room's final stay */}
+                  {/* Rent + utility line items — old room's final month */}
+                  {(bill.rentBill || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Rent</span>
+                      <span>₱{(bill.rentBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
                   {(bill.electricityBill || 0) > 0 && (
                     <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
                       <div>
