@@ -1,13 +1,21 @@
 import { useState, useMemo } from 'react';
 import { X, ArrowRightLeft, Calendar, DollarSign, AlertCircle, Zap, Home, FileText } from 'lucide-react';
+import { getEffectiveRates } from '../../utils/rateHelpers';
 
 /**
  * Transfer Room Modal
- * Guided flow for changing a tenant's room without moving them out.
  *
- * On submit, calls onConfirmTransfer(tenant, details).
+ * Guided flow for moving an active tenant to a new room. Produces one combined
+ * final bill on the OLD room containing:
+ *   - Utility charges for the tenant's final stay in the old room (rent excluded)
+ *   - Security Deposit Top-up / Refund
+ *   - Advance Payment Top-up / Refund
+ *
+ * The bill's total is the netto (utilities + top-up). Positive net = tenant owes;
+ * negative net = landlord owes tenant (refund). Bill defaults to unpaid — landlord
+ * checks "Mark Paid Now" to auto-record payment (or refund) at creation.
  */
-function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, onConfirmTransfer }) {
+function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, bills = [], onConfirmTransfer }) {
   const currentRoom = useMemo(
     () => rooms.find((r) => r.id === tenant?.roomId) || null,
     [rooms, tenant]
@@ -25,11 +33,35 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
     );
   }, [rooms, tenants, tenant]);
 
+  // Effective rates for the OLD room (this is the room being billed for utilities)
+  const oldRoomRates = useMemo(
+    () => (tenant?.roomId
+      ? getEffectiveRates(tenant.roomId, tenants, settings)
+      : { electricityRate: 0, waterRate: 0, wifiRate: 0 }),
+    [tenant, tenants, settings]
+  );
+
+  // Auto-fill previous reading from the most recent bill for the old room
+  const previousReading = useMemo(() => {
+    if (!tenant?.roomId) return 0;
+    const roomBills = bills
+      .filter((b) => b.roomId === tenant.roomId && b.currentReading != null)
+      .sort((a, b) => new Date(b.dueDate || 0) - new Date(a.dueDate || 0));
+    return roomBills[0]?.currentReading || 0;
+  }, [bills, tenant]);
+
   const today = new Date().toISOString().split('T')[0];
   const [newRoomId, setNewRoomId] = useState('');
   const [transferDate, setTransferDate] = useState(today);
-  const [finalReading, setFinalReading] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Utility bill fields (old room's final utilities)
+  const [lastMonthReading, setLastMonthReading] = useState(previousReading);
+  const [currentReading, setCurrentReading] = useState('');
+  const [includeAirconCleaning, setIncludeAirconCleaning] = useState(false);
+  const [includeWifi, setIncludeWifi] = useState(true);
+  const [mineralWaterCount, setMineralWaterCount] = useState(0);
+
   const [customRatesChoice, setCustomRatesChoice] = useState('keep');
   const [editedRates, setEditedRates] = useState({
     electricityRate: tenant?.customRates?.electricityRate ?? '',
@@ -40,7 +72,7 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
   const [reconciledAdvance, setReconciledAdvance] = useState(0);
   const [overrideReason, setOverrideReason] = useState('');
   const [refundStyle, setRefundStyle] = useState('cash');
-  const [payNow, setPayNow] = useState(true);
+  const [payNow, setPayNow] = useState(false);
 
   const newRoom = useMemo(
     () => rooms.find((r) => r.id === newRoomId) || null,
@@ -52,10 +84,28 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
   const currentDeposit = tenant?.securityDeposit || 0;
   const currentAdvance = tenant?.advancePayment || 0;
 
+  // Utility line items on the old room
+  const utilityBill = useMemo(() => {
+    const readCur = parseFloat(currentReading) || 0;
+    const readLast = parseFloat(lastMonthReading) || 0;
+    const kwh = Math.max(0, readCur - readLast);
+    const persons = currentRoom?.persons || 0;
+    const electricityBill = kwh * (oldRoomRates.electricityRate || 0);
+    const waterBill = persons * (oldRoomRates.waterRate || 0);
+    const wifiBill = includeWifi ? (oldRoomRates.wifiRate || 0) : 0;
+    const airconCleaningBill = includeAirconCleaning ? (settings.airconCleaningRate || 0) : 0;
+    const mineralUnits = parseInt(mineralWaterCount, 10) || 0;
+    const mineralWaterBill = mineralUnits * (settings.mineralWaterRate || 0);
+    const total = electricityBill + waterBill + wifiBill + airconCleaningBill + mineralWaterBill;
+    return { kwh, electricityBill, waterBill, wifiBill, airconCleaningBill, mineralWaterBill, mineralWaterCount: mineralUnits, total };
+  }, [currentReading, lastMonthReading, includeWifi, includeAirconCleaning, mineralWaterCount, oldRoomRates, currentRoom, settings]);
+
   const depositTopUp = reconciledDeposit - currentDeposit;
   const advanceTopUp = reconciledAdvance - currentAdvance;
   const totalTopUp = depositTopUp + advanceTopUp;
-  const isDownward = totalTopUp < 0;
+  const grandTotal = utilityBill.total + totalTopUp;
+  const isRefund = grandTotal < 0;
+  const hasNegativeTopUp = totalTopUp < 0;
   const isOverride =
     reconciledDeposit !== computedDeposit || reconciledAdvance !== computedAdvance;
 
@@ -99,15 +149,35 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
       oldRoomRent: currentRoom?.rent || 0,
       transferDate,
       notes: notes.trim(),
-      finalElectricityReading: finalReading === '' ? null : parseFloat(finalReading),
+      // Utility bill lines for the old room
+      utilityBill: {
+        lastMonthReading: parseFloat(lastMonthReading) || 0,
+        currentReading: parseFloat(currentReading) || 0,
+        includeAirconCleaning,
+        includeWifi,
+        mineralWaterCount: utilityBill.mineralWaterCount,
+        electricityBill: utilityBill.electricityBill,
+        waterBill: utilityBill.waterBill,
+        wifiBill: utilityBill.wifiBill,
+        airconCleaningBill: utilityBill.airconCleaningBill,
+        mineralWaterBill: utilityBill.mineralWaterBill,
+        totalUtilities: utilityBill.total,
+        ratesUsed: {
+          electricityRate: oldRoomRates.electricityRate,
+          waterRate: oldRoomRates.waterRate,
+          wifiRate: oldRoomRates.wifiRate,
+          mineralWaterRate: settings.mineralWaterRate || 0,
+        },
+      },
       customRatesChoice,
       customRatesAtTransfer: resolveCustomRatesAtTransfer(),
       reconciledDeposit,
       reconciledAdvance,
       depositTopUp,
       advanceTopUp,
+      grandTotal,
       overrideReason: isOverride ? overrideReason.trim() : '',
-      refundStyle: isDownward ? refundStyle : null,
+      refundStyle: hasNegativeTopUp ? refundStyle : null,
       payNow,
     });
     onClose();
@@ -187,26 +257,98 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Zap className="w-4 h-4 inline mr-1" /> Final Electricity Reading — {currentRoom?.name || 'old room'}
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={finalReading}
-                onChange={(e) => setFinalReading(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                placeholder="Meter reading on transfer day"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Used as <code>lastMonthReading</code> on the next monthly bill for {currentRoom?.name || 'this room'}.
+            {/* Final Utility Bill for the OLD room */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Final Utility Bill — {currentRoom?.name || 'old room'}
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Rent is excluded — advance payment covers the tenant's final month in this room.
               </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Previous reading</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={lastMonthReading}
+                    onChange={(e) => setLastMonthReading(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Current reading</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={currentReading}
+                    onChange={(e) => setCurrentReading(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Meter reading on transfer day"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+                  <input type="checkbox" checked={includeWifi} onChange={(e) => setIncludeWifi(e.target.checked)} />
+                  Include WiFi
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+                  <input type="checkbox" checked={includeAirconCleaning} onChange={(e) => setIncludeAirconCleaning(e.target.checked)} />
+                  Include Aircon Cleaning
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Mineral water units</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={mineralWaterCount}
+                  onChange={(e) => setMineralWaterCount(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div className="text-xs bg-white dark:bg-gray-900/40 rounded p-3 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Electricity ({utilityBill.kwh.toFixed(2)} kWh × {formatCurrency(oldRoomRates.electricityRate || 0)})</span>
+                  <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.electricityBill)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Water ({currentRoom?.persons || 0} pax × {formatCurrency(oldRoomRates.waterRate || 0)})</span>
+                  <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.waterBill)}</span>
+                </div>
+                {includeWifi && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">WiFi</span>
+                    <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.wifiBill)}</span>
+                  </div>
+                )}
+                {includeAirconCleaning && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Aircon Cleaning</span>
+                    <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.airconCleaningBill)}</span>
+                  </div>
+                )}
+                {utilityBill.mineralWaterBill > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Mineral water ({utilityBill.mineralWaterCount})</span>
+                    <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.mineralWaterBill)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700 font-semibold">
+                  <span className="text-gray-800 dark:text-gray-200">Utilities subtotal</span>
+                  <span className="text-gray-900 dark:text-white">{formatCurrency(utilityBill.total)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Custom Utility Rates
+                Custom Utility Rates (going forward)
               </label>
               <div className="space-y-1 text-sm">
                 {['keep', 'reset', 'edit'].map((choice) => (
@@ -250,7 +392,7 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
 
             {newRoom && (
               <div className={`rounded-lg p-4 space-y-3 ${
-                isDownward ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-blue-50 dark:bg-blue-900/20'
+                hasNegativeTopUp ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-blue-50 dark:bg-blue-900/20'
               }`}>
                 <h4 className="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                   <DollarSign className="w-4 h-4" />
@@ -305,16 +447,7 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Transfer top-up total:
-                  </span>
-                  <span className={`text-lg font-bold ${isDownward ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-700 dark:text-blue-300'}`}>
-                    {formatCurrency(totalTopUp)}
-                  </span>
-                </div>
-
-                {isDownward && (
+                {hasNegativeTopUp && (
                   <div>
                     <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Refund style</label>
                     <select
@@ -328,14 +461,44 @@ function TransferRoomModal({ isOpen, onClose, tenant, rooms, tenants, settings, 
                     </select>
                   </div>
                 )}
-
-                {!isDownward && totalTopUp > 0 && (
-                  <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
-                    <input type="checkbox" checked={payNow} onChange={(e) => setPayNow(e.target.checked)} />
-                    <span>Mark top-up paid now (uncheck to leave it as an outstanding bill)</span>
-                  </label>
-                )}
               </div>
+            )}
+
+            {/* Grand total preview */}
+            {newRoom && (
+              <div className={`rounded-lg p-4 space-y-1 text-sm ${isRefund ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                <div className="flex justify-between text-gray-700 dark:text-gray-200">
+                  <span>Utilities (old room)</span>
+                  <span>{formatCurrency(utilityBill.total)}</span>
+                </div>
+                <div className="flex justify-between text-gray-700 dark:text-gray-200">
+                  <span>Security Deposit Top-up</span>
+                  <span>{formatCurrency(depositTopUp)}</span>
+                </div>
+                <div className="flex justify-between text-gray-700 dark:text-gray-200">
+                  <span>Advance Payment Top-up</span>
+                  <span>{formatCurrency(advanceTopUp)}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-700 font-bold text-base">
+                  <span className="text-gray-900 dark:text-white">
+                    {isRefund ? 'Refund to tenant' : 'Amount owed by tenant'}
+                  </span>
+                  <span className={isRefund ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-700 dark:text-blue-300'}>
+                    {formatCurrency(Math.abs(grandTotal))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {newRoom && grandTotal !== 0 && (
+              <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer">
+                <input type="checkbox" checked={payNow} onChange={(e) => setPayNow(e.target.checked)} />
+                <span>
+                  {isRefund
+                    ? 'Refund tendered now (mark bill paid)'
+                    : 'Tenant paying now (mark bill paid)'}
+                </span>
+              </label>
             )}
 
             <div>

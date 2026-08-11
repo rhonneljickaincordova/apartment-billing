@@ -1298,6 +1298,7 @@ const ApartmentBillTracker = () => {
               rooms={rooms}
               tenants={tenants}
               settings={settings}
+              bills={bills}
               onConfirmTransfer={handleConfirmTransfer}
             />
           </div>

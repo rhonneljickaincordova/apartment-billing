@@ -407,7 +407,7 @@ export function useTenants() {
           toRoomId: details.newRoomId,
           transferDate: details.transferDate,
           notes: details.notes || '',
-          finalElectricityReading: details.finalElectricityReading ?? null,
+          finalElectricityReading: details.utilityBill?.currentReading ?? details.finalElectricityReading ?? null,
           customRatesChoice: details.customRatesChoice || 'keep',
           customRatesAtTransfer: details.customRatesAtTransfer || null,
           previousDeposit: tenant.securityDeposit || 0,
@@ -440,50 +440,64 @@ export function useTenants() {
 
         batch.update(tenantRef, tenantUpdate);
 
-        const payNowMarksPaid = !isDownward && totalTopUp > 0 && details.payNow;
-        const billPayments = isDownward
+        const utility = details.utilityBill || {};
+        const grandTotal = details.grandTotal != null
+          ? details.grandTotal
+          : (utility.totalUtilities || 0) + totalTopUp;
+        const isRefundBill = grandTotal < 0;
+
+        // Default: bill unpaid. payNow explicitly opts in to auto-mark paid + record
+        // a Cash/refund payment entry.
+        const billPayments = details.payNow && grandTotal !== 0
           ? [
               {
-                id: `refund-${Date.now()}`,
-                amount: totalTopUp,
+                id: `${isRefundBill ? 'refund' : 'payment'}-${Date.now()}`,
+                amount: grandTotal,
                 date: details.transferDate,
-                method: details.refundStyle === 'credit' ? 'Credit' : 'Cash',
-                notes: `Room transfer refund (${details.refundStyle || 'cash'})`,
+                method: isRefundBill
+                  ? (details.refundStyle === 'credit' ? 'Credit' : 'Cash')
+                  : 'Cash',
+                notes: isRefundBill
+                  ? `Room transfer refund (${details.refundStyle || 'cash'})`
+                  : 'Room transfer bill paid at transfer',
                 createdAt: new Date().toISOString(),
               },
             ]
-          : payNowMarksPaid
-            ? [
-                {
-                  id: `topup-${Date.now()}`,
-                  amount: totalTopUp,
-                  date: details.transferDate,
-                  method: 'Cash',
-                  notes: 'Room transfer top-up paid at transfer',
-                  createdAt: new Date().toISOString(),
-                },
-              ]
-            : [];
+          : [];
 
         const billData = {
           type: 'roomTransfer',
-          roomId: details.newRoomId,
+          // Bill lives on the OLD room — this is where the tenant was living when the
+          // final utilities were consumed and where the transfer was initiated from.
+          roomId: details.oldRoomId || tenant.roomId,
+          newRoomId: details.newRoomId,
           tenantId: tenant.id,
           dueDate: details.transferDate,
+          // Utility line items for the OLD room's final stay
+          lastMonthReading: utility.lastMonthReading || 0,
+          currentReading: utility.currentReading || 0,
+          includeAirconCleaning: !!utility.includeAirconCleaning,
+          includeWifi: utility.includeWifi !== false,
+          electricityBill: utility.electricityBill || 0,
+          waterBill: utility.waterBill || 0,
+          wifiBill: utility.wifiBill || 0,
+          rentBill: 0,
+          rentExcluded: true,
+          airconCleaningBill: utility.airconCleaningBill || 0,
+          mineralWaterBill: utility.mineralWaterBill || 0,
+          mineralWaterCount: utility.mineralWaterCount || 0,
+          totalUtilities: utility.totalUtilities || 0,
+          ratesUsed: utility.ratesUsed || null,
+          // Transfer-specific fields
           depositTopUp: details.depositTopUp || 0,
           advanceTopUp: details.advanceTopUp || 0,
-          totalAmount: totalTopUp,
-          amountPaid: (isDownward || payNowMarksPaid) ? totalTopUp : 0,
-          paid: isDownward || payNowMarksPaid || totalTopUp === 0,
+          totalTopUp,
+          totalAmount: grandTotal,
+          amountPaid: details.payNow ? grandTotal : 0,
+          paid: details.payNow || grandTotal === 0,
           payments: billPayments,
           transferHistoryIndex: nextHistory.length - 1,
           overrideReason: details.overrideReason || '',
-          rentBill: 0,
-          electricityBill: 0,
-          waterBill: 0,
-          wifiBill: 0,
-          airconCleaningBill: 0,
-          mineralWaterBill: 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
@@ -494,11 +508,11 @@ export function useTenants() {
 
         return {
           success: true,
-          message: isDownward
-            ? `${tenant.fullName} transferred. Refund of ₱${Math.abs(totalTopUp).toFixed(2)} recorded.`
-            : totalTopUp > 0
-              ? `${tenant.fullName} transferred. Top-up bill of ₱${totalTopUp.toFixed(2)} created.`
-              : `${tenant.fullName} transferred. No top-up needed.`,
+          message: isRefundBill
+            ? `${tenant.fullName} transferred. Refund bill of ₱${Math.abs(grandTotal).toFixed(2)} recorded on ${details.oldRoomId ? 'old room' : 'this room'}.`
+            : grandTotal > 0
+              ? `${tenant.fullName} transferred. Final bill of ₱${grandTotal.toFixed(2)} created on old room.`
+              : `${tenant.fullName} transferred. No balance owed.`,
           transferBillId: billRef.id,
         };
       } catch (error) {

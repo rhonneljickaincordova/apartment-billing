@@ -208,25 +208,62 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
               {isTransferBill ? (
                 <>
                   <div className="mb-2 p-3 bg-indigo-100 rounded-lg text-indigo-800 text-sm">
-                    <p className="font-semibold">
-                      Room Transfer {isRefundBill ? 'Refund' : 'Top-up'}
-                    </p>
+                    <p className="font-semibold">Room Transfer — Final Bill</p>
                     <p className="text-xs mt-1">
-                      {isRefundBill
-                        ? 'Refund of deposit and advance owed to tenant after transfer to a lower-rent room.'
-                        : 'Payment to bring deposit and advance in proportion with the new room’s rent.'}
+                      Utility charges for the tenant's final stay in this room, plus the deposit and
+                      advance reconciliation for the room transfer. Rent excluded — advance covers
+                      the final month.
                     </p>
                   </div>
-                  {(bill.depositTopUp || 0) !== 0 && (
+                  {/* Utility line items — old room's final stay */}
+                  {(bill.electricityBill || 0) > 0 && (
                     <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
-                      <span>Security Deposit {isRefundBill ? 'Refund' : 'Top-up'}</span>
-                      <span>₱{Math.abs(bill.depositTopUp || 0).toFixed(2)}</span>
+                      <div>
+                        <span>Electricity</span>
+                        <div className="text-xs text-gray-500">({bill.lastMonthReading} → {bill.currentReading}) kWh</div>
+                      </div>
+                      <span>₱{(bill.electricityBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.waterBill || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Water</span>
+                      <span>₱{(bill.waterBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.wifiBill || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>WiFi</span>
+                      <span>₱{(bill.wifiBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.airconCleaningBill || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Aircon Cleaning</span>
+                      <span>₱{(bill.airconCleaningBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.mineralWaterBill || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Mineral Water ({bill.mineralWaterCount || 0})</span>
+                      <span>₱{(bill.mineralWaterBill || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {/* Top-up line items */}
+                  {(bill.depositTopUp || 0) !== 0 && (
+                    <div className={`flex justify-between py-3 border-b border-gray-200 ${(bill.depositTopUp || 0) < 0 ? 'text-emerald-700' : 'text-gray-700'}`}>
+                      <span>
+                        Security Deposit {(bill.depositTopUp || 0) < 0 ? 'Refund' : 'Top-up'}
+                      </span>
+                      <span>{(bill.depositTopUp || 0) < 0 ? '−' : ''}₱{Math.abs(bill.depositTopUp || 0).toFixed(2)}</span>
                     </div>
                   )}
                   {(bill.advanceTopUp || 0) !== 0 && (
-                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
-                      <span>Advance Payment {isRefundBill ? 'Refund' : 'Top-up'}</span>
-                      <span>₱{Math.abs(bill.advanceTopUp || 0).toFixed(2)}</span>
+                    <div className={`flex justify-between py-3 border-b border-gray-200 ${(bill.advanceTopUp || 0) < 0 ? 'text-emerald-700' : 'text-gray-700'}`}>
+                      <span>
+                        Advance Payment {(bill.advanceTopUp || 0) < 0 ? 'Refund' : 'Top-up'}
+                      </span>
+                      <span>{(bill.advanceTopUp || 0) < 0 ? '−' : ''}₱{Math.abs(bill.advanceTopUp || 0).toFixed(2)}</span>
                     </div>
                   )}
                   {bill.overrideReason && (
@@ -235,8 +272,8 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                       {bill.overrideReason}
                     </div>
                   )}
-                  <div className="flex justify-between py-4 border-t-2 border-gray-900 mt-3 text-xl font-bold text-gray-900">
-                    <span>{isRefundBill ? 'TOTAL REFUND' : 'TOTAL'}</span>
+                  <div className={`flex justify-between py-4 border-t-2 border-gray-900 mt-3 text-xl font-bold ${isRefundBill ? 'text-emerald-700' : 'text-gray-900'}`}>
+                    <span>{isRefundBill ? 'TOTAL REFUND TO TENANT' : 'TOTAL DUE'}</span>
                     <span>₱{displayTotal.toFixed(2)}</span>
                   </div>
                 </>
