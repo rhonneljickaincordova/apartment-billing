@@ -111,6 +111,33 @@ function MoveOutModal({
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(amount);
 
+  const penaltyNote = `Early termination penalty of ${formatCurrency(earlyTerminationPenalty)} deducted from security deposit.`;
+
+  /**
+   * Selecting "Early Termination" auto-applies the tenant's contracted penalty as a
+   * deduction and stamps a note explaining it. Switching away undoes both — but only
+   * if the values are still the ones we set, so manual edits are never clobbered.
+   */
+  const handleReasonChange = (value) => {
+    const previousReason = moveOutReason;
+    setMoveOutReason(value);
+
+    if (earlyTerminationPenalty <= 0) return;
+
+    if (value === 'early_termination') {
+      setDeductions((prev) => (prev === '' ? String(earlyTerminationPenalty) : prev));
+      setNotes((prev) => (prev.includes(penaltyNote) ? prev : prev ? `${prev}\n${penaltyNote}` : penaltyNote));
+    } else if (previousReason === 'early_termination') {
+      setDeductions((prev) => (parseFloat(prev) === earlyTerminationPenalty ? '' : prev));
+      setNotes((prev) =>
+        prev
+          .split('\n')
+          .filter((line) => line.trim() !== penaltyNote)
+          .join('\n')
+      );
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const reasonInfo = MOVE_OUT_REASONS.find((r) => r.value === moveOutReason);
@@ -217,7 +244,10 @@ function MoveOutModal({
                   <div>
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Early Termination Penalty Applies</p>
                     <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                      Tenant is leaving before 6 months. A penalty of {formatCurrency(earlyTerminationPenalty)} may apply — apply it via a separate penalty entry on their final bill.
+                      Tenant is leaving before 6 months, and their contract carries a {formatCurrency(earlyTerminationPenalty)} penalty.
+                      {moveOutReason === 'early_termination'
+                        ? ' It has been applied as a deduction below.'
+                        : ' Select "Early Termination" as the reason to apply it as a deduction automatically.'}
                     </p>
                   </div>
                 </div>
@@ -247,7 +277,7 @@ function MoveOutModal({
               </label>
               <select
                 value={moveOutReason}
-                onChange={(e) => setMoveOutReason(e.target.value)}
+                onChange={(e) => handleReasonChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 {MOVE_OUT_REASONS.map((reason) => (
@@ -386,7 +416,14 @@ function MoveOutModal({
               </div>
 
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Additional deductions (damages, etc.)</label>
+                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  Additional deductions (damages, etc.)
+                  {moveOutReason === 'early_termination' && earlyTerminationPenalty > 0 && (
+                    <span className="ml-1 text-amber-700 dark:text-amber-300">
+                      — includes {formatCurrency(earlyTerminationPenalty)} early termination penalty
+                    </span>
+                  )}
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                   <input
