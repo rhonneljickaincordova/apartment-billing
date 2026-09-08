@@ -191,6 +191,24 @@ export function validateTenant(tenant) {
     errors.relationship = 'Relationship is required';
   }
 
+  // Additional occupants (optional). A fully blank row is dropped on save, but a row
+  // with only a relationship would silently vanish — flag it instead.
+  if (Array.isArray(tenant.occupants)) {
+    const occupantErrors = {};
+    tenant.occupants.forEach((occupant, index) => {
+      const name = (occupant?.name || '').trim();
+      const relationship = (occupant?.relationship || '').trim();
+      if (name === '' && relationship !== '') {
+        occupantErrors[index] = 'Name is required';
+      } else if (name !== '' && name.length < 2) {
+        occupantErrors[index] = 'Name must be at least 2 characters';
+      }
+    });
+    if (Object.keys(occupantErrors).length > 0) {
+      errors.occupants = occupantErrors;
+    }
+  }
+
   // Custom rates validation (optional fields - only validate if provided)
   if (tenant.customRates) {
     const rates = tenant.customRates;

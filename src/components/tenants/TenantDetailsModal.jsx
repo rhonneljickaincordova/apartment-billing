@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, User, Phone, Home, Calendar, Users, Heart, FileText, Image, Share2, LogOut, ArrowRightLeft } from 'lucide-react';
 import SignaturePad from './SignaturePad';
 import LeaseAgreementModal from './LeaseAgreementModal';
+import { getOccupants } from '../../utils/occupants';
 
 /**
  * Tenant Details Modal Component
@@ -11,6 +12,8 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
   const [showLeaseModal, setShowLeaseModal] = useState(false);
 
   if (!isOpen || !tenant) return null;
+
+  const occupants = getOccupants(tenant);
 
   const getRoom = (roomId) => {
     if (!roomId) return null;
@@ -104,6 +107,32 @@ function TenantDetailsModal({ tenant, rooms, settings, isOpen, onClose, onSaveSi
               )}
             </div>
           </div>
+
+          {/* Additional Occupants */}
+          {occupants.length > 0 && (
+            <div>
+              <h3 className="text-md font-medium mb-4 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Additional Occupants
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                  ({occupants.length + 1} total in room)
+                </span>
+              </h3>
+              <ul className="space-y-2">
+                {occupants.map((occupant, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{occupant.name}</p>
+                      {occupant.relationship && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{occupant.relationship}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Lease Information */}
           <div>

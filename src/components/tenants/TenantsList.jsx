@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2 } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
+import { getOccupants, renderOccupancyClauseHtml } from '../../utils/occupants';
 
 /**
  * Tenants List Component
@@ -135,6 +136,13 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
         property: 'Blk 13 Lot 30 Matutum St., Sto. Nino Bulusan, Central Park, Bangkal, Brgy Talomo Poblacion, Davao City',
       };
 
+      // This renderer uses inline styles rather than a stylesheet, so the shared
+      // clause builder is given matching list styles.
+      const occupancy = renderOccupancyClauseHtml(tenant, {
+        listStyle: 'margin: 8px 0 0 0; padding-left: 20px; color: #374151;',
+        itemStyle: 'margin-bottom: 4px;',
+      });
+
       container.innerHTML = `
         <div style="background: white; padding: 32px; font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;">
           <!-- Header -->
@@ -198,6 +206,19 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               <div style="display: flex; align-items: flex-start; gap: 12px;">
                 <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">2</span>
                 <div>
+                  <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Occupancy</p>
+                  <p style="color: #374151; margin: 0;">${occupancy.intro}</p>
+                  ${occupancy.list}
+                  <p style="color: #374151; margin: 8px 0 0 0;">${occupancy.restriction}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Term 3 -->
+            <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">3</span>
+                <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Monthly Rent</p>
                   <p style="color: #374151; margin: 0;">
                     The Lessee agrees to pay the Lessor the monthly rent of <span style="color: #15803d; font-weight: bold;">${formatPdfCurrency(monthlyRent)}</span>,
@@ -207,10 +228,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 3 -->
+            <!-- Term 4 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">3</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">4</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Advance Payment & Security Deposit</p>
                   <p style="color: #374151; margin: 0 0 8px 0;">Upon signing this Agreement, the Lessee shall pay:</p>
@@ -225,10 +246,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 4 -->
+            <!-- Term 5 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">4</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">5</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Security Deposit Refund</p>
                   <p style="color: #374151; margin: 0; text-align: justify;">
@@ -241,10 +262,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 5 -->
+            <!-- Term 6 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">5</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">6</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Early Termination</p>
                   <p style="color: #374151; margin: 0; text-align: justify;">
@@ -255,10 +276,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 6 -->
+            <!-- Term 7 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">6</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">7</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Utilities</p>
                   <p style="color: #374151; margin: 0 0 8px 0;">The Lessee shall be responsible for payment of all utilities consumed, at the following rates:</p>
@@ -271,10 +292,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 7 -->
+            <!-- Term 8 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">7</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">8</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Maintenance & Repairs</p>
                   <p style="color: #374151; margin: 0; text-align: justify;">
@@ -286,10 +307,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 8 -->
+            <!-- Term 9 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">8</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">9</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Termination Notice</p>
                   <p style="color: #374151; margin: 0; text-align: justify;">
@@ -299,10 +320,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
               </div>
             </div>
 
-            <!-- Term 9 -->
+            <!-- Term 10 -->
             <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">9</span>
+                <span style="background: #2563eb; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">10</span>
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">House Rules</p>
                   <p style="color: #374151; margin: 0; text-align: justify;">
@@ -430,7 +451,9 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
         return (
           tenant.fullName?.toLowerCase().includes(query) ||
           tenant.phoneNumber?.toLowerCase().includes(query) ||
-          roomName.includes(query)
+          roomName.includes(query) ||
+          // Searching an occupant's name finds the tenant they live with
+          getOccupants(tenant).some((occupant) => occupant.name.toLowerCase().includes(query))
         );
       });
     }

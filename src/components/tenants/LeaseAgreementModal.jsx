@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { X, Share2, Download } from 'lucide-react';
 import landlordSignature from '../../assets/signiture.png';
+import { getOccupants, formatOccupantLine, getOccupancyIntro, OCCUPANCY_CLAUSE_RESTRICTION } from '../../utils/occupants';
 
 const LANDLORD_INFO = {
   name: 'Rhonnel Cordova',
@@ -99,6 +100,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   const wifiRate = tenant?.customRates?.wifiRate ?? settings?.wifiRate ?? 500;
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
   const earlyTerminationPenalty = tenant?.earlyTerminationPenalty || securityDeposit;
+  const occupants = getOccupants(tenant);
 
   // Generate contract as image using canvas
   const generateContractImage = async () => {
@@ -340,6 +342,25 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 <div className="flex items-start gap-3">
                   <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
                   <div>
+                    <p className="font-bold text-blue-800 uppercase text-sm mb-2">Occupancy</p>
+                    <p className="text-gray-700">{getOccupancyIntro(occupants.length)}</p>
+                    {occupants.length > 0 && (
+                      <ul className="mt-2 ml-4 space-y-1 text-gray-700">
+                        {occupants.map((occupant, index) => (
+                          <li key={index}>• {formatOccupantLine(occupant)}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="text-gray-700 mt-2">{OCCUPANCY_CLAUSE_RESTRICTION}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Term 3 */}
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
+                  <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Monthly Rent</p>
                     <p className="text-gray-700">
                       The Lessee agrees to pay the Lessor the monthly rent of <span className="text-green-700 font-bold">{formatCurrency(monthlyRent)}</span>,
@@ -349,10 +370,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 3 */}
+              {/* Term 4 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Advance Payment & Security Deposit</p>
                     <p className="text-gray-700 mb-2">Upon signing this Agreement, the Lessee shall pay:</p>
@@ -367,10 +388,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 4 */}
+              {/* Term 5 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">5</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Security Deposit Refund</p>
                     <p className="text-gray-700 text-justify">
@@ -383,10 +404,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 5 */}
+              {/* Term 6 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">5</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">6</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Early Termination</p>
                     <p className="text-gray-700 text-justify">
@@ -397,10 +418,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 6 */}
+              {/* Term 7 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">6</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">7</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Utilities</p>
                     <p className="text-gray-700 mb-2">The Lessee shall be responsible for payment of all utilities consumed, at the following rates:</p>
@@ -413,10 +434,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 7 */}
+              {/* Term 8 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">7</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">8</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Maintenance & Repairs</p>
                     <p className="text-gray-700 text-justify">
@@ -428,10 +449,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 8 */}
+              {/* Term 9 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">8</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">9</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Termination Notice</p>
                     <p className="text-gray-700 text-justify">
@@ -441,10 +462,10 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                 </div>
               </div>
 
-              {/* Term 9 */}
+              {/* Term 10 */}
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">9</span>
+                  <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">10</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">House Rules</p>
                     <p className="text-gray-700 text-justify">

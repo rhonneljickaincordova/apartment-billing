@@ -5,6 +5,7 @@ import { tenantsService, COLLECTIONS } from '../services/firestore';
 import { useFirestoreCollection } from './useFirestore';
 import { db } from '../config/firebase';
 import { buildMoveInBillData, getMoveInAmounts } from '../utils/moveInBill';
+import { normalizeOccupants } from '../utils/occupants';
 
 /**
  * Custom hook for managing tenants
@@ -23,6 +24,7 @@ export function useTenants() {
     id: null,
     fullName: '',
     phoneNumber: '',
+    occupants: [],
     validIdImages: [],
     emergencyContactName: '',
     emergencyContactNumber: '',
@@ -65,6 +67,9 @@ export function useTenants() {
       const tenantData = {
         fullName: tenantForm.fullName.trim(),
         phoneNumber: tenantForm.phoneNumber.trim(),
+        // Additional people authorized to live in the unit. Blank rows the user left
+        // behind in the form are dropped here rather than persisted.
+        occupants: normalizeOccupants(tenantForm.occupants),
         validIdImages: tenantForm.validIdImages || [],
         emergencyContactName: tenantForm.emergencyContactName.trim(),
         emergencyContactNumber: tenantForm.emergencyContactNumber.trim(),

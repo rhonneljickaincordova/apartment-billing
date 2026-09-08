@@ -4,6 +4,20 @@ The apartment-side context of this repo — rooms, tenants, monthly utility bill
 
 ## Language
 
+### Who lives in a room
+
+**Primary tenant** (`tenant.fullName`):
+The sole lessee — the party who signs the lease, pays rent, holds the advance and deposit, and moves out. Every bill, receipt, transfer and move-out keys off exactly one primary tenant per room.
+_Avoid_: Main tenant, account holder, renter
+
+**Additional occupant** (`tenant.occupants[]`):
+Another person authorized to live in the unit, recorded as `{ name, relationship }`. Named in the lease's Occupancy clause but not a party to it: they do not sign, hold no balance, and are not billed. Distinct from the emergency contact, who does not live there.
+_Avoid_: Co-tenant, roommate, secondary tenant
+
+**Occupancy clause**:
+Clause 2 of the lease, listing the primary tenant's authorized occupants and barring anyone else without the Lessor's written consent. Rendered by three separate generators (print window, on-screen preview, PDF) that must stay in lockstep — the shared wording lives in `src/utils/occupants.js`.
+_Avoid_: Residents clause, occupants section
+
 ### Money held on the tenant's behalf
 
 **Advance payment**:

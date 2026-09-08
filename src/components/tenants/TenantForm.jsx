@@ -1,4 +1,5 @@
-import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi, LogOut, DollarSign } from 'lucide-react';
+import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi, LogOut, DollarSign, UserPlus, AlertTriangle } from 'lucide-react';
+import { normalizeOccupants } from '../../utils/occupants';
 
 // Move-out reason options (same as MoveOutModal)
 const MOVE_OUT_REASONS = [
@@ -38,6 +39,35 @@ function TenantForm({
       [rateKey]: isNaN(newValue) ? null : newValue,
     });
   };
+
+  // Additional occupant row helpers. Rows are edited in place and blank ones are
+  // dropped on save, so the user can add a row and fill it in at their own pace.
+  const occupants = Array.isArray(form.occupants) ? form.occupants : [];
+
+  const updateOccupant = (index, key, value) => {
+    onUpdateField(
+      'occupants',
+      occupants.map((occupant, i) => (i === index ? { ...occupant, [key]: value } : occupant))
+    );
+  };
+
+  const addOccupant = () => {
+    onUpdateField('occupants', [...occupants, { name: '', relationship: '' }]);
+  };
+
+  const removeOccupant = (index) => {
+    onUpdateField('occupants', occupants.filter((_, i) => i !== index));
+  };
+
+  // Everyone living in the unit, primary tenant included. The room's person count
+  // is what water is actually billed on, so a mismatch is worth surfacing.
+  const totalOccupantCount = normalizeOccupants(occupants).length + (form.fullName?.trim() ? 1 : 0);
+  const selectedRoom = rooms.find((room) => room.id === form.roomId);
+  const roomPersons = Number(selectedRoom?.persons) || 0;
+  // Mirrors getEffectiveRates: this tenant's custom rate wins over the global one.
+  const waterRate = Number(form.customRates?.waterRate ?? settings?.waterRate) || 0;
+  const showOccupancyMismatch =
+    !!selectedRoom && totalOccupantCount > 0 && roomPersons !== totalOccupantCount;
 
   // Helper to update move-out details
   const updateMoveOutDetails = (key, value) => {
@@ -152,6 +182,93 @@ function TenantForm({
             />
           </div>
         </div>
+      </div>
+
+      {/* Additional Occupants */}
+      <div className="mb-6">
+        <h3 className="text-md font-medium mb-2 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+          <UserPlus className="w-4 h-4 inline mr-1" aria-hidden="true" />
+          Additional Occupants
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Anyone else who will live in the room. They are named in the lease agreement's
+          Occupancy clause. The tenant above remains the sole signatory and the party
+          responsible for rent, deposits and utilities.
+        </p>
+
+        {occupants.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic mb-3">
+            No additional occupants — the tenant will be listed as the sole occupant.
+          </p>
+        ) : (
+          <div className="space-y-3 mb-3">
+            {occupants.map((occupant, index) => (
+              <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-start">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Occupant full name"
+                    value={occupant.name || ''}
+                    onChange={(e) => updateOccupant(index, 'name', e.target.value)}
+                    className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                      errors.occupants?.[index] ? 'border-red-500' : ''
+                    }`}
+                    aria-label={`Occupant ${index + 1} name`}
+                    aria-invalid={!!errors.occupants?.[index]}
+                  />
+                  {errors.occupants?.[index] && (
+                    <p className="text-red-500 text-xs mt-1">{errors.occupants[index]}</p>
+                  )}
+                </div>
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Relationship (e.g. Spouse)"
+                    value={occupant.relationship || ''}
+                    onChange={(e) => updateOccupant(index, 'relationship', e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    aria-label={`Occupant ${index + 1} relationship`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOccupant(index)}
+                    className="flex-shrink-0 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                    aria-label={`Remove occupant ${index + 1}`}
+                    title="Remove occupant"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={addOccupant}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30"
+        >
+          <UserPlus className="w-4 h-4" />
+          Add occupant
+        </button>
+
+        {showOccupancyMismatch && (
+          <div className="mt-4 flex gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-900 dark:text-amber-300">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="font-medium">
+                {totalOccupantCount} {totalOccupantCount === 1 ? 'person' : 'people'} listed, but{' '}
+                {selectedRoom.name} is set to {roomPersons} for water billing
+                {waterRate > 0 && ` (${roomPersons} × ₱${waterRate.toFixed(2)} = ₱${(roomPersons * waterRate).toFixed(2)}/mo)`}.
+              </p>
+              <p className="text-xs mt-1">
+                Nothing is billed off this list — update the room's person count if the water
+                charge should cover {totalOccupantCount}.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Emergency Contact */}
