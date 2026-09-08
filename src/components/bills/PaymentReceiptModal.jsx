@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { X, Share2, Printer, CheckCircle } from 'lucide-react';
+import { isMoveInBill } from '../../utils/moveInBill';
 
 /**
  * Payment Receipt Modal Component
@@ -11,10 +12,13 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
 
   if (!isOpen || !bill) return null;
 
+  const isMoveIn = isMoveInBill(bill);
   const paidDate = bill.paidDate || new Date().toISOString().split('T')[0];
+  const tenantName = tenant?.fullName || tenant?.name || 'N/A';
+  const receiptTitle = isMoveIn ? 'MOVE-IN PAYMENT RECEIPT' : 'PAYMENT RECEIPT';
 
   // Generate receipt number from bill ID and paid date
-  const receiptNumber = `RCP-${bill.id?.slice(-6).toUpperCase() || '000000'}-${paidDate.replace(/-/g, '')}`;
+  const receiptNumber = `${isMoveIn ? 'MIR' : 'RCP'}-${bill.id?.slice(-6).toUpperCase() || '000000'}-${paidDate.replace(/-/g, '')}`;
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -91,20 +95,21 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
 
     try {
       const imageBlob = await generateReceiptImage();
-      const fileName = `Receipt-${room?.name || 'Room'}-${paidDate}.png`;
+      const fileName = `${isMoveIn ? 'MoveIn-Receipt' : 'Receipt'}-${room?.name || 'Room'}-${paidDate}.png`;
       const file = new File([imageBlob], fileName, { type: 'image/png' });
+      const shareTitle = `${isMoveIn ? 'Move-In Payment Receipt' : 'Payment Receipt'} - ${room?.name || 'Room'}`;
 
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `Payment Receipt - ${room?.name || 'Room'}`,
-          text: `Payment receipt for ${room?.name || 'Room'} - Amount: ₱${totalAmount.toFixed(2)} - Receipt #${receiptNumber}`,
+          title: shareTitle,
+          text: `${isMoveIn ? 'Move-in payment receipt' : 'Payment receipt'} for ${room?.name || 'Room'} - Amount: ₱${totalAmount.toFixed(2)} - Receipt #${receiptNumber}`,
           files: [file],
         });
       } else if (navigator.share) {
         // Fallback: share without file (text only)
         await navigator.share({
-          title: `Payment Receipt - ${room?.name || 'Room'}`,
-          text: `Payment receipt for ${room?.name || 'Room'}\nAmount: ₱${totalAmount.toFixed(2)}\nReceipt #${receiptNumber}`,
+          title: shareTitle,
+          text: `${isMoveIn ? 'Move-in payment receipt' : 'Payment receipt'} for ${room?.name || 'Room'}\nAmount: ₱${totalAmount.toFixed(2)}\nReceipt #${receiptNumber}`,
         });
       } else {
         // Fallback for browsers that don't support Web Share API
@@ -137,7 +142,7 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Payment Receipt - ${room?.name || 'Room'}</title>
+          <title>${isMoveIn ? 'Move-In Payment Receipt' : 'Payment Receipt'} - ${room?.name || 'Room'}</title>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -180,7 +185,7 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 id="receipt-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-            Payment Receipt
+            {isMoveIn ? 'Move-In Payment Receipt' : 'Payment Receipt'}
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -216,7 +221,7 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
               <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
                 <CheckCircle className="w-10 h-10 text-green-500" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">PAYMENT RECEIPT</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{receiptTitle}</h1>
               <p className="text-sm text-gray-500">Official Acknowledgment of Payment</p>
             </div>
 
@@ -230,21 +235,48 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
             <div className="space-y-3 mb-6">
               <div className="flex justify-between py-2 border-b border-gray-200">
                 <span className="text-gray-600">Tenant:</span>
-                <span className="font-semibold text-gray-900">{tenant?.name || 'N/A'}</span>
+                <span className="font-semibold text-gray-900">{tenantName}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-200">
                 <span className="text-gray-600">Room:</span>
                 <span className="font-semibold text-gray-900">{room?.name || 'N/A'}</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-600">Bill Due Date:</span>
-                <span className="font-semibold text-gray-900">{formatDate(bill.dueDate)}</span>
-              </div>
+              {!isMoveIn && (
+                <div className="flex justify-between py-2 border-b border-gray-200">
+                  <span className="text-gray-600">Bill Due Date:</span>
+                  <span className="font-semibold text-gray-900">{formatDate(bill.dueDate)}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2 border-b border-gray-200">
                 <span className="text-gray-600">Date Paid:</span>
                 <span className="font-semibold text-gray-900">{formatDate(paidDate)}</span>
               </div>
             </div>
+
+            {/* Move-In Breakdown — what the payment covers */}
+            {isMoveIn && (
+              <div className="mb-6">
+                <p className="text-sm text-gray-500 mb-2">Payment For:</p>
+                <div className="space-y-2">
+                  {(bill.advancePaymentAmount || 0) > 0 && (
+                    <div className="flex justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-700">Advance Payment</span>
+                      <span className="font-medium text-gray-900">₱{(bill.advancePaymentAmount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.securityDepositAmount || 0) > 0 && (
+                    <div className="flex justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-700">Security Deposit</span>
+                      <span className="font-medium text-gray-900">₱{(bill.securityDepositAmount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  The security deposit is refundable on move-out, less any deductions. The advance
+                  payment is applied to the final month's rent.
+                </p>
+              </div>
+            )}
 
             {/* Payment Methods */}
             <div className="mb-6">

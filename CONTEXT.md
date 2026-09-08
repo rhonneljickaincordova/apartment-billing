@@ -14,6 +14,10 @@ _Avoid_: Prepayment, prepaid rent, last-month rent
 One month's rent collected at move-in and held against damages or unpaid dues. Returnable at move-out net of deductions.
 _Avoid_: Bond, damage deposit
 
+**Move-in bill**:
+A `bill.type: 'moveIn'` document recording the advance payment + security deposit collected when a tenant first moves in, created already paid so the payment can be receipted. Its `tenantId` is snapshotted at save and its id is stored back on `tenant.moveInBillId`. It is a record of the transaction, not a balance — `tenant.advancePayment` / `tenant.securityDeposit` remain the source of truth, so revenue aggregations exclude these bills to avoid counting the same pesos twice.
+_Avoid_: Deposit bill, initial bill, onboarding invoice
+
 ### Room transfer
 
 **Room transfer**:

@@ -3,6 +3,7 @@ import { X, Download, FileText, TrendingUp, TrendingDown, Home, Users, DollarSig
 import MonthlyCollectionReport from './MonthlyCollectionReport';
 import MonthlyExpenseReport from './MonthlyExpenseReport';
 import { InfoModal, InfoButton, ReportsInfoContent } from '../common';
+import { isMoveInBill } from '../../utils/moveInBill';
 
 /**
  * Format currency in PHP
@@ -87,6 +88,9 @@ function BusinessReportModal({
   const filteredBills = useMemo(() => {
     return bills.filter(bill => {
       if (!bill.paidDate) return false; // Only include paid bills with a date
+      // Move-in bills are the receipt record for the advance + deposit, which this
+      // report already counts from the tenant records (totalMoveInPayments below).
+      if (isMoveInBill(bill)) return false;
       const paidDate = new Date(bill.paidDate);
       const billYear = paidDate.getFullYear();
       const billMonth = paidDate.getMonth() + 1; // 1-12

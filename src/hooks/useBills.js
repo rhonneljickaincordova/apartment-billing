@@ -4,6 +4,7 @@ import { getToday, isOverdue, isBillDueSoon } from '../utils/dateHelpers';
 import { billsService } from '../services/firestore';
 import { useFirestoreCollection } from './useFirestore';
 import { getEffectiveRates } from '../utils/rateHelpers';
+import { isMoveInBill, getMoveInBillTotal } from '../utils/moveInBill';
 
 /**
  * Custom hook for managing bills
@@ -75,6 +76,11 @@ export function useBills(rooms, settings, tenants = []) {
    * @returns {number}
    */
   const getBillTotal = useCallback((bill, excludeRent = false) => {
+    // Move-in bills carry their total directly — the utility fields are all 0 and
+    // the real line items are the advance payment + security deposit.
+    if (isMoveInBill(bill)) {
+      return getMoveInBillTotal(bill);
+    }
     // Transfer bills carry their total directly — the utility fields are all 0
     // and the real line items are depositTopUp + advanceTopUp.
     if (bill.type === 'roomTransfer') {
@@ -527,7 +533,9 @@ export function useBills(rooms, settings, tenants = []) {
    */
   const getLatestBillForRoom = useCallback(
     (roomId) => {
-      const roomBills = bills.filter((b) => b.roomId === roomId);
+      // Move-in bills carry no meter reading, so they must not shadow the last real
+      // bill that the new-bill form auto-fills lastMonthReading from.
+      const roomBills = bills.filter((b) => b.roomId === roomId && !isMoveInBill(b));
       if (roomBills.length === 0) return null;
 
       // Sort by due date descending and return the most recent

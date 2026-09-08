@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { X, Share2 } from 'lucide-react';
+import { isMoveInBill } from '../../utils/moveInBill';
 
 /**
  * Bill Print Modal Component
@@ -12,6 +13,8 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
   if (!isOpen || !bill) return null;
 
   const isTransferBill = bill.type === 'roomTransfer';
+  const isMoveIn = isMoveInBill(bill);
+  const documentTitle = isMoveIn ? 'MOVE-IN PAYMENT' : 'MONTHLY BILL';
 
   // When deposit is applied, rent is excluded from total
   const excludeRent = bill.rentExcluded || false;
@@ -61,22 +64,24 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
 
     try {
       const imageBlob = await generateBillImage();
-      const fileName = `Bill-${room?.name || 'Room'}-${bill.dueDate}.png`;
+      const fileName = `${isMoveIn ? 'MoveIn' : 'Bill'}-${room?.name || 'Room'}-${bill.dueDate}.png`;
       const file = new File([imageBlob], fileName, { type: 'image/png' });
+      const shareTitle = `${isMoveIn ? 'Move-In Payment' : 'Monthly Bill'} - ${room?.name || 'Room'}`;
+      const dateLabel = isMoveIn ? 'Payment Date' : 'Due';
 
       const statusText = isPaid ? 'PAID' : isPartial ? `PARTIAL (₱${amountPaid.toFixed(2)} paid, ₱${remainingBalance.toFixed(2)} remaining)` : 'NOT PAID';
 
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: `Monthly Bill - ${room?.name || 'Room'}`,
-          text: `Bill for ${room?.name || 'Room'} - Due: ${formattedDueDate} - Total: ₱${total.toFixed(2)} - Status: ${statusText}`,
+          title: shareTitle,
+          text: `${isMoveIn ? 'Move-in payment' : 'Bill'} for ${room?.name || 'Room'} - ${dateLabel}: ${formattedDueDate} - Total: ₱${total.toFixed(2)} - Status: ${statusText}`,
           files: [file],
         });
       } else if (navigator.share) {
         // Fallback: share without file (text only)
         await navigator.share({
-          title: `Monthly Bill - ${room?.name || 'Room'}`,
-          text: `Bill for ${room?.name || 'Room'}\nDue Date: ${formattedDueDate}\nTotal: ₱${total.toFixed(2)}\nStatus: ${statusText}`,
+          title: shareTitle,
+          text: `${isMoveIn ? 'Move-in payment' : 'Bill'} for ${room?.name || 'Room'}\n${dateLabel}: ${formattedDueDate}\nTotal: ₱${total.toFixed(2)}\nStatus: ${statusText}`,
         });
       } else {
         // Fallback for browsers that don't support Web Share API
@@ -144,7 +149,7 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
           <div ref={printRef} className="bg-white p-6 rounded-lg">
             {/* Bill Header */}
             <div className="text-center mb-6 pb-4 border-b-2 border-gray-300">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">MONTHLY BILL</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{documentTitle}</h1>
               <span
                 className={`inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold ${
                   isPaid
@@ -186,13 +191,15 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
                 <span>{room?.name || 'Unknown'}</span>
               </div>
               <div className="flex justify-between text-gray-700">
-                <span className="font-semibold">Due Date:</span>
+                <span className="font-semibold">{isMoveIn ? 'Payment Date:' : 'Due Date:'}</span>
                 <span>{formattedDueDate}</span>
               </div>
-              <div className="flex justify-between text-gray-700">
-                <span className="font-semibold">Number of Persons:</span>
-                <span>{room?.persons || 1}</span>
-              </div>
+              {!isMoveIn && (
+                <div className="flex justify-between text-gray-700">
+                  <span className="font-semibold">Number of Persons:</span>
+                  <span>{room?.persons || 1}</span>
+                </div>
+              )}
             </div>
 
             {/* Deposit Application Note */}
@@ -205,7 +212,33 @@ function BillPrintModal({ isOpen, onClose, bill, room, getBillTotal }) {
 
             {/* Line Items */}
             <div className="space-y-0 border-t border-gray-200">
-              {isTransferBill ? (
+              {isMoveIn ? (
+                <>
+                  <div className="mb-2 p-3 bg-emerald-100 rounded-lg text-emerald-900 text-sm">
+                    <p className="font-semibold">Move-In Payment</p>
+                    <p className="text-xs mt-1">
+                      Advance payment and security deposit collected at move-in. No rent or
+                      utilities are charged on this record.
+                    </p>
+                  </div>
+                  {(bill.advancePaymentAmount || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Advance Payment</span>
+                      <span>₱{(bill.advancePaymentAmount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(bill.securityDepositAmount || 0) > 0 && (
+                    <div className="flex justify-between py-3 border-b border-gray-200 text-gray-700">
+                      <span>Security Deposit</span>
+                      <span>₱{(bill.securityDepositAmount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-4 border-t-2 border-gray-900 mt-3 text-xl font-bold text-gray-900">
+                    <span>TOTAL COLLECTED</span>
+                    <span>₱{displayTotal.toFixed(2)}</span>
+                  </div>
+                </>
+              ) : isTransferBill ? (
                 <>
                   <div className="mb-2 p-3 bg-indigo-100 rounded-lg text-indigo-800 text-sm">
                     <p className="font-semibold">Room Transfer — Final Bill</p>

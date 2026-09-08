@@ -21,6 +21,19 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { isMoveInBill } from '../../utils/moveInBill';
+
+/**
+ * Marks a bill that isn't a normal monthly bill, so a ₱0 rent/utility row doesn't
+ * read as a billing mistake.
+ */
+function MoveInBadge() {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+      Move-in
+    </span>
+  );
+}
 
 /**
  * Status Badge Component
@@ -138,6 +151,7 @@ function BillsTable({
     const overdue = status === 'overdue';
     const dueSoon = isBillDueSoon(bill) && status !== 'paid';
     const isExpanded = expandedBills[bill.id];
+    const moveIn = isMoveInBill(bill);
 
     const bgClass = overdue
       ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
@@ -154,6 +168,7 @@ function BillsTable({
               <span className="font-semibold text-gray-900 dark:text-white truncate">
                 {room?.name || 'Unknown'}
               </span>
+              {moveIn && <MoveInBadge />}
               <button
                 onClick={() => handleStatusClick(bill, status)}
                 className="flex-shrink-0"
@@ -199,6 +214,18 @@ function BillsTable({
         {isExpanded && (
           <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
             {/* Bill Breakdown */}
+            {moveIn ? (
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                  <span>Advance Payment:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">₱{(bill.advancePaymentAmount || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+                  <span>Security Deposit:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">₱{(bill.securityDepositAmount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <span>Rent:</span>
@@ -223,6 +250,7 @@ function BillsTable({
                 </div>
               )}
             </div>
+            )}
 
             {/* Payment Info */}
             {bill.paid && (
@@ -452,7 +480,10 @@ function BillsTable({
                     </button>
                   </td>
                   <td className="px-3 md:px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    {room?.name || 'Unknown'}
+                    <div className="flex items-center gap-2">
+                      {room?.name || 'Unknown'}
+                      {isMoveInBill(bill) && <MoveInBadge />}
+                    </div>
                   </td>
                   <td className="px-3 md:px-6 py-4 text-gray-700 dark:text-gray-300">
                     <div className="flex items-center gap-1">

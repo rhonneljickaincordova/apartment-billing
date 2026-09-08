@@ -6,6 +6,7 @@ import { ConfirmDialog } from './components/ui';
 import { useRooms, useBills, useAirconCleaning, useSettings, useConfirmDialog, useTenants, useExpenses } from './hooks';
 import { isBillDueSoon } from './utils/dateHelpers';
 import { exportBillsToCSV, exportAllDataToJSON } from './utils/exportHelpers';
+import { excludeMoveInBills, isMoveInBill } from './utils/moveInBill';
 
 // Component imports
 import { RoomForm, RoomsList } from './components/rooms';
@@ -174,10 +175,15 @@ const ApartmentBillTracker = () => {
     return getAvailableYears(bills, expenses);
   }, [bills, expenses]);
 
+  // Bills that represent rent/utility billing. Move-in bills are the receipt record
+  // for the advance + deposit — money the dashboard and reports already account for
+  // from the tenant records — so they are kept out of every revenue aggregation.
+  const billableBills = useMemo(() => excludeMoveInBills(bills), [bills]);
+
   // Dashboard filtered bills
   const dashboardFilteredBills = useMemo(() => {
-    return bills.filter((bill) => filterByPeriod(bill.dueDate, dashboardTimePeriod, dashboardYear, dashboardCustomRange));
-  }, [bills, dashboardTimePeriod, dashboardYear, dashboardCustomRange]);
+    return billableBills.filter((bill) => filterByPeriod(bill.dueDate, dashboardTimePeriod, dashboardYear, dashboardCustomRange));
+  }, [billableBills, dashboardTimePeriod, dashboardYear, dashboardCustomRange]);
 
   // Dashboard filtered expenses
   const dashboardFilteredExpenses = useMemo(() => {
@@ -462,12 +468,25 @@ const ApartmentBillTracker = () => {
   const handleDeleteBill = (id) => {
     const bill = bills.find((b) => b.id === id);
     const room = getRoomById(bill?.roomId);
+    const moveIn = isMoveInBill(bill);
     confirmDialog.showConfirm(
       'Delete Bill',
-      `Are you sure you want to delete the bill for "${room?.name || 'Unknown'}"?`,
+      moveIn
+        ? `Delete the move-in payment record for "${room?.name || 'Unknown'}"? The tenant's advance payment and security deposit amounts are kept — only the receipt record is removed.`
+        : `Are you sure you want to delete the bill for "${room?.name || 'Unknown'}"?`,
       async () => {
         const result = await deleteBillAction(id);
         if (result.success) {
+          // Drop the tenant's pointer to the deleted record so a later edit creates a
+          // fresh one instead of resurrecting this id.
+          if (moveIn && bill?.tenantId) {
+            try {
+              const { tenantsService } = await import('./services/firestore');
+              await tenantsService.update(bill.tenantId, { moveInBillId: null });
+            } catch (error) {
+              console.error('Error clearing move-in bill reference:', error);
+            }
+          }
           toast.success(result.message);
         } else {
           toast.error(result.message);
@@ -704,6 +723,16 @@ const ApartmentBillTracker = () => {
     if (result.success) {
       toast.success(result.message);
       setIsTenantFormExpanded(false);
+
+      // Offer the receipt for the move-in payment straight away. The bill and tenant
+      // come back from the save itself, so this doesn't wait on the Firestore snapshot.
+      if (result.isNewMoveInBill && result.moveInBill) {
+        setReceiptData({
+          bill: result.moveInBill,
+          tenant: result.tenant,
+          totalAmount: getBillTotal(result.moveInBill),
+        });
+      }
     } else {
       toast.warning(result.message);
     }
@@ -1125,7 +1154,7 @@ const ApartmentBillTracker = () => {
                 getBillTotal={getBillTotal}
               />
               <MonthlyComparison
-                bills={bills}
+                bills={billableBills}
                 expenses={expenses}
                 getBillTotal={getBillTotal}
               />
@@ -1493,7 +1522,7 @@ const ApartmentBillTracker = () => {
         onClose={handleCloseReceipt}
         bill={receiptData?.bill}
         room={receiptData?.bill ? getRoomById(receiptData.bill.roomId) : null}
-        tenant={resolveBillTenant(receiptData?.bill)}
+        tenant={receiptData?.tenant || resolveBillTenant(receiptData?.bill)}
         totalAmount={receiptData?.totalAmount || 0}
       />
 

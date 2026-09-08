@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { writeBatch, doc, collection, serverTimestamp } from 'firebase/firestore';
+import { writeBatch, doc, getDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { validateTenant } from '../utils/validation';
 import { tenantsService, COLLECTIONS } from '../services/firestore';
 import { useFirestoreCollection } from './useFirestore';
 import { db } from '../config/firebase';
+import { buildMoveInBillData, getMoveInAmounts } from '../utils/moveInBill';
 
 /**
  * Custom hook for managing tenants
@@ -14,7 +15,6 @@ export function useTenants() {
     data: tenants,
     loading,
     error: storageError,
-    add,
     update,
     remove
   } = useFirestoreCollection(tenantsService, []);
@@ -90,23 +90,96 @@ export function useTenants() {
         moveOutDetails: tenantForm.moveOutDetails || null,
       };
 
-      let message;
+      // The advance payment + security deposit collected at move-in are recorded as
+      // a paid bill so they run through the same receipt machinery as every other
+      // payment. The tenant fields above stay the source of truth for balances —
+      // see src/utils/moveInBill.js.
+      const { total: moveInTotal } = getMoveInAmounts(tenantData);
+      const existingMoveInBillId = isEditing ? tenantForm.moveInBillId || null : null;
 
-      if (isEditing) {
-        await update(tenantForm.id, tenantData);
-        message = 'Tenant updated successfully!';
-      } else {
-        await add(tenantData);
-        message = 'Tenant added successfully!';
+      const batch = writeBatch(db);
+      const tenantRef = isEditing
+        ? doc(db, COLLECTIONS.TENANTS, tenantForm.id)
+        : doc(collection(db, COLLECTIONS.TENANTS));
+
+      let moveInBillId = existingMoveInBillId;
+      let moveInBill = null;
+
+      if (moveInTotal > 0) {
+        const billRef = existingMoveInBillId
+          ? doc(db, COLLECTIONS.BILLS, existingMoveInBillId)
+          : doc(collection(db, COLLECTIONS.BILLS));
+        moveInBillId = billRef.id;
+
+        // Preserve payments the user added by hand (retroactive records, refunds)
+        // when an edit changes the move-in amounts. A pointer to a bill the user has
+        // since deleted just writes a fresh one back at the same id.
+        const existingSnap = existingMoveInBillId ? await getDoc(billRef) : null;
+        const billExists = !!existingSnap?.exists();
+        const existingPaymentHistory = billExists ? existingSnap.data().paymentHistory || [] : [];
+
+        const billData = buildMoveInBillData({
+          tenant: tenantData,
+          tenantId: tenantRef.id,
+          existingPaymentHistory,
+        });
+
+        batch.set(
+          billRef,
+          {
+            ...billData,
+            updatedAt: serverTimestamp(),
+            ...(billExists ? {} : { createdAt: serverTimestamp() }),
+          },
+          { merge: billExists }
+        );
+
+        moveInBill = { id: billRef.id, ...billData };
+      } else if (existingMoveInBillId) {
+        // Move-in amounts were cleared on edit — drop the bill rather than leave a
+        // ₱0 receipt behind.
+        batch.delete(doc(db, COLLECTIONS.BILLS, existingMoveInBillId));
+        moveInBillId = null;
+      }
+
+      batch.set(
+        tenantRef,
+        {
+          ...tenantData,
+          moveInBillId,
+          updatedAt: serverTimestamp(),
+          ...(isEditing ? {} : { createdAt: serverTimestamp() }),
+        },
+        { merge: isEditing }
+      );
+
+      await batch.commit();
+
+      const parts = [isEditing ? 'Tenant updated successfully!' : 'Tenant added successfully!'];
+      if (moveInBillId && !existingMoveInBillId) {
+        parts.push(`Move-in payment of ₱${moveInTotal.toFixed(2)} recorded.`);
       }
 
       resetForm();
-      return { success: true, message };
+      return {
+        success: true,
+        message: parts.join(' '),
+        tenantId: tenantRef.id,
+        moveInBillId,
+        // Returned so the caller can show the receipt immediately, without waiting
+        // for the Firestore snapshot to round-trip.
+        moveInBill,
+        tenant: { id: tenantRef.id, ...tenantData },
+        // Only a brand-new tenant pops the receipt unprompted. Editing a tenant who
+        // predates move-in bills backfills one too, but an unrelated edit shouldn't
+        // throw a receipt in the user's face — it's reachable from the bills list.
+        isNewMoveInBill: !isEditing && !!moveInBillId,
+      };
     } catch (error) {
       console.error('Error saving tenant:', error);
       return { success: false, message: 'Failed to save tenant. Please try again.' };
     }
-  }, [tenantForm, isEditing, add, update]);
+  }, [tenantForm, isEditing]);
 
   /**
    * Start editing a tenant
@@ -119,13 +192,25 @@ export function useTenants() {
   }, []);
 
   /**
-   * Delete a tenant by ID
+   * Delete a tenant by ID, along with their move-in bill so no orphan payment
+   * record is left behind in the bills list.
    * @param {string} id - Tenant ID to delete
    * @returns {{ success: boolean, message: string }}
    */
   const deleteTenant = useCallback(
     async (id) => {
       try {
+        const tenant = tenants.find((t) => t.id === id);
+        const moveInBillId = tenant?.moveInBillId || null;
+
+        if (moveInBillId) {
+          const batch = writeBatch(db);
+          batch.delete(doc(db, COLLECTIONS.TENANTS, id));
+          batch.delete(doc(db, COLLECTIONS.BILLS, moveInBillId));
+          await batch.commit();
+          return { success: true, message: 'Tenant and move-in payment record deleted.' };
+        }
+
         await remove(id);
         return { success: true, message: 'Tenant deleted successfully!' };
       } catch (error) {
@@ -133,7 +218,7 @@ export function useTenants() {
         return { success: false, message: 'Failed to delete tenant.' };
       }
     },
-    [remove]
+    [tenants, remove]
   );
 
   /**

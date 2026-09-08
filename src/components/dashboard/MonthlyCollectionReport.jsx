@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight, TrendingUp, Calendar, Home, DollarSign } from 'lucide-react';
+import { isMoveInBill } from '../../utils/moveInBill';
 
 /**
  * Format currency in PHP
@@ -62,6 +63,9 @@ function MonthlyCollectionReport({ rooms, bills, tenants = [], getBillTotal, onB
     // Process bills for collected amounts and refunds
     bills.forEach(bill => {
       if (!bill.dueDate) return;
+      // Move-in bills are the receipt record for the advance + deposit; the tenant
+      // loop below already counts that money into the advance column.
+      if (isMoveInBill(bill)) return;
 
       const billDate = new Date(bill.dueDate);
       const billYear = billDate.getFullYear();
