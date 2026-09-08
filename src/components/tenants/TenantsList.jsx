@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2 } from 'lucide-react';
+import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2, Receipt } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 import { getOccupants, renderOccupancyClauseHtml } from '../../utils/occupants';
 import { getLeaseTermDates } from '../../utils/lease';
@@ -9,7 +9,7 @@ import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
  * Tenants List Component
  * Displays all tenants in a responsive table/card layout
  */
-function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onRevertMoveOut, onTransferRoom, onCreateBill }) {
+function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails, onToggleStatus, onMoveOut, onRevertMoveOut, onTransferRoom, onCreateBill, onPrintMoveInReceipt }) {
   const [leaseModalTenant, setLeaseModalTenant] = useState(null);
   const [sortBy, setSortBy] = useState('rentDueDay'); // Default sort by due day
   const [sortOrder, setSortOrder] = useState('asc'); // Default ascending (lowest to highest)
@@ -728,6 +728,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex justify-end gap-2">
+                    {onPrintMoveInReceipt && tenant.moveInBillId && (
+                      <button
+                        onClick={() => onPrintMoveInReceipt(tenant)}
+                        className="text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 p-1"
+                        title="Move-In Payment Receipt"
+                      >
+                        <Receipt className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDownloadPdf(tenant)}
                       disabled={downloadingPdf === tenant.id}
@@ -915,6 +924,15 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 >
                   <FileText className="w-4 h-4" />
                   Bill
+                </button>
+              )}
+              {onPrintMoveInReceipt && tenant.moveInBillId && (
+                <button
+                  onClick={() => onPrintMoveInReceipt(tenant)}
+                  className="text-teal-600 hover:text-teal-800 dark:text-teal-400 flex items-center gap-1 text-sm"
+                >
+                  <Receipt className="w-4 h-4" />
+                  Receipt
                 </button>
               )}
               <button

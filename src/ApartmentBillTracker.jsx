@@ -743,6 +743,28 @@ const ApartmentBillTracker = () => {
     setIsTenantFormExpanded(true);
   };
 
+  /**
+   * Reopen the receipt for a tenant's move-in payment.
+   * The tenant record points at the bill; fall back to matching on tenantId so a
+   * tenant whose pointer was lost can still reach their receipt.
+   */
+  const handlePrintMoveInReceipt = (tenant) => {
+    const moveInBill =
+      bills.find((b) => b.id === tenant.moveInBillId) ||
+      bills.find((b) => isMoveInBill(b) && b.tenantId === tenant.id);
+
+    if (!moveInBill) {
+      toast.warning(`No move-in payment record found for ${tenant.fullName}.`);
+      return;
+    }
+
+    setReceiptData({
+      bill: moveInBill,
+      tenant,
+      totalAmount: getBillTotal(moveInBill),
+    });
+  };
+
   const handleDeleteTenant = (id) => {
     const tenant = tenants.find((t) => t.id === id);
     confirmDialog.showConfirm(
@@ -1313,6 +1335,7 @@ const ApartmentBillTracker = () => {
               onRevertMoveOut={handleRevertMoveOut}
               onTransferRoom={handleTransferRoom}
               onCreateBill={handleCreateBillForTenant}
+              onPrintMoveInReceipt={handlePrintMoveInReceipt}
             />
             <TenantDetailsModal
               tenant={selectedTenant}
