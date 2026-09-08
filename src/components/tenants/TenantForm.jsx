@@ -1,5 +1,6 @@
 import { User, Phone, Users, Heart, Save, X, Home, Calendar, Upload, Trash2, FileText, Zap, Droplets, Wifi, LogOut, DollarSign, UserPlus, AlertTriangle } from 'lucide-react';
 import { normalizeOccupants } from '../../utils/occupants';
+import { MINIMUM_LEASE_TERM_MONTHS, getDefaultLeaseEndDate, isDefaultLeaseEndDate } from '../../utils/lease';
 
 // Move-out reason options (same as MoveOutModal)
 const MOVE_OUT_REASONS = [
@@ -68,6 +69,12 @@ function TenantForm({
   const waterRate = Number(form.customRates?.waterRate ?? settings?.waterRate) || 0;
   const showOccupancyMismatch =
     !!selectedRoom && totalOccupantCount > 0 && roomPersons !== totalOccupantCount;
+
+  // Lease end date tracks the start date at the minimum term unless the user has
+  // deliberately set a different one.
+  const defaultLeaseEndDate = getDefaultLeaseEndDate(form.leaseStartDate);
+  const hasCustomLeaseTerm =
+    !!form.leaseStartDate && !!defaultLeaseEndDate && !isDefaultLeaseEndDate(form.leaseStartDate, form.leaseEndDate);
 
   // Helper to update move-out details
   const updateMoveOutDetails = (key, value) => {
@@ -368,6 +375,29 @@ function TenantForm({
               onChange={(e) => onUpdateField('leaseEndDate', e.target.value)}
               className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
+            {!form.leaseStartDate ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Set a start date to fill this in automatically.
+              </p>
+            ) : hasCustomLeaseTerm ? (
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs">
+                <span className="text-amber-700 dark:text-amber-400">
+                  Custom term — the {MINIMUM_LEASE_TERM_MONTHS}-month default is {defaultLeaseEndDate}.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onUpdateField('leaseEndDate', defaultLeaseEndDate)}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  Reset to {MINIMUM_LEASE_TERM_MONTHS} months
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Auto-set to {MINIMUM_LEASE_TERM_MONTHS} months after the start date — the minimum
+                term. Change it for a longer lease.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

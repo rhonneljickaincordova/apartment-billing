@@ -23,6 +23,40 @@ export function getNextCleaningDate(fromDate, monthsInterval = 3) {
 }
 
 /**
+ * Add months to a YYYY-MM-DD date, clamping to the end of the target month.
+ *
+ * Works on the date parts rather than a Date object on purpose: constructing a
+ * Date from 'YYYY-MM-DD' parses as UTC midnight but setMonth/getMonth read local
+ * time, which shifts the result by a day in any timezone east of UTC. Clamping
+ * also avoids setMonth's overflow, where 31 August + 6 months lands on 3 March
+ * instead of 28 February.
+ *
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @param {number} months - Months to add (may be negative)
+ * @returns {string} - Date in YYYY-MM-DD format, or '' if the input is unusable
+ */
+export function addMonthsToDateString(dateString, months) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateString || '').trim());
+  if (!match) return '';
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+
+  const monthIndex = month - 1 + months;
+  const targetYear = year + Math.floor(monthIndex / 12);
+  const targetMonth = ((monthIndex % 12) + 12) % 12;
+
+  // Day 0 of the following month is the last day of the target month
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const targetDay = Math.min(day, daysInTargetMonth);
+
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${targetYear}-${pad(targetMonth + 1)}-${pad(targetDay)}`;
+}
+
+/**
  * Check if a date is overdue (before today)
  * @param {string} dateString - Date in YYYY-MM-DD format
  * @returns {boolean}

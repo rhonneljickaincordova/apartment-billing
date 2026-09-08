@@ -6,6 +6,7 @@ import { useFirestoreCollection } from './useFirestore';
 import { db } from '../config/firebase';
 import { buildMoveInBillData, getMoveInAmounts } from '../utils/moveInBill';
 import { normalizeOccupants } from '../utils/occupants';
+import { getDefaultLeaseEndDate, isDefaultLeaseEndDate } from '../utils/lease';
 
 /**
  * Custom hook for managing tenants
@@ -267,7 +268,18 @@ export function useTenants() {
    * @param {any} value - New value
    */
   const updateFormField = useCallback((field, value) => {
-    setTenantForm((prev) => ({ ...prev, [field]: value }));
+    setTenantForm((prev) => {
+      const updates = { [field]: value };
+
+      // The lease end date follows the start date by the six-month minimum term,
+      // but only while it still holds that default — an end date the user set to
+      // something else (a longer lease) survives edits to the start date.
+      if (field === 'leaseStartDate' && value && isDefaultLeaseEndDate(prev.leaseStartDate, prev.leaseEndDate)) {
+        updates.leaseEndDate = getDefaultLeaseEndDate(value);
+      }
+
+      return { ...prev, ...updates };
+    });
     // Clear error for the field being updated
     setErrors((prev) => {
       if (prev[field]) {
