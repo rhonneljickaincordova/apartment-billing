@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { X, Share2, Download } from 'lucide-react';
 import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
-import { getOccupants, formatOccupantLine, getOccupancyIntro, OCCUPANCY_CLAUSE_RESTRICTION } from '../../utils/occupants';
-import { getLeaseTermDates } from '../../utils/lease';
+import { getOccupants, getOccupancyPeople, formatOccupancyPersonLine, getOccupancyIntro, OCCUPANCY_CLAUSE_RESTRICTION } from '../../utils/occupants';
+import { getLeaseTermClause } from '../../utils/lease';
 
 /**
  * Format date to readable string
@@ -96,7 +96,8 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
   const earlyTerminationPenalty = tenant?.earlyTerminationPenalty || securityDeposit;
   const occupants = getOccupants(tenant);
-  const leaseTerm = getLeaseTermDates(tenant);
+  const occupancyPeople = getOccupancyPeople(tenant);
+  const leaseTerm = getLeaseTermClause(tenant);
 
   // Generate contract as image using canvas
   const generateContractImage = async () => {
@@ -335,7 +336,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                           <span className="bg-yellow-100 px-1 font-bold">{formatDate(leaseTerm.endDate)}</span>
                         </>
                       )}
-                      .
+                      {leaseTerm.termSuffix} {leaseTerm.penaltySentence}
                     </p>
                   </div>
                 </div>
@@ -347,13 +348,13 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                   <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Occupancy</p>
-                    <p className="text-gray-700">{getOccupancyIntro(occupants.length)}</p>
+                    <p className="text-gray-700">{getOccupancyIntro(tenant)}</p>
                     {occupants.length > 0 && (
-                      <ul className="mt-2 ml-4 space-y-1 text-gray-700">
-                        {occupants.map((occupant, index) => (
-                          <li key={index}>• {formatOccupantLine(occupant)}</li>
+                      <ol className="mt-2 ml-8 list-decimal space-y-1 text-gray-700">
+                        {occupancyPeople.map((person, index) => (
+                          <li key={index} className="pl-1">{formatOccupancyPersonLine(person)}</li>
                         ))}
-                      </ul>
+                      </ol>
                     )}
                     <p className="text-gray-700 mt-2">{OCCUPANCY_CLAUSE_RESTRICTION}</p>
                   </div>

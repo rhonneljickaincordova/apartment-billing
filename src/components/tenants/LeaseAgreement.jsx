@@ -1,6 +1,6 @@
 import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 import { renderOccupancyClauseHtml } from '../../utils/occupants';
-import { getLeaseTermDates } from '../../utils/lease';
+import { getLeaseTermClause } from '../../utils/lease';
 
 /**
  * Lease Agreement Print Component
@@ -93,7 +93,7 @@ export function printLeaseAgreement(tenant, room, settings) {
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
   const totalMoveInPayment = advancePayment + securityDeposit;
   const occupancy = renderOccupancyClauseHtml(tenant);
-  const leaseTerm = getLeaseTermDates(tenant);
+  const leaseTerm = getLeaseTermClause(tenant);
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -280,6 +280,16 @@ export function printLeaseAgreement(tenant, room, settings) {
           color: #2563eb;
           font-weight: bold;
         }
+        /* Numbered resident list in the Occupancy clause */
+        .person-list {
+          margin-top: 12px;
+          margin-left: 32px;
+          padding-left: 0;
+        }
+        .person-list li {
+          margin-bottom: 6px;
+          padding-left: 4px;
+        }
         .sub-list .total-line {
           margin-top: 10px;
           padding-top: 10px;
@@ -435,7 +445,7 @@ export function printLeaseAgreement(tenant, room, settings) {
                 leaseTerm.endDate
                   ? ` and end on <span class="highlight">${formatDate(leaseTerm.endDate)}</span>`
                   : ''
-              }.
+              }${leaseTerm.termSuffix} ${leaseTerm.penaltySentence}
             </span>
           </li>
 

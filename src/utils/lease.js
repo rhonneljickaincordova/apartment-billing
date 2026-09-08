@@ -7,6 +7,7 @@
  */
 
 import { addMonthsToDateString } from './dateHelpers';
+import { numberWithWords } from './numberWords';
 
 export const MINIMUM_LEASE_TERM_MONTHS = 6;
 
@@ -64,5 +65,74 @@ export function getLeaseTermDates(tenant) {
     startDate,
     endDate,
     isEndDateDerived: !recordedEndDate && !!endDate,
+  };
+}
+
+/**
+ * The length of a lease in whole months, or null when the dates are not an exact
+ * number of months apart (1 March to 20 September is neither six months nor
+ * seven, and the contract should not claim either).
+ *
+ * @param {string} startDate - YYYY-MM-DD
+ * @param {string} endDate - YYYY-MM-DD
+ * @returns {number|null}
+ */
+export function getLeaseTermMonths(startDate, endDate) {
+  if (!startDate || !endDate) return null;
+
+  const start = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate);
+  const end = /^(\d{4})-(\d{2})-(\d{2})$/.exec(endDate);
+  if (!start || !end) return null;
+
+  const months =
+    (Number(end[1]) - Number(start[1])) * 12 + (Number(end[2]) - Number(start[2]));
+  if (months <= 0) return null;
+
+  // Confirm rather than trust the month arithmetic: this also accepts a term that
+  // was clamped at a month end (31 August to 28 February is exactly six months).
+  return addMonthsToDateString(startDate, months) === endDate ? months : null;
+}
+
+/**
+ * The variable prose of the Term of Lease clause.
+ *
+ * Returns the dates separately from the text because each of the three contract
+ * renderers highlights them with its own markup; everything that is words rather
+ * than markup is built here so the three cannot drift.
+ *
+ * The wording adapts to the recorded term: a lease of exactly the minimum says so
+ * in one breath, a longer lease states its own length and notes the minimum
+ * separately, and a term that is not a whole number of months omits the length
+ * rather than round it. The penalty sentence names the Early Termination clause
+ * rather than numbering it, so inserting a clause cannot make it point elsewhere.
+ *
+ * @param {object} tenant
+ * @returns {{ startDate: string, endDate: string, termMonths: number|null,
+ *   termSuffix: string, penaltySentence: string }}
+ */
+export function getLeaseTermClause(tenant) {
+  const { startDate, endDate } = getLeaseTermDates(tenant);
+  const termMonths = getLeaseTermMonths(startDate, endDate);
+  const minimum = numberWithWords(MINIMUM_LEASE_TERM_MONTHS);
+
+  if (termMonths === MINIMUM_LEASE_TERM_MONTHS) {
+    return {
+      startDate,
+      endDate,
+      termMonths,
+      termSuffix: `, a term of ${minimum} months, being the minimum stay required under this Agreement.`,
+      penaltySentence:
+        'Should the Lessee vacate before the end of this term, the Early Termination clause below shall apply.',
+    };
+  }
+
+  return {
+    startDate,
+    endDate,
+    termMonths,
+    termSuffix: termMonths ? `, a term of ${numberWithWords(termMonths)} months.` : '.',
+    penaltySentence:
+      `The minimum stay required under this Agreement is ${minimum} months; should the Lessee ` +
+      'vacate before completing it, the Early Termination clause below shall apply.',
   };
 }

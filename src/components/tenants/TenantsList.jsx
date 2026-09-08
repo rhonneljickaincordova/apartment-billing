@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2, Receipt } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 import { getOccupants, renderOccupancyClauseHtml } from '../../utils/occupants';
-import { getLeaseTermDates } from '../../utils/lease';
+import { getLeaseTermClause } from '../../utils/lease';
 import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 
 /**
@@ -134,10 +134,10 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
       // This renderer uses inline styles rather than a stylesheet, so the shared
       // clause builder is given matching list styles.
       const occupancy = renderOccupancyClauseHtml(tenant, {
-        listStyle: 'margin: 8px 0 0 0; padding-left: 20px; color: #374151;',
+        listStyle: 'margin: 8px 0 0 0; padding-left: 32px; color: #374151;',
         itemStyle: 'margin-bottom: 4px;',
       });
-      const leaseTerm = getLeaseTermDates(tenant);
+      const leaseTerm = getLeaseTermClause(tenant);
 
       container.innerHTML = `
         <div style="background: white; padding: 32px; font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;">
@@ -195,7 +195,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                       leaseTerm.endDate
                         ? ` and end on <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold;">${formatPdfDate(leaseTerm.endDate)}</span>`
                         : ''
-                    }.
+                    }${leaseTerm.termSuffix} ${leaseTerm.penaltySentence}
                   </p>
                 </div>
               </div>
