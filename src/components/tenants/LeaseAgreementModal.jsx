@@ -1,14 +1,8 @@
 import { useRef, useState } from 'react';
 import { X, Share2, Download } from 'lucide-react';
-import landlordSignature from '../../assets/signiture.png';
+import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 import { getOccupants, formatOccupantLine, getOccupancyIntro, OCCUPANCY_CLAUSE_RESTRICTION } from '../../utils/occupants';
 import { getLeaseTermDates } from '../../utils/lease';
-
-const LANDLORD_INFO = {
-  name: 'Rhonnel Cordova',
-  phone: '09276161535',
-  property: 'Blk 13 Lot 30 Matutum St., Sto. Nino Bulusan, Central Park, Bangkal, Brgy Talomo Poblacion, Davao City',
-};
 
 /**
  * Format date to readable string

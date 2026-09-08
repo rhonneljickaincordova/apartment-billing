@@ -3,6 +3,7 @@ import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, Arr
 import LeaseAgreementModal from './LeaseAgreementModal';
 import { getOccupants, renderOccupancyClauseHtml } from '../../utils/occupants';
 import { getLeaseTermDates } from '../../utils/lease';
+import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 
 /**
  * Tenants List Component
@@ -82,7 +83,6 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
       const room = getRoom(tenant.roomId);
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
-      const landlordSignature = (await import('../../assets/signiture.png')).default;
 
       // Create a temporary container for rendering
       const container = document.createElement('div');
@@ -129,12 +129,6 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
           case 3: return num + 'rd';
           default: return num + 'th';
         }
-      };
-
-      const LANDLORD_INFO = {
-        name: 'Rhonnel Cordova',
-        phone: '09276161535',
-        property: 'Blk 13 Lot 30 Matutum St., Sto. Nino Bulusan, Central Park, Bangkal, Brgy Talomo Poblacion, Davao City',
       };
 
       // This renderer uses inline styles rather than a stylesheet, so the shared

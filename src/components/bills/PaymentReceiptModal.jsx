@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { X, Share2, Printer, CheckCircle } from 'lucide-react';
 import { isMoveInBill } from '../../utils/moveInBill';
+import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 
 /**
  * Payment Receipt Modal Component
@@ -75,6 +76,19 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
     const html2canvas = (await import('html2canvas')).default;
     const element = printRef.current;
 
+    // html2canvas snapshots whatever has decoded by now, so a signature still in
+    // flight would be captured blank. Wait for the images first.
+    await Promise.all(
+      Array.from(element.querySelectorAll('img')).map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise((resolve) => {
+              img.addEventListener('load', resolve, { once: true });
+              img.addEventListener('error', resolve, { once: true });
+            })
+      )
+    );
+
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
       scale: 2,
@@ -143,12 +157,23 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
       <html>
         <head>
           <title>${isMoveIn ? 'Move-In Payment Receipt' : 'Payment Receipt'} - ${room?.name || 'Room'}</title>
+          <!-- The popup starts on about:blank, so anchor the bundled signature URL -->
+          <base href="${window.location.origin}">
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
               margin: 0;
               padding: 20px;
               background: white;
+            }
+            /* Tailwind is not loaded here, so the signature needs explicit sizing —
+               the source image is 350x293 and would otherwise print full size. */
+            .receipt-signature {
+              display: block;
+              margin: 0 auto;
+              max-width: 160px;
+              max-height: 60px;
+              object-fit: contain;
             }
             @media print {
               body { margin: 0; padding: 10px; }
@@ -304,6 +329,27 @@ function PaymentReceiptModal({ isOpen, onClose, bill, room, tenant, totalAmount 
               <span className="inline-block px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold">
                 FULLY PAID
               </span>
+            </div>
+
+            {/* Received By — the landlord's acknowledgment of the payment */}
+            <div className="mb-6">
+              <p className="text-sm text-gray-500 mb-2">Received By:</p>
+              <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="h-16 flex items-end justify-center mb-1">
+                  {/* receipt-signature is sized by the print stylesheet, where the
+                      Tailwind classes below are not available */}
+                  <img
+                    src={landlordSignature}
+                    alt={`${LANDLORD_INFO.name} signature`}
+                    className="receipt-signature max-w-[160px] max-h-[60px]"
+                    crossOrigin="anonymous"
+                  />
+                </div>
+                <div className="border-t-2 border-gray-800 pt-2">
+                  <p className="font-bold text-gray-900">{LANDLORD_INFO.name}</p>
+                  <p className="text-gray-500 text-[10px] uppercase tracking-widest">Landlord</p>
+                </div>
+              </div>
             </div>
 
             {/* Footer */}

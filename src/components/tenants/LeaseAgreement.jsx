@@ -1,4 +1,4 @@
-import landlordSignature from '../../assets/signiture.png';
+import { LANDLORD_INFO, landlordSignature } from '../../config/landlord';
 import { renderOccupancyClauseHtml } from '../../utils/occupants';
 import { getLeaseTermDates } from '../../utils/lease';
 
@@ -6,12 +6,6 @@ import { getLeaseTermDates } from '../../utils/lease';
  * Lease Agreement Print Component
  * Generates a printable lease agreement with tenant details
  */
-
-const LANDLORD_INFO = {
-  name: 'Rhonnel Cordova',
-  phone: '09276161535',
-  property: 'Blk 13 Lot 30 Matutum St., Sto. Nino Bulusan, Central Park, Bangkal, Brgy Talomo Poblacion, Davao City',
-};
 
 const UTILITY_RATES = {
   water: 100, // per person
