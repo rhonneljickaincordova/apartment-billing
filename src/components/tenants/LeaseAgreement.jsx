@@ -1,5 +1,6 @@
 import landlordSignature from '../../assets/signiture.png';
 import { renderOccupancyClauseHtml } from '../../utils/occupants';
+import { getLeaseTermDates } from '../../utils/lease';
 
 /**
  * Lease Agreement Print Component
@@ -98,6 +99,7 @@ export function printLeaseAgreement(tenant, room, settings) {
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
   const totalMoveInPayment = advancePayment + securityDeposit;
   const occupancy = renderOccupancyClauseHtml(tenant);
+  const leaseTerm = getLeaseTermDates(tenant);
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
@@ -435,7 +437,11 @@ export function printLeaseAgreement(tenant, room, settings) {
           <li>
             <span class="term-title">Term of Lease</span>
             <span class="term-content">
-              The term of this lease shall begin on <span class="highlight">${formatDate(new Date().toISOString())}</span>.
+              The term of this lease shall begin on <span class="highlight">${formatDate(leaseTerm.startDate)}</span>${
+                leaseTerm.endDate
+                  ? ` and end on <span class="highlight">${formatDate(leaseTerm.endDate)}</span>`
+                  : ''
+              }.
             </span>
           </li>
 

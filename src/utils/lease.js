@@ -37,3 +37,32 @@ export function isDefaultLeaseEndDate(leaseStartDate, leaseEndDate) {
   if (!leaseEndDate) return true;
   return leaseEndDate === getDefaultLeaseEndDate(leaseStartDate);
 }
+
+/**
+ * The lease term to print on the contract, resolved from the tenant record.
+ *
+ * Shared by the three contract renderers (print window, on-screen preview, PDF),
+ * which previously each sourced this differently — one printed today's date, the
+ * other two printed the move-in date, and none printed an end date at all.
+ *
+ * Both fields fall back, so tenants recorded before the lease dates existed still
+ * print a sensible term:
+ *   - start: the lease start date, else the move-in date
+ *   - end:   the lease end date, else the six-month minimum from that start
+ * A derived end date is a display fallback only — nothing is written back to the
+ * tenant record.
+ *
+ * @param {object} tenant
+ * @returns {{ startDate: string, endDate: string, isEndDateDerived: boolean }}
+ */
+export function getLeaseTermDates(tenant) {
+  const startDate = tenant?.leaseStartDate || tenant?.moveInDate || '';
+  const recordedEndDate = tenant?.leaseEndDate || '';
+  const endDate = recordedEndDate || getDefaultLeaseEndDate(startDate);
+
+  return {
+    startDate,
+    endDate,
+    isEndDateDerived: !recordedEndDate && !!endDate,
+  };
+}

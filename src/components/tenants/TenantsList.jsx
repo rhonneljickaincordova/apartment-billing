@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Edit2, Trash2, Eye, UserCheck, UserX, Phone, Users, Share2, LogOut, ArrowUpDown, ArrowUp, ArrowDown, FileText, Search, X, Download, ArrowRightLeft, Undo2 } from 'lucide-react';
 import LeaseAgreementModal from './LeaseAgreementModal';
 import { getOccupants, renderOccupancyClauseHtml } from '../../utils/occupants';
+import { getLeaseTermDates } from '../../utils/lease';
 
 /**
  * Tenants List Component
@@ -142,6 +143,7 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
         listStyle: 'margin: 8px 0 0 0; padding-left: 20px; color: #374151;',
         itemStyle: 'margin-bottom: 4px;',
       });
+      const leaseTerm = getLeaseTermDates(tenant);
 
       container.innerHTML = `
         <div style="background: white; padding: 32px; font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;">
@@ -195,7 +197,11 @@ function TenantsList({ tenants, rooms, settings, onEdit, onDelete, onViewDetails
                 <div>
                   <p style="font-weight: bold; color: #1e40af; text-transform: uppercase; font-size: 12px; margin: 0 0 8px 0;">Term of Lease</p>
                   <p style="color: #374151; margin: 0;">
-                    The term of this lease shall begin on <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold;">${formatPdfDate(tenant?.moveInDate)}</span>.
+                    The term of this lease shall begin on <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold;">${formatPdfDate(leaseTerm.startDate)}</span>${
+                      leaseTerm.endDate
+                        ? ` and end on <span style="background: #fef3c7; padding: 2px 4px; font-weight: bold;">${formatPdfDate(leaseTerm.endDate)}</span>`
+                        : ''
+                    }.
                   </p>
                 </div>
               </div>

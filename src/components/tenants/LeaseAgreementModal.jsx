@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { X, Share2, Download } from 'lucide-react';
 import landlordSignature from '../../assets/signiture.png';
 import { getOccupants, formatOccupantLine, getOccupancyIntro, OCCUPANCY_CLAUSE_RESTRICTION } from '../../utils/occupants';
+import { getLeaseTermDates } from '../../utils/lease';
 
 const LANDLORD_INFO = {
   name: 'Rhonnel Cordova',
@@ -101,6 +102,7 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
   const securityDeposit = tenant?.securityDeposit || monthlyRent;
   const earlyTerminationPenalty = tenant?.earlyTerminationPenalty || securityDeposit;
   const occupants = getOccupants(tenant);
+  const leaseTerm = getLeaseTermDates(tenant);
 
   // Generate contract as image using canvas
   const generateContractImage = async () => {
@@ -331,7 +333,15 @@ function LeaseAgreementModal({ isOpen, onClose, tenant, room, settings }) {
                   <div>
                     <p className="font-bold text-blue-800 uppercase text-sm mb-2">Term of Lease</p>
                     <p className="text-gray-700">
-                      The term of this lease shall begin on <span className="bg-yellow-100 px-1 font-bold">{formatDate(tenant?.moveInDate)}</span>.
+                      The term of this lease shall begin on{' '}
+                      <span className="bg-yellow-100 px-1 font-bold">{formatDate(leaseTerm.startDate)}</span>
+                      {leaseTerm.endDate && (
+                        <>
+                          {' '}and end on{' '}
+                          <span className="bg-yellow-100 px-1 font-bold">{formatDate(leaseTerm.endDate)}</span>
+                        </>
+                      )}
+                      .
                     </p>
                   </div>
                 </div>
